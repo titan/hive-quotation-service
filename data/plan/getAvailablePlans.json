@@ -1,0 +1,18 @@
+[
+  {
+    "title": "主计划",
+    "description": "自驾车意外|驾乘通赔|互助1年",
+    "image": "https://www.baidu.com/img/bd_logo1.png",
+    "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
+    "target_title": "拥有良好驾驶习惯的北京六环内行驶车辆",
+    "target_description": "<div>为保障整体计划参与者利益，将严格控制加入人群 <br/> <ul> <li>北京六环内行驶车辆</li> <li>最近2年未在保险公司出险</li> <li>从未发生过酒驾、闯红灯等严重交通违章行为</li> <li>驾驶人拥有2年以上驾龄或驾驶里程超过20000公里</li> </ul> </div>",
+    "scope_title": "机动车车辆损失、机动车车辆盗抢等保障",
+    "scope_description": "<ul><li>机动车车辆损失</li><li>机动车车辆盗抢等保障</li></ul>",
+    "mode_title": "驾驶人与车辆绑定模式",
+    "mode_description": "<ul><li>驾驶人</li><li>车辆绑定模式</li></ul>",
+    "period_title": "计划生效起365天内",
+    "period_description": "<ul><li>计划生效起365天内</li><li>计划生效起365天内</li></ul>",
+    "period": 365,
+    "joined_amount": 1000
+  }
+]
