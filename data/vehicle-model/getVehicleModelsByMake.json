@@ -1,0 +1,109 @@
+[
+  {
+    "range": "Forfour Hatchback",
+    "models": [
+      {
+        "model": "Forfour Hatchback",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.0"
+        ]
+      },
+      {
+        "model": "Forfour Hatchback Forfour Night Sky Hatchback",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.0",
+          "1.5"
+        ]
+      },
+      {
+        "model": "Forfour Hatchback Special Editions",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.0",
+          "1.5"
+        ]
+      }
+    ]
+  },
+  {
+    "range": "Fortwo Cabrio",
+    "models": [
+      {
+        "model": "Fortwo Cabrio (New 2016 Model)",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.5"
+        ]
+      },
+      {
+        "model": "Fortwo Cabrio (2007-2014)",
+        "gearbox": [
+          "manual",
+          "automatic"
+        ],
+        "displacement": [
+          "1.5",
+          "2.0"
+        ]
+      }
+    ]
+  },
+  {
+    "range": "Fortwo Coupe",
+    "models": [
+      {
+        "model": "Fortwo Coupe",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.0"
+        ]
+      },
+      {
+        "model": "Fortwo Coupe (2007-2014)",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.0",
+          "1.2",
+          "1.5"
+        ]
+      },
+      {
+        "model": "Fortwo Coupe Special Editions",
+        "gearbox": [
+          "automatic"
+        ],
+        "displacement": [
+          "1.0",
+          "1.2",
+          "1.5"
+        ]
+      },
+      {
+        "model": "Fortwo Coupe Special Editions (2007-2014)",
+        "gearbox": [
+          "manual",
+          "automatic"
+        ],
+        "displacement": [
+          "1.0",
+          "1.2",
+          "1.5"
+        ]
+      }
+    ]
+  }
+]
