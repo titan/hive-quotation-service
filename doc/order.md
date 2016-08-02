@@ -43,6 +43,8 @@
 |service-ratio|float|服务费率|
 |price|float|总价|
 |actual-price|float|实付|
+|private-balance|float|小蜂巢资金|
+|public-balance|float|大蜂巢资金|
 
 ## 接口
 

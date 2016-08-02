@@ -1,0 +1,14 @@
+{
+  "small": {
+    "private-balance": 0,
+    "public-balance": 1,
+    "population": 1,
+    "apportion-ratio": 0.01
+  },
+  "big": {
+    "private-balance": 0,
+    "public-balance": 1,
+    "population": 10,
+    "apportion-ratio": 0.01
+  }
+}

@@ -35,5 +35,7 @@
   },
   "service_ratio": 0.2,
   "price": 5000,
-  "actual_price": 4000
+  "actual_price": 4000,
+  "private_balance": 1000,
+  "public_balance": 3000
 }
