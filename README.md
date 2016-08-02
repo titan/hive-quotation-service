@@ -1,8 +1,8 @@
 MockServer
 ==========
 
-MockServer 是蜂巢互助服务仿真程序，通过 rpc.js 在页面中调用，可得到预先保存在
-data 目录下的仿真数据。
+MockServer 是蜂巢互助服务仿真程序，通过 vue-hive-rpc 插件在页面中调用，可得到预
+先保存在 data 目录下的仿真数据。
 
 设置
 ----
@@ -31,4 +31,5 @@ data 目录下的仿真数据。
 文档
 ----
 
+[计划模块](doc/plan.md)
 [订单模块](doc/order.md)

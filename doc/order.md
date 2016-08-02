@@ -99,7 +99,12 @@ var service_ratio = 0.2;
 var price = 5000;
 var actual_price = 4000;
 
-rpc.call("order", "placeAnOrder", uid, pid, {owner: vehicle}, [driver], service_ratio, price, actual_price).then(console.log, console.log);
+rpc.call("order", "placeAnOrder", uid, pid, {owner: vehicle}, [driver], service_ratio, price, actual_price)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
 ```
 
 #### response
@@ -123,7 +128,12 @@ See [example](../data/order/placeAnOrder.json)
 
 ```javascript
 var order_id = "00000000-0000-0000-0000-000000000000";
-rpc.call("order", "getDetail", order_id).then(console.log, console.log);
+rpc.call("order", "getDetail", order_id)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
 ```
 
 #### response
