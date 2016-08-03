@@ -36,6 +36,12 @@
   "service_ratio": 0.2,
   "price": 5000,
   "actual_price": 4000,
+  "hive-ratio": 0.3,
   "private_balance": 1000,
-  "public_balance": 3000
+  "public_balance": 3000,
+  "duration-begin": "2016-08-01T00:00:00.000Z",
+  "duration-end": "2017-08-01T00:00:00.000Z",
+  "discount": 1000,
+  "discount-ratio": 0.9,
+  "hive-id": "00000000-0000-0000-0000-000000000000"
 }

@@ -46,8 +46,16 @@
 |service-ratio|float|服务费率|
 |price|float|总价|
 |actual-price|float|实付|
+|hive-ratio|float|划分大小蜂巢的比例|
 |private-balance|float|小蜂巢资金|
 |public-balance|float|大蜂巢资金|
+|duration-begin|iso8601|保障期开始|
+|duration-end|iso8601|保障期结束|
+|discount|float|折扣|
+|discount-ratio|float|折扣率|
+|hive-id|uuid|蜂巢 ID|
+
+discount 和 discount-ratio 二选一
 
 ## 接口
 
