@@ -29,6 +29,9 @@
 |phone|string|手机号|
 |identity-frontal-view|string|身份证正面照|
 |identity-rear-view|string|身份证背面照|
+|license-frontal-view|string|驾照正面照|
+|license-rear-view|string|驾照背面照|
+|driving-years|integer|实际驾龄|
 
 ### order
 
