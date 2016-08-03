@@ -23,7 +23,9 @@
     "identity_no": "xxxxxxxxxxxxxxxxxxxxxxxxx",
     "phone": "13723687462",
     "identity_frontal_view": "http://aliyun.com/xxx.png",
-    "identity_rear_view": "http://aliyun.com/yyy.png"
+    "identity_rear_view": "http://aliyun.com/yyy.png",
+    "license_frontal_view": "http://aliyun.com/xxx.png",
+    "license_rear_view": "http://aliyun.com/yyy.png"
   },
   "driver": {
     "name": "王宝强",
@@ -31,7 +33,9 @@
     "identity_no": "xxxxxxxxxxxxxxxxxxxxxxxxx",
     "phone": "13723687462",
     "identity_frontal_view": "http://aliyun.com/xxx.png",
-    "identity_rear_view": "http://aliyun.com/yyy.png"
+    "identity_rear_view": "http://aliyun.com/yyy.png",
+    "license_frontal_view": "http://aliyun.com/xxx.png",
+    "license_rear_view": "http://aliyun.com/yyy.png"
   },
   "service_ratio": 0.2,
   "price": 5000,
