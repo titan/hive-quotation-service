@@ -28,7 +28,8 @@
 |----|----|----|
 |title|string|标题|
 |description|string|描述|
-|price|float|价格|
+|price|float|价格(随车型变化)|
+|sum-insured|float|保额(随车型变化)|
 
 ## 接口
 
@@ -95,12 +96,14 @@ See [example](../data/plan/getJoinedPlans.json)
 |name|type|note|
 |----|----|----|
 |pid|uuid|计划 ID|
+|mid|uuid|车型 ID|
 
 ##### example
 
 ```javascript
 var pid = "00000000-0000-0000-0000-000000000000";
-rpc.call("plan", "getPlanItems", pid)
+var mid = "00000000-0000-0000-0000-000000000000";
+rpc.call("plan", "getPlanItems", pid, mid)
   .then(function (data) {
 
   }, function (error) {
