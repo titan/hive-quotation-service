@@ -3,30 +3,30 @@
     "no": "0000000001",
     "type": 1,
     "description": "用户“蜂大宝”申请“主计划”互助",
-    "occurred-at": "2016-08-01T00:00:00.000Z",
-    "private-apportion-ratio": 0.1,
-    "private-fee": -2000,
-    "public-apportion-ratio": 0.01,
-    "public-fee": 0
+    "occurred_at": "2016-08-01T00:00:00.000Z",
+    "small_hive_apportion_ratio": 0.1,
+    "small_hive_fee": -2000,
+    "big_hive_apportion_ratio": 0.01,
+    "big_hive_fee": 0
   },
   {
     "no": "0000000002",
     "type": 1,
     "description": "用户“蜂小宝”申请“主计划”互助",
-    "occurred-at": "2016-08-01T00:00:00.000Z",
-    "private-apportion-ratio": 0.1,
-    "private-fee": -2000,
-    "public-apportion-ratio": 0.01,
-    "public-fee": 0
+    "occurred_at": "2016-08-01T00:00:00.000Z",
+    "small_hive_apportion_ratio": 0.1,
+    "small_hive_fee": -2000,
+    "big_hive_apportion_ratio": 0.01,
+    "big_hive_fee": 0
   },
   {
     "no": "0000000003",
     "type": 2,
     "description": "小蜂巢人员变动，个人资金比例调整",
-    "occurred-at": "2016-08-01T00:00:00.000Z",
-    "private-apportion-ratio": 0.3,
-    "private-fee": 990,
-    "public-apportion-ratio": 0.01,
-    "public-fee": 2000
+    "occurred_at": "2016-08-01T00:00:00.000Z",
+    "small_hive_apportion_ratio": 0.3,
+    "small_hive_fee": 990,
+    "big_hive_apportion_ratio": 0.01,
+    "big_hive_fee": 2000
   }
 ]

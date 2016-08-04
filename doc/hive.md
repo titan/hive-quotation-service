@@ -24,7 +24,7 @@
 |----|----|----|
 |apportion-ratio|float|分摊比例(每日更新)|
 |population|integer|人口数量|
-|private-balance|float|个人余额(从缓存中读取)|
+|personal-balance|float|个人余额(从缓存中读取)|
 |public-balance|float|互助基金(从缓存中读取)|
 
 ### hive-event
@@ -35,10 +35,10 @@
 |type|integer|事件类型|
 |description|string|事件描述|
 |occurred-at|iso8601|事件发生时间|
-|private-apportion-ratio|float|小蜂巢分摊比例|
-|private-fee|float|小蜂巢互助基金|
-|public-apportion-ratio|float|大蜂巢分摊比例|
-|public-fee|float|大蜂巢互助基金|
+|small-hive-apportion-ratio|float|小蜂巢分摊比例|
+|small-hive-fee|float|小蜂巢互助基金|
+|big-hive-apportion-ratio|float|大蜂巢分摊比例|
+|big-hive-fee|float|大蜂巢互助基金|
 
 ## 接口
 
@@ -155,6 +155,6 @@ rpc.call("hive", "getTransactionHistory", uid)
 
 |name|type|note|
 |----|----|----|
-|events|[hive-events]||
+|events|[hive-event]||
 
 See [example](../data/hive/getTransactionHistory.json)

@@ -47,8 +47,8 @@
 |price|float|总价|
 |actual-price|float|实付|
 |hive-ratio|float|划分大小蜂巢的比例|
-|private-balance|float|小蜂巢资金|
-|public-balance|float|大蜂巢资金|
+|small-hive-balance|float|小蜂巢资金|
+|big-hive-balance|float|大蜂巢资金|
 |duration-begin|iso8601|保障期开始|
 |duration-end|iso8601|保障期结束|
 |discount|float|折扣|
@@ -79,34 +79,34 @@ discount 和 discount-ratio 二选一
 var uid = "00000000-0000-0000-0000-000000000000";
 var pid = "00000000-0000-0000-0000-000000000000";
 var vehicle = {
-  license_no: "京A00000";
-  model: "江南奥拓";
-  vin: "0";
-  engine_no: "0";
-  register_date: "2016-08-01T00:00:00.000Z";
-  average_mileage: "1万公里";
-  fuel_type: "汽油";
-  receipt_no: "0";
-  receipt_date: "2016-08-01T00:00:00.000Z";
-  last_insurance_company: "平安保险";
-  vehicle_license_frontal_view: "http://aliyun.com/xxx.png";
-  vehicle_license_rear_view: "http://aliyun.com/yyy.png";
+  license_no: "京A00000",
+  model: "江南奥拓",
+  vin: "0",
+  engine_no: "0",
+  register_date: "2016-08-01T00:00:00.000Z",
+  average_mileage: "1万公里",
+  fuel_type: "汽油",
+  receipt_no: "0",
+  receipt_date: "2016-08-01T00:00:00.000Z",
+  last_insurance_company: "平安保险",
+  vehicle_license_frontal_view: "http://aliyun.com/xxx.png",
+  vehicle_license_rear_view: "http://aliyun.com/yyy.png"
 };
 var owner = {
-  name: "王宝强";
-  gender: "男";
-  identity_no: "xxxxxxxxxxxxxxxxxxxxxxxxx";
-  phone: "13723687462";
-  identity_frontal_view: "http://aliyun.com/xxx.png";
-  identity_rear_view: "http://aliyun.com/yyy.png";
+  name: "王宝强",
+  gender: "男",
+  identity_no: "xxxxxxxxxxxxxxxxxxxxxxxxx",
+  phone: "13723687462",
+  identity_frontal_view: "http://aliyun.com/xxx.png",
+  identity_rear_view: "http://aliyun.com/yyy.png"
 };
 var driver = {
-  name: "王宝强";
-  gender: "男";
-  identity_no: "xxxxxxxxxxxxxxxxxxxxxxxxx";
-  phone: "13723687462";
-  identity_frontal_view: "http://aliyun.com/xxx.png";
-  identity_rear_view: "http://aliyun.com/yyy.png";
+  name: "王宝强",
+  gender: "男",
+  identity_no: "xxxxxxxxxxxxxxxxxxxxxxxxx",
+  phone: "13723687462",
+  identity_frontal_view: "http://aliyun.com/xxx.png",
+  identity_rear_view: "http://aliyun.com/yyy.png"
 };
 var service_ratio = 0.2;
 var price = 5000;
