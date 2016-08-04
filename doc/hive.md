@@ -27,6 +27,18 @@
 |private-balance|float|个人余额(从缓存中读取)|
 |public-balance|float|互助基金(从缓存中读取)|
 
+### hive-event
+
+|name|type|note|
+|no|string|事件编号|
+|type|integer|事件类型|
+|description|string|事件描述|
+|occurred-at|iso8601|事件发生时间|
+|private-apportion-ratio|float|小蜂巢分摊比例|
+|private-fee|float|小蜂巢互助基金|
+|public-apportion-ratio|float|大蜂巢分摊比例|
+|public-fee|float|大蜂巢互助基金|
+
 ## 接口
 
 ### 获得小蜂巢(健康)状态 getSmallHiveStatus
@@ -117,3 +129,31 @@ rpc.call("hive", "getHiveInfo", uid)
 大小蜂巢中的个人余额其实是一样的。
 
 See [example](../data/hive/getHiveInfo.json)
+
+### 获得资金变动记录 getTransactionHistory
+
+#### request
+
+|name|type|note|
+|----|----|----|
+|uid|uuid|用户 ID|
+
+##### example
+
+```javascript
+var uid = "00000000-0000-0000-0000-000000000000";
+rpc.call("hive", "getTransactionHistory", uid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+|name|type|note|
+|----|----|----|
+|events|[hive-events]||
+
+See [example](../data/hive/getTransactionHistory.json)
