@@ -30,6 +30,7 @@
 ### hive-event
 
 |name|type|note|
+|----|----|----|
 |no|string|事件编号|
 |type|integer|事件类型|
 |description|string|事件描述|
