@@ -16,7 +16,7 @@
 |type|integer|帐号类型|
 |vid|uuid|帐号对应车辆 ID|
 |balance0|float|余额0|
-|balance1|float|余额0|
+|balance1|float|余额1|
 
 帐号类型
 
@@ -80,7 +80,7 @@ rpc.call("wallet", "getWallet", uid)
 |----|----|----|
 |wallet|wallet|Wallet Information|
 
-See [exampel](../data/wallet/getWallet.json)
+See [example](../data/wallet/getWallet.json)
 
 ### 获得帐号列表 getAccounts
 
