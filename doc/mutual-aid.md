@@ -9,10 +9,9 @@
 |city|string|市|
 |district|string|区|
 |street|string|街道|
-|driver|string|驾驶员姓名|
+|driver|person|驾驶员|
 |phone|string|联系电话|
-|license|string|车牌号|
-|engine-no|string|发动机号|
+|vehicle|vehicle|车|
 |occurred-at|iso8601|报案时间|
 |responsibility|string|本车责任|
 |situation|string|出险情形|
@@ -22,8 +21,12 @@
 |vehicle-frontal-view|string|车辆正面照片|
 |driver-view|string|驾驶员现场照片|
 |driver-license-view|string|驾驶证照片|
-|status|string|互助状态|
+|status|integer|互助状态|
 |recompense|mutual-aid-recompense|扣费记录|
+
+互助状态转换图:
+
+![互助状态转换图](../img/mutual-aid-status.svg)
 
 ### mutual-aid-recompense
 
@@ -37,15 +40,6 @@
 |big-hive-balance|float|大蜂巢余额|
 |paid-at|date|支付日期|
 
-### mutual-aid-event
-
-|name|type|note|
-|----|----|----|
-|uid|uuid|用户 ID|
-|pid|uuid|计划 ID|
-|type|integer|事件类型|
-|data|object|事件类型相关数据|
-
 ## 接口
 
 ### 申请互助 applyForMutualAid
@@ -57,10 +51,9 @@
 |city|string|市|
 |district|string|区|
 |street|string|街道|
-|driver|string|驾驶员姓名|
+|driver|uuid|司机 ID|
 |phone|string|联系电话|
-|license-no|string|车牌号|
-|engine-no|string|发动机号|
+|vehicle|uuid|车辆 ID|
 |occurred-at|iso8601|报案时间|
 |responsibility|string|本车责任|
 |situation|string|出险情形|
@@ -78,10 +71,9 @@ var aid = {
   city: "北京",
   district: "东城区",
   street: "东直门",
-  driver: "王宝强",
+  driver: "00000000-0000-0000-0000-000000000000",
   phone: "13723687462",
-  license_no: "京A00000",
-  engine_no: "0",
+  vehicle: "00000000-0000-0000-0000-000000000000",
   occurred_at: "2016-08-01T00:00:00.000Z",
   responsibility: "全部责任",
   situation: "追尾",
