@@ -156,3 +156,40 @@ rpc.call("order", "getDetail", order_id)
 |order|order|Order 详情|
 
 See [example](../data/order/getDetail.json)
+
+### 增加驾驶人 addDriver
+
+#### request
+
+|name|type|note|
+|----|----|----|
+|driver|person|驾驶人|
+
+##### example
+
+```javascript
+var driver = {
+  name: "王宝强",
+  gender: "男",
+  identity_no: "xxxxxxxxxxxxxxxxxxxxxxxxx",
+  phone: "13723687462",
+  identity_frontal_view: "http://aliyun.com/xxx.png",
+  identity_rear_view: "http://aliyun.com/yyy.png"
+};
+
+rpc.call("order", "addDriver", driver)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
+#### response
+
+|name|type|note|
+|----|----|----|
+|okay|boolean|是否增加成功|
+
+See [example](../data/order/addDriver.json)
