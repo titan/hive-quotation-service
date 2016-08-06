@@ -37,6 +37,6 @@
   "vehicle_frontal_view": "http://aliyun.com/2.png",
   "driver_view": "http://aliyun.com/3.png",
   "driver_license_view": "http://aliyun.com/4.png",
-  "status": 1,
+  "state": 1,
   "recompense": null
 }

@@ -21,12 +21,12 @@
 |vehicle-frontal-view|string|车辆正面照片|
 |driver-view|string|驾驶员现场照片|
 |driver-license-view|string|驾驶证照片|
-|status|integer|互助状态|
+|state|integer|互助状态|
 |recompense|mutual-aid-recompense|扣费记录|
 
 互助状态转换图:
 
-![互助状态转换图](../img/mutual-aid-status.png)
+![互助状态转换图](../img/mutual-aid-states.png)
 
 ### mutual-aid-recompense
 
