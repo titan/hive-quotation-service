@@ -26,7 +26,7 @@
 
 互助状态转换图:
 
-![互助状态转换图](../img/mutual-aid-status.svg)
+![互助状态转换图](../img/mutual-aid-status.png)
 
 ### mutual-aid-recompense
 
@@ -116,7 +116,7 @@ See [example](../data/mutual-aid/applyForMutualAid.json)
 ```javascript
 var uid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("mutual-aid", "getMutualAids", 0, 10)
+rpc.call("mutual-aid", "getMutualAids", uid, 0, 10)
   .then(function (result) {
 
   }, function (error) {
