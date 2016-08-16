@@ -113,6 +113,8 @@ rpc.call("wallet", "getAccounts", uid)
 
 See [example](../data/wallet/getAccounts.json)
 
+注意: 帐号对应 balance0，balance1 的含义请参考前文的数据结构。
+
 
 ### 获得钱包交易日志列表 getTransactions
 
