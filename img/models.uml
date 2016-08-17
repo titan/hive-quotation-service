@@ -1,0 +1,37 @@
+@startuml
+object User
+object Hive
+object Plan
+object PlanItem
+object Owner
+object Driver
+object Vehicle
+object VehicleModel
+object MutualAid
+object Wallet
+object Transaction
+
+User "1" --> "many" Order : has >
+
+User --> Wallet : has >
+
+Order --> Plan : belongs >
+Order --> Vehicle
+Order "many" --> "1" Hive : belongs >
+
+Owner "1" --> "many" Vehicle : has >
+
+User "1" --> "many" MutualAid : apply >
+
+Plan "1" --> "many" PlanItem : has >
+
+Vehicle --> VehicleModel : belongs >
+Vehicle "1" --> "many" Driver : has >
+
+Wallet "1" --> "many" Account : has >
+Account "1" --> "many" Transaction : has >
+
+MutualAid --> Driver
+MutualAid --> Vehicle
+
+@enduml
