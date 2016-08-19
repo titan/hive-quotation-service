@@ -7,7 +7,6 @@
 |name|type|note|
 |----|----|----|
 |name|string|蜂巢名称|
-|pid|uuid|计划|
 |users|[uuid]|参与用户|
 |founder|uuid|创始人|
 
