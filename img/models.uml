@@ -1,6 +1,8 @@
 @startuml
 object User
-object Hive
+object Group {
+  apportion-ratio
+}
 object Plan
 object PlanItem
 object Owner
@@ -10,14 +12,20 @@ object VehicleModel
 object MutualAid
 object Wallet
 object Transaction
+object Order {
+  origin-money
+}
+object Account {
+  saving-money
+}
 
 User "1" --> "many" Order : has >
 
 User --> Wallet : has >
 
 Order --> Plan : belongs >
-Order --> Vehicle
-Order "many" --> "1" Hive : belongs >
+Order "1" --> "1" Vehicle
+Order "many" --> "1" Group : belongs >
 
 Owner "1" --> "many" Vehicle : has >
 
@@ -30,6 +38,7 @@ Vehicle "1" --> "many" Driver : has >
 
 Wallet "1" --> "many" Account : has >
 Account "1" --> "many" Transaction : has >
+Order -- Account
 
 MutualAid --> Driver
 MutualAid --> Vehicle
