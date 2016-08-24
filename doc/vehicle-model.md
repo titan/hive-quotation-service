@@ -2,35 +2,45 @@
 
 ## 数据结构
 
-### vehicle-model
+### vehicles
 
 |name|type|note|
 |----|----|----|
-|range|string|车系|
-|models|[model]|车型|
-
-### model
-
-|name|type|note|
-|----|----|----|
-|model|string|车型名称|
-|gearbox|[string]|可选变速箱|
-|displacement|[string]|可选排量|
+|vinCode|string|VIN码|
+|vehicleCode|string|车型代码|
+|vehicleName|string|车型名称|
+|brandName|string|品牌名称|
+|familyName|string|车系名称|
+|groupName|string|车组名称|
+|pl|string|排量|
+|engineDesc|string|发动机描述|
+|engineModel|string|发动机型号|
+|inairform|string|进气形式|
+|arrayType|string|气缸排列形式|
+|valveNum|string|气门数|
+|fuelJetType|string|燃油类型|
+|supplyOil|string|供油方式|
+|drivenType|string|驱动形式|
+|gearboxName|string|变速箱类型|
+|gearNum|string|变速器档数|
+|bodyType|string|车身结构|
+|doorNum|string|门数|
+|wheelbase|string|轴距|
+|yearPattern|string|车款|
+|cfgLevel|string|配置级别|
 
 ## 接口
 
-### 按厂商获得车型 getVehicleModelsByMake
-
-#### request
+### 获得车型 getVehicleModelsByMake
 
 |name|type|note|
 |----|----|----|
-|make|string|厂商|
+|vinCode|string|VIN码|
 
 ##### example
 
 ```javascript
-var uid = "Smart";
+var vinCode = "";
 
 rpc.call("vehicle-model", "getVehicleModelsByMake", make)
   .then(function (result) {
