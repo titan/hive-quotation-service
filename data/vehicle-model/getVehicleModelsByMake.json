@@ -1,109 +1,50 @@
 [
   {
-    "range": "Forfour Hatchback",
-    "models": [
-      {
-        "model": "Forfour Hatchback",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.0"
-        ]
-      },
-      {
-        "model": "Forfour Hatchback Forfour Night Sky Hatchback",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.0",
-          "1.5"
-        ]
-      },
-      {
-        "model": "Forfour Hatchback Special Editions",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.0",
-          "1.5"
-        ]
-      }
-    ]
+    "vinCode":"LSVFA49J232037048",
+    "vehicleCode":"I0000000000000000250000000000040",
+    "vehicleName":"宝来FV7162F轿车",
+    "brandName":"大众",
+    "familyName":"宝来",
+    "bodyType":"三厢",
+    "engineDesc":"1.6L",
+    "gearboxName":"手动档",
+    "yearPattern":"2006",
+    "groupName":"宝来GP 三厢(06/07-08/09)",
+    "cfgLevel":"时尚型",
+    "pl":"1.595",
+    "engineModel":"一汽-大众BJH,一汽-大众BWG",
+    "arrayType":"L4",
+    "valveNum":"2",
+    "fuelJetType":"多点电喷",
+    "drivenType":"前置前驱",
+    "gearNum":"5",
+    "wheelbase":"2513",
+    "doorNum":"2",
+    "supplyOil":"电喷",
+    "inairform":"自然吸气"
   },
-  {
-    "range": "Fortwo Cabrio",
-    "models": [
-      {
-        "model": "Fortwo Cabrio (New 2016 Model)",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.5"
-        ]
-      },
-      {
-        "model": "Fortwo Cabrio (2007-2014)",
-        "gearbox": [
-          "manual",
-          "automatic"
-        ],
-        "displacement": [
-          "1.5",
-          "2.0"
-        ]
-      }
-    ]
-  },
-  {
-    "range": "Fortwo Coupe",
-    "models": [
-      {
-        "model": "Fortwo Coupe",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.0"
-        ]
-      },
-      {
-        "model": "Fortwo Coupe (2007-2014)",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.0",
-          "1.2",
-          "1.5"
-        ]
-      },
-      {
-        "model": "Fortwo Coupe Special Editions",
-        "gearbox": [
-          "automatic"
-        ],
-        "displacement": [
-          "1.0",
-          "1.2",
-          "1.5"
-        ]
-      },
-      {
-        "model": "Fortwo Coupe Special Editions (2007-2014)",
-        "gearbox": [
-          "manual",
-          "automatic"
-        ],
-        "displacement": [
-          "1.0",
-          "1.2",
-          "1.5"
-        ]
-      }
-    ]
+{
+    "vinCode":"LSVFA49J232037042",
+    "vehicleCode":"I0000000000000001140000000000025",
+    "vehicleName":"宝来FV7162F轿车",
+    "brandName":"大众",
+    "familyName":"宝来",
+    "bodyType":"三厢",
+    "engineDesc":"1.6L",
+    "gearboxName":"手动档",
+    "yearPattern":"2006",
+    "groupName":"宝来GP 三厢(06/07-08/09)",
+    "cfgLevel":"时尚型",
+    "pl":"1.595",
+    "engineModel":"一汽-大众BJH,一汽-大众BWG",
+    "arrayType":"L4",
+    "valveNum":"2",
+    "fuelJetType":"多点电喷",
+    "drivenType":"前置前驱",
+    "gearNum":"5",
+    "wheelbase":"2513",
+    "doorNum":"2",
+    "supplyOil":"电喷",
+    "inairform":"自然吸气"
   }
 ]
