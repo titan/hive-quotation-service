@@ -6,7 +6,9 @@
 
 |name|type|note|
 |----|----|----|
-|uid|uuid|用户 ID|
+|id|uuid|用户 ID|
+|openid|string|openid|
+|passsword|string|密码|
 |name|string|姓名|
 |gender|string|性别|
 |identity-no|string|身份证|
@@ -23,7 +25,7 @@
 
 |name|type|note|
 |----|----|----|
-|uid|uuid|用户 ID|
+|id|uuid|用户 ID|
 
 ##### example
 
