@@ -6,7 +6,6 @@
 
 |name|type|note|
 |----|----|----|
-|id|uuid|车型编号|
 |vehicle_code|string|车型代码|
 |vin_code|string|VIN码|
 |vehicle_name|string|车型名称|
@@ -36,12 +35,12 @@
 
 |name|type|note|
 |----|----|----|
-|id|uuid|车型编号|
+|vehicle_code|string|车型代码|
 
 ##### example
 
 ```javascript
-var id = "00000000-0000-0000-0000-000000000000";
+var id = "I0000000000000000250000000000041";
 
 rpc.call("vehicle-model", "getVehicleModelsByMake", make)
   .then(function (result) {
