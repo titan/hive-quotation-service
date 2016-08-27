@@ -100,7 +100,7 @@ See [example](../data/plan/getJoinedPlans.json)
 
 ```javascript
 var pid = "00000000-0000-0000-0000-000000000000";
-rpc.call("plan", "getPlanItems", pid, )
+rpc.call("plan", "getPlanItems", pid )
   .then(function (data) {
 
   }, function (error) {
