@@ -49,12 +49,10 @@ package Order {
   object DriverOrder {
     type = 1
   }
-  object OrderGroup
   object OrderItem
 }
 package Quotation {
   object Quotation
-  object QuotationGroup
   object QuotationItem
   object QuotationItemQuota
 }
@@ -73,7 +71,7 @@ User "1" --> "*" Quotation
 
 User --> Wallet : has >
 
-PlanOrder -> Vehicle
+Order -> Vehicle
 Group "1" <- "*" PlanOrder : belongs <
 Group "1" --> "*" Vehicle
 Group "1" --> "*" WaitingVehicle
@@ -81,12 +79,13 @@ Group "1" --> "*" AppliedVehicle
 WaitingVehicle - Vehicle
 AppliedVehicle - Vehicle
 
-PlanOrder "1" --> "*" OrderGroup
-OrderGroup "1" --> "*" OrderItem
+PlanOrder "1" --> "*" Plan
+OrderItem "*" --> "1" Plan
 
-PlanOrder -> Promotion : maybe apply >
+SaleOrder "1" --> "*" OrderItem
 
-Plan <- OrderGroup
+PlanOrder -> Promotion
+
 PlanItem <- OrderItem
 
 DriverOrder "1" -> "*" Driver
@@ -107,12 +106,11 @@ MutualAid -> Driver
 MutualAid -> Vehicle
 MutualAid "1" --> "*" Recompense
 
-Quotation "1" --> "*" QuotationGroup : has >
-QuotationGroup "1" --> "*" QuotationItem : has >
+Quotation "1" --> "*" Plan : has >
 QuotationItem "1" --> "*" QuotationItemQuota : has >
 
-QuotationGroup -> Plan
-QuotationItem -> PlanItem
+Plan "1" <-- "*" QuotationItem
+PlanItem <- QuotationItem
 
 Quotation -> Vehicle
 
