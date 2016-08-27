@@ -1,6 +1,8 @@
 [
   {
-    "uid": "00000000-0000-0000-0000-000000000000",
+    "id": "00000000-0000-0000-0000-000000000000",
+    "openid": "xxxxxxxx",
+    "password": "xxxxxxxx",
     "name": "vivian",
     "gender": "female",
     "identity-no": "xxxxxxxxxxxxxxxxxx",
@@ -9,7 +11,9 @@
     "portrait": "https://www.baidu.com/img/bd_logo1.png"
   },
   {
-    "uid": "00000000-0000-0000-0000-000000000000",
+    "id": "00000000-0000-0000-0000-000000000000",
+    "openid": "xxxxxxxx",
+    "password": "xxxxxxxx",
     "name": "bob",
     "gender": "male",
     "identity-no": "xxxxxxxxxxxxxxxxxx",
