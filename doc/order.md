@@ -26,6 +26,8 @@
 | vehicle     | vehicle      | 车辆              |
 | plan        | plan         | 对应的 plan       |
 | order-items | [order-item] | 包含的 order-item |
+| summary     | float        | 订单总额          |
+| payment     | float        | 订单实付          |
 | start\_at   | date         | 合约生效时间      |
 | stop\_at    | date         | 合约失效时间      |
 
@@ -68,6 +70,7 @@
 ### order states
 
 [![订单状态转换图](../img/order-states.svg)](订单状态转换图)
+[![订单状态转换图](../img/order-states.png)](订单状态转换图)
 
 ## 数据库结构
 
@@ -93,6 +96,8 @@
 | pid          | uuid      |      |         |         | plans     |
 | status\_code | int       |      | 0       |         |           |
 | status       | string    | ✓    |         |         |           |
+| summary      | float     |      | 0.0     |         |           |
+| payment      | float     |      |         |         |           |
 | start\_at    | timestamp |      | now     |         |           |
 | stop\_at     | timestamp |      | now     |         |           |
 | created\_at  | timestamp |      | now     |         |           |
