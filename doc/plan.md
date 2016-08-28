@@ -29,7 +29,6 @@
 |pid|uuid|计划类型|
 |title|string|标题|
 |description|string|描述|
-|price|float|价格|
 ## 接口
 
 ### 获取可加入计划
