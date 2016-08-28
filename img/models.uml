@@ -50,6 +50,7 @@ package Order {
     type = 1
   }
   object OrderItem
+  object OrderEvent
 }
 package Quotation {
   object Quotation
@@ -65,6 +66,7 @@ User -> Profile
 Order <|-- PlanOrder
 Order <|-- SaleOrder
 Order <|-- DriverOrder
+Order "1" --> "*" OrderEvent
 
 User "1" --> "*" Order : has >
 User "1" --> "*" Quotation

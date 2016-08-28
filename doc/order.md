@@ -4,14 +4,16 @@
 
 ### driver-order
 
-| name    | type     | note       |
-| ----    | ----     | ----       |
-| id      | uuid     | 主键       |
-| type    | int      | 订单类型 1 |
-| vehicle | vehicle  | 车辆       |
-| drivers | [driver] | 增加的司机 |
-| summary | float    | 订单总额   |
-| payment | float    | 订单实付   |
+| name        | type     | note         |
+| ----        | ----     | ----         |
+| id          | uuid     | 主键         |
+| type        | int      | 订单类型 1   |
+| status-code | int      | 订单状态编码 |
+| status      | string   | 订单状态     |
+| vehicle     | vehicle  | 车辆         |
+| drivers     | [driver] | 增加的司机   |
+| summary     | float    | 订单总额     |
+| payment     | float    | 订单实付     |
 
 ### sale-order
 
@@ -19,6 +21,8 @@
 | ----        | ----         | ----              |
 | id          | uuid         | 主键              |
 | type        | int          | 订单类型 2        |
+| status-code | int          | 订单状态编码      |
+| status      | string       | 订单状态          |
 | vehicle     | vehicle      | 车辆              |
 | plan        | plan         | 对应的 plan       |
 | order-items | [order-item] | 包含的 order-item |
@@ -27,19 +31,20 @@
 
 ### plan-order
 
-| name           | type      | note         |
-| ----           | ----      | ----         |
-| id             | uuid      | 主键         |
-| type           | int       | 订单类型 0   |
-| vehicle        | vehicle   | 车辆         |
-| plans          | [plan]    | 包含的 plan  |
+| name           |      type | note         |
+| ----           |      ---- | ----         |
+| id             |      uuid | 主键         |
+| type           |       int | 订单类型 0   |
+| status-code    |       int | 订单状态编码 |
+| vehicle        |   vehicle | 车辆         |
+| plans          |    [plan] | 包含的 plan  |
 | promotion      | promotion | 促销         |
-| service\_ratio | float     | 服务费率     |
-| summary        | float     | 订单总额     |
-| payment        | float     | 订单实付     |
-| expect\_at     | date      | 预计生效日期 |
-| start\_at      | date      | 合约生效时间 |
-| stop\_at       | date      | 合约失效时间 |
+| service\_ratio |     float | 服务费率     |
+| summary        |     float | 订单总额     |
+| payment        |     float | 订单实付     |
+| expect\_at     |      date | 预计生效日期 |
+| start\_at      |      date | 合约生效时间 |
+| stop\_at       |      date | 合约失效时间 |
 
 ### order-item
 
@@ -49,30 +54,44 @@
 | plan-item | plan-item | 对应的 plan-item |
 | price     | float     | 价格             |
 
+### order-event
+
+| name        | type | note                |
+| ----        | ---- | ----                |
+| id          | uuid | 主键                |
+| oid         | uuid | 订单 ID             |
+| uid         | uuid | 触发事件的人        |
+| data        | json | JSON 格式的事件数据 |
+| occurred-at | date | 事件发生时间        |
+
 ## 数据库结构
 
 ### driver-order
 
-| field       | type      | null | default | index   | reference |
-| ----        | ----      | ---- | ----    | ----    | ----      |
-| id          | uuid      |      |         | primary |           |
-| vid         | uuid      |      |         |         | vehicles  |
-| summary     | float     |      | 0.0     |         |           |
-| payment     | float     |      |         |         |           |
-| created\_at | timestamp |      | now     |         |           |
-| updated\_at | timestamp |      | now     |         |           |
+| field        | type      | null | default | index   | reference |
+| ----         | ----      | ---- | ----    | ----    | ----      |
+| id           | uuid      |      |         | primary |           |
+| vid          | uuid      |      |         |         | vehicles  |
+| status\_code | int       |      | 0       |         |           |
+| status       | string    | ✓    |         |         |           |
+| summary      | float     |      | 0.0     |         |           |
+| payment      | float     |      |         |         |           |
+| created\_at  | timestamp |      | now     |         |           |
+| updated\_at  | timestamp |      | now     |         |           |
 
 ### sale-order
 
-| field       | type      | null | default | index   | reference |
-| ----        | ----      | ---- | ----    | ----    | ----      |
-| id          | uuid      |      |         | primary |           |
-| vid         | uuid      |      |         |         | vehicles  |
-| pid         | uuid      |      |         |         | plans     |
-| start\_at   | timestamp |      | now     |         |           |
-| stop\_at    | timestamp |      | now     |         |           |
-| created\_at | timestamp |      | now     |         |           |
-| updated\_at | timestamp |      | now     |         |           |
+| field        | type      | null | default | index   | reference |
+| ----         | ----      | ---- | ----    | ----    | ----      |
+| id           | uuid      |      |         | primary |           |
+| vid          | uuid      |      |         |         | vehicles  |
+| pid          | uuid      |      |         |         | plans     |
+| status\_code | int       |      | 0       |         |           |
+| status       | string    | ✓    |         |         |           |
+| start\_at    | timestamp |      | now     |         |           |
+| stop\_at     | timestamp |      | now     |         |           |
+| created\_at  | timestamp |      | now     |         |           |
+| updated\_at  | timestamp |      | now     |         |           |
 
 ### plan-order
 
@@ -81,6 +100,8 @@
 | id             | uuid      |      |         | primary |            |
 | vid            | uuid      |      |         |         | vehicles   |
 | pmid           | uuid      | ✓    |         |         | promotions |
+| status\_code   | int       |      | 0       |         |            |
+| status         | string    | ✓    |         |         |            |
 | service\_ratio | float     |      |         |         |            |
 | summary        | float     |      | 0.0     |         |            |
 | payment        | float     |      |         |         |            |
@@ -109,7 +130,44 @@
 注意：此表的 pid 不是 plan-id 的缩写，是 parent-id 的意思。
 可以成为 parent 的有 plan (对应 plan-order)，或者 sale-order。
 
+### order-event
+
+| field        | type      | null | default | index   | reference |
+| ----         | ----      | ---- | ----    | ----    | ----      |
+| id           | uuid      |      |         | primary |           |
+| oid          | uuid      |      |         |         |           |
+| uid          | uuid      |      |         |         |           |
+| data         | json      |      |         |         |           |
+| occurred\_at | timestamp |      |         |         |           |
+
 ## 缓存结构
+
+### driver-order
+
+| key                 | type       | value                  | note               |
+| ----                | ----       | ----                   | ----               |
+| driver-orders       | sorted set | (订单更新时间, 订单ID) | 司机订单汇总       |
+| driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的司机订单 |
+
+### sale-order
+
+| key                 | type       | value                  | note               |
+| ----                | ----       | ----                   | ----               |
+| driver-orders       | sorted set | (订单更新时间, 订单ID) | 代售订单汇总       |
+| driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的代售订单 |
+
+### plan-order
+
+| key                 | type       | value                  | note               |
+| ----                | ----       | ----                   | ----               |
+| driver-orders       | sorted set | (订单更新时间, 订单ID) | 计划订单汇总       |
+| driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的计划订单 |
+
+### order
+
+| key    | type | value               | note         |
+| ----   | ---- | ----                | ----         |
+| orders | hash | 订单ID => 订单 JSON | 所有订单实体 |
 
 ## 接口
 
