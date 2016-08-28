@@ -4,13 +4,14 @@
 
 ### plan
 
-|name|type|note|
-|----|----|----|
-|title|string|标题|
-|description|string|描述|
-|image|string|头图|
-|thumbnail|string|缩略图|
-|period|integer|互助期|
+| name         | type    | note       |
+| ----         | ----    | ----       |
+| title        | string  | 标题       |
+| description  | string  | 描述       |
+| image        | string  | 头图       |
+| thumbnail    | string  | 缩略图     |
+| period       | integer | 互助期     |
+| joined-count | integer | 已加入车辆 |
 
 
 ### plan-rule
@@ -30,6 +31,7 @@
 |title|string|标题|
 |description|string|描述|
 |price|float|价格|
+
 ## 接口
 
 ### 获取可加入计划
@@ -115,26 +117,4 @@ rpc.call("plan", "getPlanItems", pid )
 |plan-items|[plan-item]|plan 条目列表|
 
 See [example](../data/plan/getPlanItems.json)
-
-
-### 更新缓存内容
-
-#### request
-
-ctx
-
-##### example
-
-```javascript
-svc.call(ctx )
-  .then(function (data) {
-
-  }, function (error) {
-
-  });
-```
-
-#### response
-
-
 

@@ -31,20 +31,21 @@
 
 ### plan-order
 
-| name           |      type | note         |
-| ----           |      ---- | ----         |
-| id             |      uuid | 主键         |
-| type           |       int | 订单类型 0   |
-| status-code    |       int | 订单状态编码 |
-| vehicle        |   vehicle | 车辆         |
-| plans          |    [plan] | 包含的 plan  |
+| name           | type      | note         |
+| ----           | ----      | ----         |
+| id             | uuid      | 主键         |
+| type           | int       | 订单类型 0   |
+| status-code    | int       | 订单状态编码 |
+| status         | string    | 订单状态     |
+| vehicle        | vehicle   | 车辆         |
+| plans          | [plan]    | 包含的 plan  |
 | promotion      | promotion | 促销         |
-| service\_ratio |     float | 服务费率     |
-| summary        |     float | 订单总额     |
-| payment        |     float | 订单实付     |
-| expect\_at     |      date | 预计生效日期 |
-| start\_at      |      date | 合约生效时间 |
-| stop\_at       |      date | 合约失效时间 |
+| service\_ratio | float     | 服务费率     |
+| summary        | float     | 订单总额     |
+| payment        | float     | 订单实付     |
+| expect\_at     | date      | 预计生效日期 |
+| start\_at      | date      | 合约生效时间 |
+| stop\_at       | date      | 合约失效时间 |
 
 ### order-item
 
@@ -66,7 +67,7 @@
 
 ### order states
 
-![订单状态转换图](../img/order-states.svg)
+[![订单状态转换图](../img/order-states.svg)](订单状态转换图)
 
 ## 数据库结构
 
