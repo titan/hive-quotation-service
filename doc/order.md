@@ -66,7 +66,7 @@
 
 ### order states
 
-![订单状态转换图](img/order-states.svg)
+![订单状态转换图](../img/order-states.svg)
 
 ## 数据库结构
 
