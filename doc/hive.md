@@ -9,7 +9,7 @@
 |name|string|蜂巢名称|
 |users|[uuid]|参与用户|
 |founder|uuid|创始人|
-
+|establishment_time|date|创建时间|
 ### hive-status
 
 |name|type|note|
@@ -41,20 +41,20 @@
 
 ## 接口
 
-### 获得小蜂巢(健康)状态 getSmallHiveStatus
+### 获得蜂巢基本信息 getHives
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|uid|uuid|用户 ID|
+|hid|uuid|蜂巢ID|
 
 ##### example
 
 ```javascript
 
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("hive", "getSmallHiveStatus", uid)
+var hid = "00000000-0000-0000-0000-000000000000";
+rpc.call( "getSmallHiveStatus", hid)
   .then(function (result) {
 
   }, function (error) {
@@ -66,22 +66,25 @@ rpc.call("hive", "getSmallHiveStatus", uid)
 
 |name|type|note|
 |----|----|----|
-|status|hive-status|Hive Status|
+|hive|hive|hive|
 
 See [example](../data/hive/getSmallHiveStatus.json)
 
-### 获得大蜂巢(健康)状态 getBigHiveStatus
+### 获得蜂巢状态 getHiveStatus
 
 #### request
 
 |name|type|note|
 |----|----|----|
-||||
+|hid|uuid|蜂巢ID|
 
 ##### example
 
 ```javascript
-rpc.call("hive", "getBigHiveStatus")
+
+
+var hid = "00000000-0000-0000-0000-000000000000";
+rpc.call( "getHiveStatus"，hid)
   .then(function (result) {
 
   }, function (error) {
@@ -97,21 +100,22 @@ rpc.call("hive", "getBigHiveStatus")
 
 See [example](../data/hive/getBigHiveStatus.json)
 
-### 获得蜂巢信息 getHiveInfo
 
-包括大蜂巢和小蜂巢的信息。
+
+
+### 获得蜂巢信息 getHiveInfo
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|uid|uuid|用户 ID|
+|hid|hid|蜂巢 ID|
 
 ##### example
 
 ```javascript
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("hive", "getHiveInfo", uid)
+var hid = "00000000-0000-0000-0000-000000000000";
+rpc.call( "getHiveInfo", hid)
   .then(function (result) {
 
   }, function (error) {
@@ -123,26 +127,30 @@ rpc.call("hive", "getHiveInfo", uid)
 
 |name|type|note|
 |----|----|----|
-|small|hive-info|Small Hive Info|
-|big|hive-info|Big Hive Info|
+|info|hive-info|HiveInfo|
 
-大小蜂巢中的个人余额其实是一样的。
+
 
 See [example](../data/hive/getHiveInfo.json)
 
-### 获得资金变动记录 getTransactionHistory
+
+
+
+
+
+### 获得蜂巢事件 getHiveEvent
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|uid|uuid|用户 ID|
+|hid|uuid|蜂巢 ID|
 
 ##### example
 
 ```javascript
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("hive", "getTransactionHistory", uid)
+rpc.call( "getHiveEvent", hid)
   .then(function (result) {
 
   }, function (error) {
