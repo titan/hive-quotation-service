@@ -26,12 +26,13 @@
 |fuel_jet_type|string|燃油类型|
 |driven_type|string|驱动形式|
 
-### vehicles
+### vehicle
 
 |name|type|note|
 |----|----|----|
 |id|uuid|车ID|
-|owner|uuid|车主ID|
+|owner|person|车主ID|
+|owner|[person]|车主ID|
 |vehicle_code|string|车型代码|
 |license_no|string|车牌|
 |engine_no|string|发动机号|
@@ -49,7 +50,6 @@
 |----|----|----|
 |id|uuid|personID|
 |name|string|姓名|
-|is_owner|boolean|车主是否驾驶人|
 |identity_no|string|身份证|
 |phone|string|手机号|
 |identity_frontal_view|string|身份证正面照|
@@ -57,14 +57,6 @@
 |license_frontal_view|string|驾照正面照|
 |license_rear_view|string|驾照背面照|
 
-### drivers
-
-|name|type|note|
-|----|----|----|
-|id|uuid|驾驶人ID|
-|vid|uuid|车ID|
-|pid|uuid|personID|
-|is_primary|boolean|是否主要驾驶人|
 
 
 ## 接口
