@@ -4,20 +4,21 @@
 
 ### plan
 
-|name|type|note|
-|----|----|----|
-|title|string|标题|
-|description|string|描述|
-|image|string|头图|
-|thumbnail|string|缩略图|
-|rules|[plan-rule]|互助规则|
-|period|integer|互助期|
-|joined-amount|integer|已加入车辆|
+| name         | type    | note       |
+| ----         | ----    | ----       |
+| title        | string  | 标题       |
+| description  | string  | 描述       |
+| image        | string  | 头图       |
+| thumbnail    | string  | 缩略图     |
+| period       | integer | 互助期     |
+| joined-count | integer | 已加入车辆 |
+
 
 ### plan-rule
 
 |name|type|note|
 |----|----|----|
+|pid|uuid|计划类型|
 |name|string|名称|
 |title|string|标题|
 |description|string|描述|
@@ -26,10 +27,10 @@
 
 |name|type|note|
 |----|----|----|
+|pid|uuid|计划类型|
 |title|string|标题|
 |description|string|描述|
-|price|float|价格(随车型变化)|
-|sum-insured|float|保额(随车型变化)|
+|price|float|价格|
 
 ## 接口
 
@@ -96,14 +97,12 @@ See [example](../data/plan/getJoinedPlans.json)
 |name|type|note|
 |----|----|----|
 |pid|uuid|计划 ID|
-|mid|uuid|车型 ID|
 
 ##### example
 
 ```javascript
 var pid = "00000000-0000-0000-0000-000000000000";
-var mid = "00000000-0000-0000-0000-000000000000";
-rpc.call("plan", "getPlanItems", pid, mid)
+rpc.call("plan", "getPlanItems", pid )
   .then(function (data) {
 
   }, function (error) {
@@ -118,3 +117,4 @@ rpc.call("plan", "getPlanItems", pid, mid)
 |plan-items|[plan-item]|plan 条目列表|
 
 See [example](../data/plan/getPlanItems.json)
+

@@ -1,46 +1,123 @@
 @startuml
-object User
-object Group {
-  apportion-ratio
+package Profile {
+  object User
+  object Profile
 }
-object Plan
-object PlanItem
-object Owner
-object Driver
-object Vehicle
-object VehicleModel
-object MutualAid
-object Wallet
-object Transaction
-object Order {
-  origin-money
+package Group {
+  object Group {
+    apportion-ratio
+  }
+  object GroupEvent
+  object AppliedVehicle
+  object WaitingVehicle
 }
-object Account {
-  saving-money
+package Plan {
+  object Plan
+  object PlanItem
+  object PlanRule
+}
+package Vehicle {
+  object Person
+  object Driver {
+    primary?
+  }
+  object Vehicle {
+    owner
+  }
+  object VehicleModel
+}
+package MutualAid {
+  object MutualAid
+  object Recompense
+}
+package Wallet {
+  object Wallet
+  object Transaction
+  object Account {
+    saving-money
+  }
+}
+package Order {
+  object Order
+  object PlanOrder {
+    origin-money
+    type = 0
+  }
+  object SaleOrder {
+    type = 2
+  }
+  object DriverOrder {
+    type = 1
+  }
+  object OrderItem
+  object OrderEvent
+}
+package Quotation {
+  object Quotation
+  object QuotationItem
+  object QuotationItemQuota
+}
+package Promotion {
+  object Promotion
 }
 
-User "1" --> "many" Order : has >
+User -> Profile
+
+Order <|-- PlanOrder
+Order <|-- SaleOrder
+Order <|-- DriverOrder
+Order "1" --> "*" OrderEvent
+
+User "1" --> "*" Order : has >
+User "1" --> "*" Quotation
 
 User --> Wallet : has >
 
-Order --> Plan : belongs >
-Order "1" --> "1" Vehicle
-Order "many" --> "1" Group : belongs >
+Order -> Vehicle
+Group "1" <- "*" PlanOrder : belongs <
+Group "1" --> "*" Vehicle
+Group "1" --> "*" WaitingVehicle
+Group "1" --> "*" AppliedVehicle
+WaitingVehicle - Vehicle
+AppliedVehicle - Vehicle
 
-Owner "1" --> "many" Vehicle : has >
+PlanOrder "1" --> "*" Plan
+OrderItem "*" --> "1" Plan
 
-User "1" --> "many" MutualAid : apply >
+SaleOrder "1" --> "*" OrderItem
 
-Plan "1" --> "many" PlanItem : has >
+PlanOrder -> Promotion
 
-Vehicle --> VehicleModel : belongs >
-Vehicle "1" --> "many" Driver : has >
+PlanItem <- OrderItem
 
-Wallet "1" --> "many" Account : has >
-Account "1" --> "many" Transaction : has >
-Order -- Account
+DriverOrder "1" -> "*" Driver
 
-MutualAid --> Driver
-MutualAid --> Vehicle
+User "1" --> "*" MutualAid : apply >
+
+Plan "1" --> "*" PlanItem : has >
+Plan "1" --> "*" PlanRule : has >
+
+VehicleModel <-- Vehicle : belongs <
+Vehicle "1" --> "*" Driver : has >
+
+Wallet "1" --> "*" Account : has >
+Account "1" --> "*" Transaction : has >
+PlanOrder - Account
+
+MutualAid -> Driver
+MutualAid -> Vehicle
+MutualAid "1" --> "*" Recompense
+
+Quotation "1" --> "*" Plan : has >
+QuotationItem "1" --> "*" QuotationItemQuota : has >
+
+Plan "1" <-- "*" QuotationItem
+PlanItem <- QuotationItem
+
+Quotation -> Vehicle
+
+Driver --> Person : is >
+
+Group "1" --> "*" GroupEvent
 
 @enduml

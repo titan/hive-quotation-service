@@ -26,7 +26,7 @@
 |fuel_jet_type|string|燃油类型|
 |driven_type|string|驱动形式|
 
-### vehicles
+### vehicle
 
 |name|type|note|
 |----|----|----|
