@@ -64,6 +64,10 @@
 | data        | json | JSON 格式的事件数据 |
 | occurred-at | date | 事件发生时间        |
 
+### order states
+
+![订单状态转换图](img/order-states.svg)
+
 ## 数据库结构
 
 ### driver-order
