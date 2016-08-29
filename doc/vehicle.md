@@ -26,12 +26,13 @@
 |fuel_jet_type|string|燃油类型|
 |driven_type|string|驱动形式|
 
-### vehicles
+### vehicle
 
 |name|type|note|
 |----|----|----|
 |id|uuid|车ID|
-|owner|uuid|车主ID|
+|owner|person|车主ID|
+|drivers|[person]|驾驶人|
 |vehicle_code|string|车型代码|
 |license_no|string|车牌|
 |engine_no|string|发动机号|
@@ -49,7 +50,6 @@
 |----|----|----|
 |id|uuid|personID|
 |name|string|姓名|
-|is_owner|boolean|车主是否驾驶人|
 |identity_no|string|身份证|
 |phone|string|手机号|
 |identity_frontal_view|string|身份证正面照|
@@ -57,35 +57,9 @@
 |license_frontal_view|string|驾照正面照|
 |license_rear_view|string|驾照背面照|
 
-### drivers
-
-|name|type|note|
-|----|----|----|
-|id|uuid|驾驶人ID|
-|vid|uuid|车ID|
-|pid|uuid|personID|
-|is_primary|boolean|是否主要驾驶人|
 
 
 ## 接口
-
-### 获取报价提交表单 setVehicleInfoOnCard(新车已上牌)
-
-### 获取报价提交表单 setVehicleInfo(新车未上牌)
-
-### 提交驾驶人信息 setDriverInfo
-
-### 修改驾驶人信息 changeDriverInfo
-
-### 获取所有车信息 getVehicleInfos
-
-### 获取所有人信息 getPersonInfos
-
-### 获取某个车信息 getOneVehicleInfo
-
-### 获取某个人信息 getOnePersonInfo
-
-
 
 ### 获得车型 getVehicleModelsByMake
 
@@ -98,7 +72,7 @@
 ```javascript
 var id = "I0000000000000000250000000000041";
 
-rpc.call("vehicle-model", "getVehicleModelsByMake", make)
+rpc.call("vehicle", "getVehicleModelsByMake", id)
   .then(function (result) {
 
   }, function (error) {
@@ -112,20 +86,28 @@ rpc.call("vehicle-model", "getVehicleModelsByMake", make)
 |----|----|----|
 |vehicle-model|vehicle-model|Vehicle Model|
 
-See [example](../data/vehicle-model/getVehicleModelsByMake.json)
+See [example](../data/vehicle/getVehicleModelsByMake.json)
 
-### 获得车信息 getVehicleInfo
-
-|name|type|note|
-|----|----|----|
-|id|uuid|车ID|
+### 获取报价提交表单(新车已上牌) setVehicleInfoOnCard
 
 ##### example
 
 ```javascript
-var id = "00000000-0000-0000-0000-000000000000";
+var name = ""; 
+var identity_no = ""; 
+var phone = ""; 
+var vin_code = ""; 
+var cfg_level;
+var license_no = ""; 
+var engine_no = ""; 
+var register_date = ""; 
+var average_mileage = ""; 
+var is_transfer = "";
+var last_insurance_company = ""; 
+var insurance_due_date = "";
 
-rpc.call("vehicle", "getVehicleInfo",id)
+rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vin_code, cfg_level, license_no, engine_no, 
+  register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
   }, function (error) {
@@ -133,26 +115,27 @@ rpc.call("vehicle", "getVehicleInfo",id)
   });
 ```
 
-#### response
-
-|name|type|note|
-|----|----|----|
-|vehicle|vehicle|Vehicle|
-
-See [example](../data/vehicle-model/getVehicleInfo.json)
-
-### 获得person信息 getPersonInfo
-
-|name|type|note|
-|----|----|----|
-|id|uuid|perosnID|
+### 获取报价提交表单(新车未上牌) setVehicleInfo
 
 ##### example
 
 ```javascript
-var id = "00000000-0000-0000-0000-000000000000";
+var name = ""; 
+var identity_no = ""; 
+var phone = ""; 
+var vin_code = ""; 
+var cfg_level;
+var license_no = ""; 
+var engine_no = ""; 
+var average_mileage = ""; 
+var is_transfer = "";
+var receipt_no = ""; 
+var receipt_date = "";
+var last_insurance_company = ""; 
+var insurance_due_date = "";
 
-rpc.call("person", "getPersonInfo",id)
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vin_code, cfg_level, license_no, engine_no, 
+  register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
   }, function (error) {
@@ -160,26 +143,15 @@ rpc.call("person", "getPersonInfo",id)
   });
 ```
 
-#### response
+### 提交驾驶人信息 setDriverInfo
 
-|name|type|note|
-|----|----|----|
-|person|person|Person|
+var vid = ""; 
+var name = "";
+var identity_no = "";
+var phone = "";
+var is_primary = "";
 
-See [example](../data/vehicle-model/getPersonInfo.json)
-
-### 获得驾驶人 getDriverInfos
-
-|name|type|note|
-|----|----|----|
-|id|uuid|驾驶人ID|
-
-##### example
-
-```javascript
-var id = "00000000-0000-0000-0000-000000000000";
-
-rpc.call("drivers", "getDriver",id)
+rpc.call("vehicle", "setDriverInfo", vid, name,identity_no,phone,is_primary)
   .then(function (result) {
 
   }, function (error) {
@@ -187,10 +159,47 @@ rpc.call("drivers", "getDriver",id)
   });
 ```
 
-#### response
+### 修改驾驶人信息 changeDriverInfo
 
-|name|type|note|
-|----|----|----|
-|drivers|drivers|Drivers|
+var vid = ""; 
+var name = "";
+var identity_no = "";
+var phone = "";
 
-See [example](../data/vehicle-model/getDriver.json)
+rpc.call("vehicle", "changeDriverInfo", vid, name,identity_no,phone)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+### 获取所有车信息 getVehicleInfos
+
+##### example
+
+```javascript
+
+rpc.call("vehicle", "getVehicleInfos")
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+See [example](../data/vehicle/getVehicleInfos.json)
+
+### 获取驾驶人信息 getDriverPids
+
+
+```javascript
+var vid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("vehicle", "getDriverPids", vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
