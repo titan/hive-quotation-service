@@ -66,7 +66,7 @@ rpc.call("group" ,"getGroups", uid)
 
 |name|type|note|
 |----|----|----|
-|group|group|group|
+|group|group|Group|
 
 See [example](../data/hive/getSmallHiveStatus.json)
 
@@ -96,7 +96,7 @@ rpc.call("group", "getGroupStatus"，uid)
 
 |name|type|note|
 |----|----|----|
-|status|group-status|Group Status|
+|status|group-status|GroupStatus|
 
 See [example](../data/hive/getBigHiveStatus.json)
 
@@ -156,6 +156,6 @@ rpc.call("group", "getGroupEvent", uid)
 
 |name|type|note|
 |----|----|----|
-|events|[group-event]|
+|events|[group-event]|Groupevents|
 
 See [example](../data/hive/getTransactionHistory.json)
