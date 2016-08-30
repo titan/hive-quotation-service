@@ -31,7 +31,8 @@
 |name|type|note|
 |----|----|----|
 |id|uuid|车ID|
-|owner|person|车主ID|
+|user_id|user|用户|
+|owner|person|车主|
 |drivers|[person]|驾驶人|
 |vehicle_code|string|车型代码|
 |license_no|string|车牌|
@@ -96,6 +97,7 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 var name = ""; 
 var identity_no = ""; 
 var phone = ""; 
+var user_id = "";
 var vin_code = ""; 
 var cfg_level;
 var license_no = ""; 
@@ -106,7 +108,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vin_code, cfg_level, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, user_id, vin_code, cfg_level, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -123,6 +125,7 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vin_code, 
 var name = ""; 
 var identity_no = ""; 
 var phone = ""; 
+var user_id = "";
 var vin_code = ""; 
 var cfg_level;
 var license_no = ""; 
@@ -134,7 +137,7 @@ var receipt_date = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vin_code, cfg_level, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, user_id, vin_code, cfg_level, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
