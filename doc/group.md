@@ -1,8 +1,8 @@
-# Hive 模块
+# Group 模块
 
 ## 数据结构
 
-### hive
+### group
 
 |name|type|note|
 |----|----|----|
@@ -10,14 +10,14 @@
 |users|[uuid]|参与用户|
 |founder|uuid|创始人|
 |establishment_time|date|创建时间|
-### hive-status
+### group-status
 
 |name|type|note|
 |----|----|----|
 |percentage-of-period|integer|剩余互助期百分比|
 |percentage-of-balance|integer|互助金余额百分比|
 
-### hive-info
+### group-info
 
 |name|type|note|
 |----|----|----|
@@ -26,7 +26,7 @@
 |personal-balance|float|个人余额(从缓存中读取)|
 |public-balance|float|互助基金(从缓存中读取)|
 
-### hive-event
+### group-event
 
 |name|type|note|
 |----|----|----|
@@ -34,27 +34,27 @@
 |type|integer|事件类型|
 |description|string|事件描述|
 |occurred-at|iso8601|事件发生时间|
-|small-hive-apportion-ratio|float|小蜂巢分摊比例|
-|small-hive-fee|float|小蜂巢互助基金|
-|big-hive-apportion-ratio|float|大蜂巢分摊比例|
-|big-hive-fee|float|大蜂巢互助基金|
+|small-group-apportion-ratio|float|小蜂巢分摊比例|
+|small-group-fee|float|小蜂巢互助基金|
+|big-group-apportion-ratio|float|大蜂巢分摊比例|
+|big-group-fee|float|大蜂巢互助基金|
 
 ## 接口
 
-### 获得蜂巢基本信息 getHives
+### 获得蜂巢基本信息 getGroups
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|hid|uuid|蜂巢ID|
+|uid|uuid|用户ID|
 
 ##### example
 
 ```javascript
 
-var hid = "00000000-0000-0000-0000-000000000000";
-rpc.call( "getSmallHiveStatus", hid)
+var uid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group" ,"getGroups", uid)
   .then(function (result) {
 
   }, function (error) {
@@ -70,21 +70,21 @@ rpc.call( "getSmallHiveStatus", hid)
 
 See [example](../data/hive/getSmallHiveStatus.json)
 
-### 获得蜂巢状态 getHiveStatus
+### 获得蜂巢状态 getGroupStatus
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|hid|uuid|蜂巢ID|
+|uid|uuid|用户 ID|
 
 ##### example
 
 ```javascript
 
 
-var hid = "00000000-0000-0000-0000-000000000000";
-rpc.call( "getHiveStatus"，hid)
+var uid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "getGroupStatus"，uid)
   .then(function (result) {
 
   }, function (error) {
@@ -96,26 +96,26 @@ rpc.call( "getHiveStatus"，hid)
 
 |name|type|note|
 |----|----|----|
-|status|hive-status|Hive Status|
+|status|group-status|Group Status|
 
 See [example](../data/hive/getBigHiveStatus.json)
 
 
 
 
-### 获得蜂巢信息 getHiveInfo
+### 获得蜂巢信息 getGroupInfo
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|hid|hid|蜂巢 ID|
+|uid|uid|用户 ID|
 
 ##### example
 
 ```javascript
-var hid = "00000000-0000-0000-0000-000000000000";
-rpc.call( "getHiveInfo", hid)
+var uid = "00000000-0000-0000-0000-000000000000";
+rpc.call( "getGroupInfo", uid)
   .then(function (result) {
 
   }, function (error) {
@@ -127,7 +127,7 @@ rpc.call( "getHiveInfo", hid)
 
 |name|type|note|
 |----|----|----|
-|info|hive-info|HiveInfo|
+|info|group-info|GroupInfo|
 
 
 
@@ -138,19 +138,19 @@ See [example](../data/hive/getHiveInfo.json)
 
 
 
-### 获得蜂巢事件 getHiveEvent
+### 获得蜂巢事件 getGroupEvent
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|hid|uuid|蜂巢 ID|
+|uid|uuid|用户 ID|
 
 ##### example
 
 ```javascript
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call( "getHiveEvent", hid)
+rpc.call( "getGroupEvent", uid)
   .then(function (result) {
 
   }, function (error) {
@@ -162,6 +162,6 @@ rpc.call( "getHiveEvent", hid)
 
 |name|type|note|
 |----|----|----|
-|events|[hive-event]||
+|events|[group-event]|
 
 See [example](../data/hive/getTransactionHistory.json)
