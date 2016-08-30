@@ -66,7 +66,7 @@ rpc.call("group" ,"getGroups", uid)
 
 |name|type|note|
 |----|----|----|
-|hive|hive|hive|
+|group|group|group|
 
 See [example](../data/hive/getSmallHiveStatus.json)
 
@@ -102,20 +102,19 @@ See [example](../data/hive/getBigHiveStatus.json)
 
 
 
-
 ### 获得蜂巢信息 getGroupInfo
 
 #### request
 
 |name|type|note|
 |----|----|----|
-|uid|uid|用户 ID|
+|uid|uuid|用户 ID|
 
 ##### example
 
 ```javascript
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call( "getGroupInfo", uid)
+rpc.call("group", "getGroupInfo", uid)
   .then(function (result) {
 
   }, function (error) {
@@ -129,12 +128,7 @@ rpc.call( "getGroupInfo", uid)
 |----|----|----|
 |info|group-info|GroupInfo|
 
-
-
 See [example](../data/hive/getHiveInfo.json)
-
-
-
 
 
 
@@ -150,7 +144,7 @@ See [example](../data/hive/getHiveInfo.json)
 
 ```javascript
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call( "getGroupEvent", uid)
+rpc.call("group", "getGroupEvent", uid)
   .then(function (result) {
 
   }, function (error) {
