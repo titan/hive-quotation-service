@@ -54,6 +54,7 @@ package Order {
 }
 package Quotation {
   object Quotation
+  object QuotationGroup
   object QuotationItem
   object QuotationItemQuota
 }
@@ -108,10 +109,11 @@ MutualAid -> Driver
 MutualAid -> Vehicle
 MutualAid "1" --> "*" Recompense
 
-Quotation "1" --> "*" Plan : has >
+Quotation "1" --> "*" QuotationGroup : has >
+QuotationGroup -> Plan : is >
+QuotationGroup "1" --> "*" QuotationItem : has >
 QuotationItem "1" --> "*" QuotationItemQuota : has >
 
-Plan "1" <-- "*" QuotationItem
 PlanItem <- QuotationItem
 
 Quotation -> Vehicle
