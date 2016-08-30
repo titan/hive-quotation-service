@@ -1,0 +1,4 @@
+id: 00000000-0000-0000-0000-000000000000
+item: !include plan-item-third2.yaml
+quotas: !include quotation-item-quotas-third2.yaml
+prices: !include quotation-item-prices-third2.yaml
