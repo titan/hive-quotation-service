@@ -41,7 +41,7 @@
 
 ## 接口
 
-### 获得蜂巢基本信息 getGroups
+### 获得蜂巢基本信息 getGroup
 
 #### request
 
@@ -54,7 +54,7 @@
 ```javascript
 
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group" ,"getGroups", uid)
+rpc.call("group" ,"getGroup", uid)
   .then(function (result) {
 
   }, function (error) {
