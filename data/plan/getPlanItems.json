@@ -2,13 +2,9 @@
   {
     "title": "交通强制险",
     "description": "",
-    "price": 1000,
-    "sum_insured": 10000
   },
   {
     "title": "盗抢险",
     "description": "",
-    "price": 500,
-    "sum_insured": 5000
   }
 ]
