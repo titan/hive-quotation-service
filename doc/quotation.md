@@ -117,6 +117,8 @@ sorted 是元素在列表中的顺序
 
 ### 增加报价组 addQuotationGroup
 
+不能从 mobile 域调用!
+
 #### request
 
 | name           | type    | note     |
@@ -148,6 +150,8 @@ rpc.call("quotation", "addQuotationGroup", vid, pid, is_must_have)
 See [example](../data/quotation/addQuotationGroup.json)
 
 ### 删除报价组 deleteQuotationGroup
+
+不能从 mobile 域调用!
 
 #### request
 
@@ -182,6 +186,8 @@ See [example](../data/quotation/deleteQuotationGroup.json)
 
 ### 增加报价条目 addQuotationItem
 
+不能从 mobile 域调用!
+
 #### request
 
 | name           | type    | note        |
@@ -214,6 +220,8 @@ See [example](../data/quotation/addQuotationItem.json)
 
 ### 删除报价条目 deleteQuotationItem
 
+不能从 mobile 域调用!
+
 #### request
 
 | name | type | note              |
@@ -244,6 +252,77 @@ rpc.call("quotation", "deleteQuotationItem", qiid)
 | other | 错误信息 | 失败    |
 
 See [example](../data/quotation/deleteQuotationItem.json)
+
+### 增加报价限额 addQuotationQuota
+
+不能从 mobile 域调用!
+
+#### request
+
+| name   | type    | note        |
+| ----   | ----    | ----        |
+| qiid   | uuid    | 报价条目 ID |
+| number | float   | 数量        |
+| unit   | string  | 单位        |
+| sorted | integer | 排序顺序    |
+
+```javascript
+let qiid = "00000000-0000-0000-0000-000000000000";
+let number = 3;
+let unit = "块漆";
+let sorted = 1;
+
+rpc.call("quotation", "addQuotationQuota", qiid, number, unit, sorted)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
+#### response
+
+| name               | type | note               |
+| ----               | ---- | ----               |
+| quotation-quota-id | uuid | Quotation Quota ID |
+
+See [example](../data/quotation/addQuotationQuota.json)
+
+### 删除报价限额 deleteQuotationQuota
+
+不能从 mobile 域调用!
+
+#### request
+
+| name | type | note              |
+| ---- | ---- | ----              |
+| qqid | uuid | Quotation Quota ID |
+
+```javascript
+let qqid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("quotation", "deleteQuotationQuota", qqid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See [example](../data/quotation/deleteQuotationQuota.json)
 
 ### 获取车辆报价信息 getQuotation
 
