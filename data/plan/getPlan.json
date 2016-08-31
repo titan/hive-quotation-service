@@ -1,6 +1,6 @@
 {
-    "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
-    "image": "https://www.baidu.com/img/bd_logo1.png",
+    "thumbnail": "http://hive-data.oss-cn-beijing.aliyuncs.com/upload/wx/images/head2.png",
+    "image": "http://hive-data.oss-cn-beijing.aliyuncs.com/upload/wx/images/head1.png",
     "show_in_index": true,
     "rules": [
         {
