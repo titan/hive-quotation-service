@@ -55,7 +55,7 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 
 quotation 不需要数据库表。
 
-### quotation-groups
+### quotation\_groups
 
 | field          | type      | null | default | index   | reference |
 | ----           | ----      | ---- | ----    | ----    | ----      |
@@ -66,28 +66,32 @@ quotation 不需要数据库表。
 | created\_at    | timestamp |      | now     |         |           |
 | updated\_at    | timestamp |      | now     |         |           |
 
-### quotation-items
+### quotation\_items
 
-| field | type | null | default | index   | reference   |
-| ----  | ---- | ---- | ----    | ----    | ----        |
-| id    | uuid |      |         | primary |             |
-| piid  | uuid |      |         |         | plan\_items |
+| field          | type      | null | default | index   | reference         |
+| ----           | ----      | ---- | ----    | ----    | ----              |
+| id             | uuid      |      |         | primary |                   |
+| qgid           | uuid      |      |         |         | quotation\_groups |
+| piid           | uuid      |      |         |         | plan\_items       |
+| is\_must\_have | bool      |      | false   |         |                   |
+| created\_at    | timestamp |      | now     |         |                   |
+| updated\_at    | timestamp |      | now     |         |                   |
 
-### quotation-item-quotas
+### quotation\_item\_quotas
 
-| field  | type     | null | default | index   | reference       |
-| ----   | ----     | ---- | ----    | ----    | ----            |
-| id     | uuid     |      |         | primary |                 |
-| qiid   | uuid     |      |         |         | quotation-items |
-| number | float    |      |         |         |                 |
-| unit   | char(16) |      |         |         |                 |
-| sorted | int      |      | 0       |         |                 |
-| created\_at  | timestamp |      | now     |         |           |
-| updated\_at  | timestamp |      | now     |         |           |
+| field       | type      | null | default | index   | reference       |
+| ----        | ----      | ---- | ----    | ----    | ----            |
+| id          | uuid      |      |         | primary |                 |
+| qiid        | uuid      |      |         |         | quotation-items |
+| number      | float     |      |         |         |                 |
+| unit        | char(16)  |      |         |         |                 |
+| sorted      | int       |      | 0       |         |                 |
+| created\_at | timestamp |      | now     |         |                 |
+| updated\_at | timestamp |      | now     |         |                 |
 
 sorted 是元素在列表中的顺序
 
-### quotation-item-prices
+### quotation\_item\_prices
 
 | field       | type      | null | default | index   | reference       |
 | ----        | ----      | ---- | ----    | ----    | ----            |
