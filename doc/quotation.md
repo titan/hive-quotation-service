@@ -23,12 +23,13 @@
 
 ### quotation-item
 
-| name        | type                   | note             |
-| ----        | ----                   | ----             |
-| id          | uuid                   | 主键             |
-| item        | plan-item              | 对应的 plan-item |
-| quotas      | [quotation-item-quota] | 限额列表         |
-| prices      | [quotation-item-price] | 价格列表         |
+| name         | type                   | note             |
+| ----         | ----                   | ----             |
+| id           | uuid                   | 主键             |
+| item         | plan-item              | 对应的 plan-item |
+| is-must-have | boolean                | 是否必选         |
+| quotas       | [quotation-item-quota] | 限额列表         |
+| prices       | [quotation-item-price] | 价格列表         |
 
 注意，[quotation-item-quota] 中，大多数情况都是只有一个元素，甚至为空。只有第三者险有多个元素。
 prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
@@ -43,11 +44,11 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 
 ### quotation-item-quota
 
-| name   | type   | note |
-| ----   | ----   | ---- |
-| id     | uuid   | 主键 |
-| number | float  | 数量 |
-| unit   | string | 单位 |
+| name | type   | note |
+| ---- | ----   | ---- |
+| id   | uuid   | 主键 |
+| num  | float  | 数量 |
+| unit | string | 单位 |
 
 ## 表结构
 
