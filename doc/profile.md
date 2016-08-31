@@ -25,18 +25,18 @@
 
 |name|type|note|
 |----|----|----|
-|id|uuid|用户 ID|
+|id|[uuid]|用户 ID|
 
 ##### example
 
 ```javascript
 
-var uid = "00000000-0000-0000-0000-000000000000";
+var uid = ["00000000-0000-0000-0000-000000000000", "01000000-0000-0000-0000-000000000000"];
 rpc.call("profile", "getUserInformation", uid)
   .then(function (result) {
 
   }, function (error) {
-
+        
   });
 ```
 

@@ -55,25 +55,25 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 
 quotation 不需要数据库表。
 
-### quotation-groups
+### quotation_groups
 
 | field          | type      | null | default | index   | reference |
 | ----           | ----      | ---- | ----    | ----    | ----      |
 | id             | uuid      |      |         | primary |           |
-| vid            | uuid      |      |         |         | vehicles  |
+| vid            | uuid      |      |         |         | vehicle   |
 | pid            | uuid      |      |         |         | plans     |
 | is\_must\_have | bool      |      | false   |         |           |
 | created\_at    | timestamp |      | now     |         |           |
 | updated\_at    | timestamp |      | now     |         |           |
 
-### quotation-items
+### quotation_items
 
 | field | type | null | default | index   | reference   |
 | ----  | ---- | ---- | ----    | ----    | ----        |
 | id    | uuid |      |         | primary |             |
 | piid  | uuid |      |         |         | plan\_items |
 
-### quotation-item-quotas
+### quotation_item_quotas
 
 | field  | type     | null | default | index   | reference       |
 | ----   | ----     | ---- | ----    | ----    | ----            |
@@ -87,7 +87,7 @@ quotation 不需要数据库表。
 
 sorted 是元素在列表中的顺序
 
-### quotation-item-prices
+### quotation_item_prices
 
 | field       | type      | null | default | index   | reference       |
 | ----        | ----      | ---- | ----    | ----    | ----            |

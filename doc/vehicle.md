@@ -44,6 +44,8 @@
 |receipt_date|iso8601|发票开票日期|
 |last_insurance_company|string|最近一次投保的保险公司|
 |insurance_due_date|date|保险到期时间|
+|driving_frontal_view|string|行驶证正面照|
+|driving_rear_view|string|行驶证背面照|
 
 ### person
 
@@ -191,6 +193,24 @@ rpc.call("vehicle", "getVehicleInfos")
 
 See [example](../data/vehicle/getVehicleInfos.json)
 
+### 获取某个车信息 getVehicleInfo
+
+##### example
+
+```javascript
+
+let vid = "00000000-0000-0000-0000-000000000000";
+rpc.call("vehicle", "getVehicleInfo"， vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
+See [example](../data/vehicle/getVehicleInfos.json)
+
 ### 获取驾驶人信息 getDriverPids
 
 
@@ -198,6 +218,27 @@ See [example](../data/vehicle/getVehicleInfos.json)
 var vid = "00000000-0000-0000-0000-000000000000";
 
 rpc.call("vehicle", "getDriverPids", vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+### 上传证件照 uploadDriverImages
+
+
+```javascript
+
+var vid = "00000000-0000-0000-0000-000000000000";
+var driving_frontal_view = "";
+var driving_rear_view = "";
+var identity_frontal_view = "";
+var identity_rear_view = "";
+var license_frontal_views = [];
+...
+
+rpc.call("vehicle", "getDriverPids", vid, driving_frontal_view, driving_rear_view, identity_frontal_view, identity_rear_view, license_frontal_view1, license_frontal_view2,..)
   .then(function (result) {
 
   }, function (error) {
