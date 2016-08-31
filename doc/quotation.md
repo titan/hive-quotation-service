@@ -51,20 +51,23 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 
 ## 表结构
 
-### quotation
+### quotations
 
-quotation 不需要数据库表。
+| field | type | null | default | index   | reference |
+| ----  | ---- | ---- | ----    | ----    | ----      |
+| id    | uuid |      |         | primary |           |
+| vid   | uuid |      |         |         | vehicles  |
 
 ### quotation\_groups
 
-| field          | type      | null | default | index   | reference |
-| ----           | ----      | ---- | ----    | ----    | ----      |
-| id             | uuid      |      |         | primary |           |
-| vid            | uuid      |      |         |         | vehicles  |
-| pid            | uuid      |      |         |         | plans     |
-| is\_must\_have | bool      |      | false   |         |           |
-| created\_at    | timestamp |      | now     |         |           |
-| updated\_at    | timestamp |      | now     |         |           |
+| field          | type      | null | default | index   | reference  |
+| ----           | ----      | ---- | ----    | ----    | ----       |
+| id             | uuid      |      |         | primary |            |
+| qid            | uuid      |      |         |         | quotations |
+| pid            | uuid      |      |         |         | plans      |
+| is\_must\_have | bool      |      | false   |         |            |
+| created\_at    | timestamp |      | now     |         |            |
+| updated\_at    | timestamp |      | now     |         |            |
 
 ### quotation\_items
 
