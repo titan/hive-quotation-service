@@ -149,7 +149,7 @@ See [example](../data/quotation/addQuotationGroup.json)
 
 ### 删除报价组 deleteQuotationGroup
 
-### request
+#### request
 
 | name | type | note               |
 | ---- | ---- | ----               |
@@ -166,7 +166,7 @@ rpc.call("quotation", "deleteQuotationGroup", gid)
   });
 ```
 
-### response
+#### response
 
 | name   | type   | note     |
 | ----   | ----   | ----     |
@@ -180,9 +180,74 @@ rpc.call("quotation", "deleteQuotationGroup", gid)
 
 See [example](../data/quotation/deleteQuotationGroup.json)
 
+### 增加报价条目 addQuotationItem
+
+#### request
+
+| name           | type    | note        |
+| ----           | ----    | ----        |
+| qgid           | uuid    | 报价组 ID   |
+| piid           | uuid    | 计划条目 ID |
+| is\_must\_have | boolean | 是否必选    |
+
+```javascript
+let qgid = "00000000-0000-0000-0000-000000000000";
+let piid = "00000000-0000-0000-0000-000000000000";
+let is_must_have = true;
+
+rpc.call("quotation", "addQuotationItem", qgid, piid, is_must_have)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
+#### response
+
+| name              | type | note              |
+| ----              | ---- | ----              |
+| quotation-item-id | uuid | Quotation Item ID |
+
+See [example](../data/quotation/addQuotationItem.json)
+
+### 删除报价条目 deleteQuotationItem
+
+#### request
+
+| name | type | note              |
+| ---- | ---- | ----              |
+| qiid | uuid | Quotation Item ID |
+
+```javascript
+let qiid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("quotation", "deleteQuotationItem", qiid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See [example](../data/quotation/deleteQuotationItem.json)
+
 ### 获取车辆报价信息 getQuotation
 
-### request
+#### request
 
 | name | type | note       |
 | ---- | ---- | ----       |
@@ -198,10 +263,10 @@ rpc.call("quotation", "getQuotation", vid)
 
   });
 ```
-### response
+#### response
 
-| name      | type      | note           |
-| ----      | ----      | ----           |
-| quotation | quotation | 车辆所有报价组 |
+| name      | type      | note         |
+| ----      | ----      | ----         |
+| quotation | quotation | 车辆报价信息 |
 
 See [example](../data/quotation/getQuotation.json)
