@@ -57,12 +57,14 @@ quotation 不需要数据库表。
 
 ### quotation-groups
 
-| field          | type | null | default | index   | reference |
-| ----           | ---- | ---- | ----    | ----    | ----      |
-| id             | uuid |      |         | primary |           |
-| vid            | uuid |      |         |         | vehicles  |
-| pid            | uuid |      |         |         | plans     |
-| is\_must\_have | bool |      | false   |         |           |
+| field          | type      | null | default | index   | reference |
+| ----           | ----      | ---- | ----    | ----    | ----      |
+| id             | uuid      |      |         | primary |           |
+| vid            | uuid      |      |         |         | vehicles  |
+| pid            | uuid      |      |         |         | plans     |
+| is\_must\_have | bool      |      | false   |         |           |
+| created\_at    | timestamp |      | now     |         |           |
+| updated\_at    | timestamp |      | now     |         |           |
 
 ### quotation-items
 
@@ -80,18 +82,22 @@ quotation 不需要数据库表。
 | number | float    |      |         |         |                 |
 | unit   | char(16) |      |         |         |                 |
 | sorted | int      |      | 0       |         |                 |
+| created\_at  | timestamp |      | now     |         |           |
+| updated\_at  | timestamp |      | now     |         |           |
 
 sorted 是元素在列表中的顺序
 
 ### quotation-item-prices
 
-| field       | type  | null | default | index   | reference       |
-| ----        | ----  | ---- | ----    | ----    | ----            |
-| id          | uuid  |      |         | primary |                 |
-| qiid        | uuid  |      |         |         | quotation-items |
-| price       | float |      |         |         |                 |
-| real\_price | float |      |         |         |                 |
-| sorted      | int   |      | 0       |         |                 |
+| field       | type      | null | default | index   | reference       |
+| ----        | ----      | ---- | ----    | ----    | ----            |
+| id          | uuid      |      |         | primary |                 |
+| qiid        | uuid      |      |         |         | quotation-items |
+| price       | float     |      |         |         |                 |
+| real\_price | float     |      |         |         |                 |
+| sorted      | int       |      | 0       |         |                 |
+| created\_at | timestamp |      | now     |         |                 |
+| updated\_at | timestamp |      | now     |         |                 |
 
 sorted 是元素在列表中的顺序
 
