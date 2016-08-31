@@ -15,7 +15,13 @@ PLAN_DEPS = plan-item-main1.yaml plan-item-main2.yaml plan-items-main.yaml plan-
 VEHICLE = ../data/vehicle/getVehicle.json
 VEHICLE_DEPS = drivers.yaml driver.yaml owner.yaml vehicle-model1.yaml vehicle-model2.yaml vehicle-models.yaml vehicle-model.yaml vehicle.yaml
 
-all: $(QUOTATION) $(AVAILABLE_PLANS) $(JOINED_PLANS) $(PLAN)
+PROFILE = ../data/profile/getProfile.json
+PROFILE_DEPS = profile.yaml
+
+GROUP = ../data/group/getGroup.json
+GROUP_DEPS = group.yaml $(VEHICLE_DEPS) $(PROFILE_DEPS)
+
+all: $(QUOTATION) $(AVAILABLE_PLANS) $(JOINED_PLANS) $(PLAN) $(GROUP) $(PROFILE)
 
 $(QUOTATION): $(QUOTATION_DEPS)
 	yaml2json quotation.yaml | aeson-pretty > $@
@@ -29,10 +35,17 @@ $(JOINED_PLANS): $(JOINED_PLANS_DEPS)
 $(PLAN): $(PLAN_DEPS)
 	yaml2json plan-main.yaml | aeson-pretty > $@
 
+$(GROUP): $(GROUP_DEPS)
+	yaml2json group.yaml | aeson-pretty > $@
+
+$(PROFILE): $(PROFILE_DEPS)
+	yaml2json profile.yaml | aeson-pretty > $@
+
 clean:
 	rm $(QUOTATION)
 	rm $(AVAILABLE_PLANS)
 	rm $(JOINED_PLANS)
 	rm $(PLAN)
+	rm $(GROUP)
 
 .phoney: all clean
