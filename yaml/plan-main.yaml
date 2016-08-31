@@ -7,5 +7,4 @@ rules: !include plan-rules-main.yaml
 items: !include plan-items-main.yaml
 period: 365
 joined_count: 1000
-
-
+show_in_index: true

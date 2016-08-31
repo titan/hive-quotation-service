@@ -5,6 +5,7 @@
             "plan": {
                 "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
                 "image": "https://www.baidu.com/img/bd_logo1.png",
+                "show_in_index": true,
                 "rules": [
                     {
                         "name": "互助人群",
@@ -98,6 +99,7 @@
             "plan": {
                 "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
                 "image": "https://www.baidu.com/img/bd_logo1.png",
+                "show_in_index": false,
                 "rules": [
                     {
                         "name": "互助人群",
@@ -229,6 +231,7 @@
             "plan": {
                 "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
                 "image": "https://www.baidu.com/img/bd_logo1.png",
+                "show_in_index": true,
                 "rules": null,
                 "period": 365.0,
                 "items": [

@@ -4,16 +4,17 @@
 
 ### plan
 
-| name         | type        | note       |
-| ----         | ----        | ----       |
-| title        | string      | 标题       |
-| description  | string      | 描述       |
-| image        | string      | 头图       |
-| thumbnail    | string      | 缩略图     |
-| period       | integer     | 互助期     |
-| rules        | [plan-rule] | 互助规则   |
-| items        | [plan-item] | 计划条目   |
-| joined-count | integer     | 已加入车辆 |
+| name            | type        | note           |
+| ----            | ----        | ----           |
+| title           | string      | 标题           |
+| description     | string      | 描述           |
+| image           | string      | 头图           |
+| thumbnail       | string      | 缩略图         |
+| period          | integer     | 互助期         |
+| rules           | [plan-rule] | 互助规则       |
+| items           | [plan-item] | 计划条目       |
+| joined-count    | integer     | 已加入车辆     |
+| show\_in\_index | boolean     | 是否在首页显示 |
 
 
 ### plan-rule
@@ -35,16 +36,17 @@
 
 ### plans
 
-| field       | type       | null | default | index   | reference |
-| ----        | ----       | ---- | ----    | ----    | ----      |
-| id          | uuid       |      |         | primary |           |
-| title       | char(128)  |      |         |         |           |
-| description | text       | ✓    |         |         |           |
-| image       | char(1024) | ✓    |         |         |           |
-| thumbnail   | char(1024) | ✓    |         |         |           |
-| period      | integer    |      | 365     |         |           |
-| created\_at | timestamp  |      | now     |         |           |
-| updated\_at | timestamp  |      | now     |         |           |
+| field           | type       | null | default | index   | reference |
+| ----            | ----       | ---- | ----    | ----    | ----      |
+| id              | uuid       |      |         | primary |           |
+| title           | char(128)  |      |         |         |           |
+| description     | text       | ✓    |         |         |           |
+| image           | char(1024) | ✓    |         |         |           |
+| thumbnail       | char(1024) | ✓    |         |         |           |
+| period          | integer    |      | 365     |         |           |
+| show\_in\_index | boolean    | ✓    | false   |         |           |
+| created\_at     | timestamp  |      | now     |         |           |
+| updated\_at     | timestamp  |      | now     |         |           |
 
 ### plan\_rules
 
