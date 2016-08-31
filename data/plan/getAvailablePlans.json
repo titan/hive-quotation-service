@@ -1,32 +1,90 @@
 [
-  {
-    "title": "主计划",
-    "description": "自驾车意外|驾乘通赔|互助1年",
-    "image": "https://www.baidu.com/img/bd_logo1.png",
-    "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
-    "rules": [
-      {
-        "name": "互助人群",
-        "title": "拥有良好驾驶习惯的北京六环内行驶车辆",
-        "description": "<div>为保障整体计划参与者利益，将严格控制加入人群 <br/> <ul> <li>北京六环内行驶车辆</li> <li>最近2年未在保险公司出险</li> <li>从未发生过酒驾、闯红灯等严重交通违章行为</li> <li>驾驶人拥有2年以上驾龄或驾驶里程超过20000公里</li> </ul> </div>"
-      },
-      {
-        "name": "互助范围",
-        "title": "机动车车辆损失、机动车车辆盗抢等保障",
-        "description": "<ul><li>机动车车辆损失</li><li>机动车车辆盗抢等保障</li></ul>"
-      },
-      {
-        "name": "互助模式",
-        "title": "驾驶人与车辆绑定模式",
-        "de_description": "<ul><li>驾驶人</li><li>车辆绑定模式</li></ul>"
-      },
-      {
-        "name": "互助期",
-        "title": "计划生效起365天内",
-        "description": "<ul><li>计划生效起365天内</li><li>计划生效起365天内</li></ul>"
-      }
-    ],
-    "period": 365,
-    "joined_amount": 1000
-  }
+    {
+        "thumbnail": "http://hive-data.oss-cn-beijing.aliyuncs.com/upload/wx/images/head2.png",
+        "image": "http://hive-data.oss-cn-beijing.aliyuncs.com/upload/wx/images/head1.png",
+        "show_in_index": true,
+        "rules": [
+            {
+                "name": "互助人群",
+                "title": "拥有良好驾驶习惯的北京六环内行驶车辆",
+                "description": "<div>为保障整体计划参与者利益，将严格控制加入人群 <br/> <ul> <li>北京六环内行驶车辆</li> <li>最近2年未在保险公司出险</li> <li>从未发生过酒驾、闯红灯等严重交通违章行为</li> <li>驾驶人拥有2年以上驾龄或驾驶里程超过20000公里</li> </ul> </div>"
+            },
+            {
+                "name": "互助范围",
+                "title": "机动车车辆损失、机动车车辆盗抢等保障",
+                "description": "<ul><li>机动车车辆损失</li><li>机动车车辆盗抢等保障</li></ul>"
+            },
+            {
+                "name": "互助模式",
+                "title": "驾驶人与车辆绑定模式",
+                "description": "<ul><li>驾驶人</li><li>车辆绑定模式</li></ul>"
+            },
+            {
+                "name": "互助期",
+                "title": "计划生效起365天内",
+                "description": "<ul><li>计划生效起365天内</li><li>计划生效起365天内</li></ul>"
+            }
+        ],
+        "period": 365.0,
+        "items": [
+            {
+                "id": "00000000-0000-0000-0000-000000000000",
+                "title": "机动车损失保障",
+                "description": null
+            },
+            {
+                "id": "00000000-0000-0000-0000-000000000000",
+                "title": "机动车全车盗抢保障",
+                "description": null
+            }
+        ],
+        "joined_count": 1000.0,
+        "id": "00000000-0000-0000-0000-000000000000",
+        "title": "主计划",
+        "description": "自驾车意外|驾乘通赔|互助1年"
+    },
+    {
+        "thumbnail": "https://www.baidu.com/img/bd_logo1.png",
+        "image": "https://www.baidu.com/img/bd_logo1.png",
+        "show_in_index": false,
+        "rules": [
+            {
+                "name": "互助人群",
+                "title": "拥有良好驾驶习惯的北京六环内行驶车辆",
+                "description": "<div>为保障整体计划参与者利益，将严格控制加入人群 <br/> <ul> <li>北京六环内行驶车辆</li> <li>最近2年未在保险公司出险</li> <li>从未发生过酒驾、闯红灯等严重交通违章行为</li> <li>驾驶人拥有2年以上驾龄或驾驶里程超过20000公里</li> </ul> </div>"
+            },
+            {
+                "name": "互助范围",
+                "title": "机动车车辆损失、机动车车辆盗抢等保障",
+                "description": "<ul><li>机动车车辆损失</li><li>机动车车辆盗抢等保障</li></ul>"
+            },
+            {
+                "name": "互助模式",
+                "title": "驾驶人与车辆绑定模式",
+                "description": "<ul><li>驾驶人</li><li>车辆绑定模式</li></ul>"
+            },
+            {
+                "name": "互助期",
+                "title": "计划生效起365天内",
+                "description": "<ul><li>计划生效起365天内</li><li>计划生效起365天内</li></ul>"
+            }
+        ],
+        "period": 365.0,
+        "items": [
+            {
+                "id": "00000000-0000-0000-0000-000000000000",
+                "title": "机动车自燃损失保障",
+                "description": null
+            },
+            {
+                "id": "00000000-0000-0000-0000-000000000000",
+                "title": "机动车涉水损失保障",
+                "description": null
+            }
+        ],
+        "joined_count": 1000.0,
+        "id": "00000000-0000-0000-0000-000000000001",
+        "title": "辅助计划",
+        "description": null
+    }
 ]

@@ -4,12 +4,16 @@
 
 ### group
 
-|name|type|note|
-|----|----|----|
-|name|string|蜂巢名称|
-|users|[uuid]|参与用户|
-|founder|uuid|创始人|
-|created-at|date|创建时间|
+| name             | type         | note         |
+| ----             | ----         | ----         |
+| name             | string       | 互助小组名称 |
+| joined-vehicles  | [vehicle]    | 参与车辆     |
+| waiting-vehicles | [vehicle]    | 等待生效车辆 |
+| applied-vehicles | [vehicle]    | 申请加入车辆 |
+| founder          | profile      | 创始人       |
+| items            | [group-item] | 互助小组条目 |
+| created-at       | date         | 创建时间     |
+
 ### group-status
 
 |name|type|note|
@@ -34,14 +38,14 @@
 |type|integer|事件类型|
 |description|string|事件描述|
 |occurred-at|iso8601|事件发生时间|
-|small-group-apportion-ratio|float|小蜂巢分摊比例|
-|small-group-fee|float|小蜂巢互助基金|
-|big-group-apportion-ratio|float|大蜂巢分摊比例|
-|big-group-fee|float|大蜂巢互助基金|
+|small-group-apportion-ratio|float|小互助组分摊比例|
+|small-group-fee|float|小互助组互助基金|
+|big-group-apportion-ratio|float|大互助组分摊比例|
+|big-group-fee|float|大互助组互助基金|
 
 ## 接口
 
-### 获得蜂巢基本信息 getGroup
+### 获得互助组基本信息 getGroup
 
 #### request
 
@@ -70,7 +74,7 @@ rpc.call("group" ,"getGroup", uid)
 
 See [example](../data/hive/getSmallHiveStatus.json)
 
-### 获得蜂巢状态 getGroupStatus
+### 获得互助组状态 getGroupStatus
 
 #### request
 
@@ -102,7 +106,7 @@ See [example](../data/hive/getBigHiveStatus.json)
 
 
 
-### 获得蜂巢信息 getGroupInfo
+### 获得互助组信息 getGroupInfo
 
 #### request
 
@@ -132,7 +136,7 @@ See [example](../data/hive/getHiveInfo.json)
 
 
 
-### 获得蜂巢事件 getGroupEvent
+### 获得互助组事件 getGroupEvent
 
 #### request
 
