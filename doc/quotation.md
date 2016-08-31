@@ -180,7 +180,7 @@ rpc.call("quotation", "deleteQuotationGroup", gid)
 
 See [example](../data/quotation/deleteQuotationGroup.json)
 
-### 获取车辆所有报价组信息 getQuotationGroups
+### 获取车辆报价信息 getQuotation
 
 ### request
 
@@ -191,7 +191,7 @@ See [example](../data/quotation/deleteQuotationGroup.json)
 ```javascript
 let vid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("quotation", "getQuotationGroups", vid)
+rpc.call("quotation", "getQuotation", vid)
   .then(function (result) {
 
   }, function (error) {
@@ -200,8 +200,8 @@ rpc.call("quotation", "getQuotationGroups", vid)
 ```
 ### response
 
-| name   | type              | note           |
-| ----   | ----              | ----           |
-| groups | [quotation-group] | 车辆所有报价组 |
+| name      | type      | note           |
+| ----      | ----      | ----           |
+| quotation | quotation | 车辆所有报价组 |
 
-See [example](../data/quotation/getQuotationGroups.json)
+See [example](../data/quotation/getQuotation.json)
