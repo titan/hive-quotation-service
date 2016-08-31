@@ -216,3 +216,42 @@ rpc.call("plan", "decreaseJoinedCount", pid )
 | count | int  | 减少后的车辆数 |
 
 See [example](../data/plan/decreaseJoinedCount.json)
+
+### 设置已加入车辆数量 setJoinedCounts
+
+不能从 mobile 域调用!
+
+#### request
+
+| name   | type              | note    |
+| ----   | ----              | ----    |
+| params | [{uuid, integer}] | 计划 ID |
+
+{uuid, integer} 是 TypeScript 里的 tuple 类型，在 JavaScript 里用 [uuid, integer] 来代替。
+
+
+##### example
+
+```javascript
+let params = [["00000000-0000-0000-0000-000000000000", 1000], ["00000000-0000-0000-0000-000000000001", 200]];
+rpc.call("plan", "setJoinedCount", params)
+  .then(function (data) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See [example](../data/plan/setJoinedCount.json)
