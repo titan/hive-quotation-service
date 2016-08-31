@@ -238,7 +238,7 @@ var identity_rear_view = "";
 var license_frontal_views = [];
 ...
 
-rpc.call("vehicle", "getDriverPids", vid, driving_frontal_view, driving_rear_view, identity_frontal_view, identity_rear_view, license_frontal_view1, license_frontal_view2,..)
+rpc.call("vehicle", "getDriverPids", vid, driving_frontal_view, driving_rear_view, identity_frontal_view, identity_rear_view, license_frontal_views)
   .then(function (result) {
 
   }, function (error) {

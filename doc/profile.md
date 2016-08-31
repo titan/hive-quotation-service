@@ -19,7 +19,7 @@
 
 ## 接口
 
-### 获得用户信息 getUserInformation
+### 获得用户信息 getUserInfo
 
 #### request
 
@@ -46,6 +46,26 @@ rpc.call("profile", "getUserInformation", uid)
 |----|----|----|
 
 See [example](../data/profile/getUserInformation.json)
+
+### 添加用户信息 setUserInfo
+
+##### example
+
+```javascript
+
+var openid = "";
+var gender = "";
+var nickname = "";
+var portrait = "";
+
+rpc.call("profile", "getUserInformation", openid, gender, nickname, portrait)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
 
 
 
