@@ -98,8 +98,7 @@ var name = "";
 var identity_no = ""; 
 var phone = ""; 
 var user_id = "";
-var vin_code = ""; 
-var cfg_level;
+var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
 var register_date = ""; 
@@ -108,7 +107,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, user_id, vin_code, cfg_level, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, user_id, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -126,8 +125,7 @@ var name = "";
 var identity_no = ""; 
 var phone = ""; 
 var user_id = "";
-var vin_code = ""; 
-var cfg_level;
+var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
 var average_mileage = ""; 
@@ -137,7 +135,7 @@ var receipt_date = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, user_id, vin_code, cfg_level, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, user_id, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
