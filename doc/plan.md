@@ -129,7 +129,7 @@ rpc.call("plan", "getJoinedPlans", uid)
 
 See [example](../data/plan/getJoinedPlans.json)
 
-### 获取计划
+### 获取计划 getPlan
 
 #### request
 
@@ -157,3 +157,62 @@ rpc.call("plan", "getPlan", pid )
 
 See [example](../data/plan/getPlan.json)
 
+### 增加已加入车辆数量 increaseJoinedCount
+
+不能从 mobile 域调用!
+
+#### request
+
+| name | type | note    |
+| ---- | ---- | ----    |
+| pid  | uuid | 计划 ID |
+
+##### example
+
+```javascript
+var pid = "00000000-0000-0000-0000-000000000000";
+rpc.call("plan", "increaseJoinedCount", pid )
+  .then(function (data) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name  | type | note           |
+| ----  | ---- | ----           |
+| count | int  | 增加后的车辆数 |
+
+See [example](../data/plan/increaseJoinedCount.json)
+
+### 减少已加入车辆数量 decreaseJoinedCount
+
+不能从 mobile 域调用!
+
+#### request
+
+| name | type | note    |
+| ---- | ---- | ----    |
+| pid  | uuid | 计划 ID |
+
+##### example
+
+```javascript
+var pid = "00000000-0000-0000-0000-000000000000";
+rpc.call("plan", "decreaseJoinedCount", pid )
+  .then(function (data) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name  | type | note           |
+| ----  | ---- | ----           |
+| count | int  | 减少后的车辆数 |
+
+See [example](../data/plan/decreaseJoinedCount.json)
