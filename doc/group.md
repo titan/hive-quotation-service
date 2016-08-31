@@ -9,7 +9,7 @@
 |name|string|蜂巢名称|
 |users|[uuid]|参与用户|
 |founder|uuid|创始人|
-|establishment_time|date|创建时间|
+|created-at|date|创建时间|
 ### group-status
 
 |name|type|note|
@@ -156,6 +156,6 @@ rpc.call("group", "getGroupEvent", uid)
 
 |name|type|note|
 |----|----|----|
-|events|[group-event]|Groupevents|
+|events|[group-event]|Group events|
 
 See [example](../data/hive/getTransactionHistory.json)
