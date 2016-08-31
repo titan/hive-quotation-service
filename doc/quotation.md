@@ -295,8 +295,8 @@ See [example](../data/quotation/addQuotationQuota.json)
 
 #### request
 
-| name | type | note              |
-| ---- | ---- | ----              |
+| name | type | note               |
+| ---- | ---- | ----               |
 | qqid | uuid | Quotation Quota ID |
 
 ```javascript
@@ -323,6 +323,78 @@ rpc.call("quotation", "deleteQuotationQuota", qqid)
 | other | 错误信息 | 失败    |
 
 See [example](../data/quotation/deleteQuotationQuota.json)
+
+### 增加报价价格 addQuotationPrice
+
+不能从 mobile 域调用!
+
+#### request
+
+| name        | type    | note        |
+| ----        | ----    | ----        |
+| qiid        | uuid    | 报价条目 ID |
+| price       | float   | 原价        |
+| real\_price | float   | 真实价格    |
+| sorted      | integer | 排序顺序    |
+
+```javascript
+let qiid = "00000000-0000-0000-0000-000000000000";
+let price = 1000;
+let real_price = 600;
+let sorted = 1;
+
+rpc.call("quotation", "addQuotationPrice", qiid, price, real_price, sorted)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
+#### response
+
+| name               | type | note               |
+| ----               | ---- | ----               |
+| quotation-price-id | uuid | Quotation Price ID |
+
+See [example](../data/quotation/addQuotationPrice.json)
+
+### 删除报价价格 deleteQuotationPrice
+
+不能从 mobile 域调用!
+
+#### request
+
+| name | type | note               |
+| ---- | ---- | ----               |
+| qpid | uuid | Quotation Price ID |
+
+```javascript
+let qpid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("quotation", "deleteQuotationPrice", qpid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See [example](../data/quotation/deleteQuotationPrice.json)
+
 
 ### 获取车辆报价信息 getQuotation
 
