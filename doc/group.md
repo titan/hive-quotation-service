@@ -4,12 +4,15 @@
 
 ### group
 
-| name       | type      | note         |
-| ----       | ----      | ----         |
-| name       | string    | 互助小组名称 |
-| vehicles   | [vehicle] | 参与车辆     |
-| founder    | profile   | 创始人       |
-| created-at | date      | 创建时间     |
+| name             | type         | note         |
+| ----             | ----         | ----         |
+| name             | string       | 互助小组名称 |
+| joined-vehicles  | [vehicle]    | 参与车辆     |
+| waiting-vehicles | [vehicle]    | 等待生效车辆 |
+| applied-vehicles | [vehicle]    | 申请加入车辆 |
+| founder          | profile      | 创始人       |
+| items            | [group-item] | 互助小组条目 |
+| created-at       | date         | 创建时间     |
 
 ### group-status
 
