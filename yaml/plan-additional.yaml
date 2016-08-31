@@ -3,10 +3,8 @@ title: 辅助计划
 description: 
 image: https://www.baidu.com/img/bd_logo1.png
 thumbnail: https://www.baidu.com/img/bd_logo1.png
-rules:
-  - !include plan-rules-additional.yaml
-items:
-  - !include plan-items-additional.yaml
+rules: !include plan-rules-additional.yaml
+items: !include plan-items-additional.yaml
 period: 365
 joined_count: 1000
 

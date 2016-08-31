@@ -4,8 +4,7 @@ description: 自驾车意外|驾乘通赔|互助1年
 image: https://www.baidu.com/img/bd_logo1.png
 thumbnail: https://www.baidu.com/img/bd_logo1.png
 rules:
-items:
-  - !include plan-items-third.yaml
+items: !include plan-items-third.yaml
 period: 365
 joined_count: 1000
 
