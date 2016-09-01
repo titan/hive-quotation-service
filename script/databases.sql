@@ -1,12 +1,19 @@
 
-CREATE TABLE quotation_groups(
+
+CREATE TABLE quotations(
     id uuid PRIMARY KEY,
     vid uuid NOT NULL,
+    FOREIGN KEY (vid) REFERENCES vehicles(id) ON DELETE CASCADE
+);
+
+CREATE TABLE quotation_groups(
+    id uuid PRIMARY KEY,
+    qid uuid NOT NULL,
     pid uuid NOT NULL,
     is_must_have boolean DEFAULT false,
     created_at timestamp DEFAULT now(),
     updated_at timestamp DEFAULT now(),
-    FOREIGN KEY (vid) REFERENCES vehicle(id),
+    FOREIGN KEY (qid) REFERENCES quotations(id),
     FOREIGN KEY (pid) REFERENCES plans(id)
 );
 

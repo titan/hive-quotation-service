@@ -37,28 +37,34 @@ let processor = new Processor(config);
 
 processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationGroup');
-  db.query('INSERT INTO quotation_groups (id, vid, pid, is_must_have) VALUES ($1, $2, $3, $4)',[args.gid, args.vid, args.pid, args.is_must_have], (err: Error) => {
-     if (err) {
+  db.query('INSERT INTO quotations (id, vid) VALUES ($1, $2)',[args.qid, args.vid], (err: Error) => {
+    if (err) {
       log.error(err, 'query error');
      } else {
-        let plan = "";
-        let vehicle = "";
-        let v = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getVehicleInfo', args.vid);
-        v.then((vehicle) => {});
-        let p = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getPlans', args.pid, 0, -1);
-        p.then((plan) => {});
-        let quotations_entities = {id:args.qid, groups:[{id:args.gid, plan:plan, is_must_have:args.is_must_have, items:[]}], vehicle:vehicle};
-        let multi = cache.multi();
-        multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
-        multi.sadd("quotations", args.qid);
-        multi.exec((err, replies) => {
-          if (err) {
-            log.error(err);
+       db.query('INSERT INTO quotation_groups (id, qid, pid, is_must_have) VALUES ($1, $2, $3, $4)',[args.gid, args.qid, args.pid, args.is_must_have], (err: Error) => {
+        if (err) {
+          log.error(err, 'query error');
+        } else {
+            let plan = "";
+            let vehicle = "";
+            let v = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getVehicleInfo', args.vid);
+            v.then((vehicle) => {});
+            let p = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getPlans', args.pid, 0, -1);
+            p.then((plan) => {});
+            let quotations_entities = {id:args.qid, groups:[{id:args.gid, plan:plan, is_must_have:args.is_must_have, items:[]}], vehicle:vehicle};
+            let multi = cache.multi();
+            multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
+            multi.sadd("quotations", args.qid);
+            multi.exec((err, replies) => {
+              if (err) {
+                log.error(err);
+              }
+              done();
+            });
           }
-          done();
-        });
-      }
-   });
+      });
+     }
+  });
 });
 
 processor.call('deleteQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, qid, gid, invoke_id) => {
