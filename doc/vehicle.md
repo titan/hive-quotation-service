@@ -99,7 +99,6 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 var name = ""; 
 var identity_no = ""; 
 var phone = ""; 
-var user_id = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -109,7 +108,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, user_id, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -126,7 +125,6 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, user_id, v
 var name = ""; 
 var identity_no = ""; 
 var phone = ""; 
-var user_id = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -137,7 +135,7 @@ var receipt_date = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, user_id, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
