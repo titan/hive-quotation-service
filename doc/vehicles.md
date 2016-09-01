@@ -1,4 +1,4 @@
-# Vehicle  模块
+# Vehicles  模块
 
 ## 数据结构
 
@@ -26,7 +26,7 @@
 |fuel_jet_type|string|燃油类型|
 |driven_type|string|驱动形式|
 
-### vehicle
+### vehicles
 
 |name|type|note|
 |----|----|----|
@@ -75,7 +75,7 @@
 ```javascript
 var id = "I0000000000000000250000000000041";
 
-rpc.call("vehicle", "getVehicleModelsByMake", id)
+rpc.call("vehicles", "getVehicleModelsByMake", id)
   .then(function (result) {
 
   }, function (error) {
@@ -89,7 +89,7 @@ rpc.call("vehicle", "getVehicleModelsByMake", id)
 |----|----|----|
 |vehicle-model|vehicle-model|Vehicle Model|
 
-See [example](../data/vehicle/getVehicleModelsByMake.json)
+See [example](../data/vehicles/getVehicleModelsByMake.json)
 
 ### 获取报价提交表单(新车已上牌) setVehicleInfoOnCard
 
@@ -108,7 +108,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_code, license_no, engine_no, 
+rpc.call("vehicles", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -135,7 +135,7 @@ var receipt_date = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vehicle_code, license_no, engine_no, 
+rpc.call("vehicles", "setVehicleInfo", name, identity_no, phone, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -152,7 +152,7 @@ var identity_no = "";
 var phone = "";
 var is_primary = "";
 
-rpc.call("vehicle", "setDriverInfo", vid, name,identity_no,phone,is_primary)
+rpc.call("vehicles", "setDriverInfo", vid, name,identity_no,phone,is_primary)
   .then(function (result) {
 
   }, function (error) {
@@ -167,7 +167,7 @@ var name = "";
 var identity_no = "";
 var phone = "";
 
-rpc.call("vehicle", "changeDriverInfo", vid, name,identity_no,phone)
+rpc.call("vehicles", "changeDriverInfo", vid, name,identity_no,phone)
   .then(function (result) {
 
   }, function (error) {
@@ -181,7 +181,7 @@ rpc.call("vehicle", "changeDriverInfo", vid, name,identity_no,phone)
 
 ```javascript
 
-rpc.call("vehicle", "getVehicleInfos")
+rpc.call("vehicles", "getVehicleInfos")
   .then(function (result) {
 
   }, function (error) {
@@ -189,7 +189,7 @@ rpc.call("vehicle", "getVehicleInfos")
   });
 ```
 
-See [example](../data/vehicle/getVehicleInfos.json)
+See [example](../data/vehicles/getVehicleInfos.json)
 
 ### 获取某个车信息 getVehicleInfo
 
@@ -198,7 +198,7 @@ See [example](../data/vehicle/getVehicleInfos.json)
 ```javascript
 
 let vid = "00000000-0000-0000-0000-000000000000";
-rpc.call("vehicle", "getVehicleInfo"， vid)
+rpc.call("vehicles", "getVehicleInfo"， vid)
   .then(function (result) {
 
   }, function (error) {
@@ -207,7 +207,7 @@ rpc.call("vehicle", "getVehicleInfo"， vid)
 
 ```
 
-See [example](../data/vehicle/getVehicleInfos.json)
+See [example](../data/vehicles/getVehicleInfos.json)
 
 ### 获取驾驶人信息 getDriverPids
 
@@ -215,7 +215,7 @@ See [example](../data/vehicle/getVehicleInfos.json)
 ```javascript
 var vid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("vehicle", "getDriverPids", vid)
+rpc.call("vehicles", "getDriverPids", vid)
   .then(function (result) {
 
   }, function (error) {
@@ -236,7 +236,7 @@ var identity_rear_view = "";
 var license_frontal_views = [];
 ...
 
-rpc.call("vehicle", "getDriverPids", vid, driving_frontal_view, driving_rear_view, identity_frontal_view, identity_rear_view, license_frontal_views)
+rpc.call("vehicles", "getDriverPids", vid, driving_frontal_view, driving_rear_view, identity_frontal_view, identity_rear_view, license_frontal_views)
   .then(function (result) {
 
   }, function (error) {

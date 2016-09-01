@@ -57,7 +57,7 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 | field | type | null | default | index   | reference |
 | ----  | ---- | ---- | ----    | ----    | ----      |
 | id    | uuid |      |         | primary |           |
-| vid   | uuid |      |         |         | vehicle   |
+| vid   | uuid |      |         |         | vehicles  |
 
 ### quotation\_groups
 
@@ -86,7 +86,7 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 | field       | type      | null | default | index   | reference       |
 | ----        | ----      | ---- | ----    | ----    | ----            |
 | id          | uuid      |      |         | primary |                 |
-| qiid        | uuid      |      |         |         | quotation-items |
+| qiid        | uuid      |      |         |         | quotation\_items|
 | number      | float     |      |         |         |                 |
 | unit        | char(16)  |      |         |         |                 |
 | sorted      | int       |      | 0       |         |                 |
@@ -100,7 +100,7 @@ sorted 是元素在列表中的顺序
 | field       | type      | null | default | index   | reference       |
 | ----        | ----      | ---- | ----    | ----    | ----            |
 | id          | uuid      |      |         | primary |                 |
-| qiid        | uuid      |      |         |         | quotation-items |
+| qiid        | uuid      |      |         |         | quotation\_items|
 | price       | float     |      |         |         |                 |
 | real\_price | float     |      |         |         |                 |
 | sorted      | int       |      | 0       |         |                 |
