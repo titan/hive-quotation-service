@@ -37,47 +37,84 @@ let processor = new Processor(config);
 
 processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationGroup');
-  db.query('INSERT INTO quotations (id, vid) VALUES ($1, $2)',[args.qid, args.vid], (err: Error) => {
+  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
     if (err) {
       log.error(err, 'query error');
-     } else {
-       db.query('INSERT INTO quotation_groups (id, qid, pid, is_must_have) VALUES ($1, $2, $3, $4)',[args.gid, args.qid, args.pid, args.is_must_have], (err: Error) => {
-        if (err) {
-          log.error(err, 'query error');
-        } else {
-            let plan = "";
-            let vehicle = "";
-            let v = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getVehicleInfo', args.vid);
-            v.then((vehicle) => {});
-            let p = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getPlans', args.pid, 0, -1);
-            p.then((plan) => {});
-            let quotations_entities = {id:args.qid, groups:[{id:args.gid, plan:plan, is_must_have:args.is_must_have, items:[]}], vehicle:vehicle};
-            let multi = cache.multi();
-            multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
-            multi.sadd("quotations", args.qid);
-            multi.exec((err, replies) => {
-              if (err) {
-                log.error(err);
-              }
-              done();
-            });
-          }
-      });
-     }
+     }else{
+        let vehicle = "";
+        let v = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getVehicleInfo', args.vid);
+        v.then((vehicle) => {});
+        let p = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getPlans', args.pid, 0, -1);
+        p.then((plan) => {});
+        let quotations_entities = {id:args.qid, state:args.state, quotation_groups:[], vehicle:vehicle};
+        let multi = cache.multi();
+        multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
+        multi.sadd("quotations", args.qid);
+     } 
+     done();
   });
 });
 
-processor.call('deleteQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, qid, gid, invoke_id) => {
-  log.info('deleteQuotationGroup');
-  db.query('DELETE FROM quotation_groups WHERE id=$1',[gid],(err: Error) => {
+processor.call('completeQuotation', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('completeQuotation');
+  db.query('DELETE FROM quotations WHERE id=$1',[args.qid],(err: Error) => {
       if (err) {
         log.error(err);
       } else {
         let multi = cache.multi();
-        let quotation = multi.hget("quotations-entities", qid)
-        let groups = quotation["groups"];
+        multi.hdel("quotations-entities", args.qid);
+        multi.exec(function(err, replies) {
+          if (err) {
+            log.error(err);
+          }else{
+            multi.set(args.linvoke_id, "success");
+            multi.exec();
+            done();
+          } 
+        });
+      }
+  });
+});
+
+processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('addQuotationGroup');
+    db.query('INSERT INTO quotation_groups (id, qid, pid, is_must_have) VALUES ($1, $2, $3, $4)',[args.gid, args.qid, args.pid, args.is_must_have], (err: Error) => {
+    if (err) {
+      log.error(err, 'query error');
+    } else {
+        let plan = "";
+        let multi = cache.multi();
+        let quotations_entities = multi.hget("quotations-entities", args.qid);
+        let p = rpc(args.domain, 'tcp://vehicle:4040', args.uid, 'getPlans', args.pid, 0, -1);
+        p.then((plan) => {});
+        quotations_entities["quotation_groups"].push({id:args.gid, plan:plan, is_must_have:args.is_must_have, items:[]})
+        multi.exec((err, replies) => {
+          if (err) {
+            log.error(err);
+          }else{
+            db.query('UPDATE quotations SET state = 2',[], (err: Error) => {
+              if (err) {
+                log.error(err);
+              }
+            });
+          }
+          done();
+        });
+     }
+  });
+});
+
+processor.call('deleteQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('deleteQuotationGroup');
+  db.query('DELETE FROM quotation_groups WHERE id=$1',[args.gid],(err: Error) => {
+      if (err) {
+        log.error(err);
+      } else {
+        let multi = cache.multi();
+        let quotation = multi.hget("quotations-entities", args.qid)
+        let groups = quotation["quotation_groups"];
         for(let group of groups){
-          if(group.id == gid){
+          if(group.id == args.gid){
             groups.pop(group);
           }
         }
@@ -85,28 +122,28 @@ processor.call('deleteQuotationGroup', (db: PGClient, cache: RedisClient, done: 
           if (err) {
             log.error(err);
           }else{
-            multi.set(invoke_id, "success");
+            multi.set(args.linvoke_id, "success");
             multi.exec();
+            done();
           } 
         });
       }
   });
 });
 
-processor.call('addQuotationItem', (db: PGClient, cache: RedisClient, done: DoneFunction, qiid, qgid, piid, is_must_have, qid) => {
+processor.call('addQuotationItem', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationItem');
-  db.query('INSERT INTO quotation_items (id, qgid, piid, is_must_have) VALUES ($1, $2, $3, $4)', [qiid, qgid, piid, is_must_have], (err: Error) => {
+  db.query('INSERT INTO quotation_items (id, qgid, piid, is_must_have) VALUES ($1, $2, $3, $4)', [args.qiid, args.qgid, args.piid, args.is_must_have], (err: Error) => {
      if (err) {
       log.error(err, 'query error');
      } else {
         let multi = cache.multi();
-        let quotations_entities = multi.hget("quotations-entities", qid);
-        let quotation_groups = quotations_entities["groups"];
+        let quotations_entities = multi.hget("quotations-entities", args.qid);
+        let quotation_groups = quotations_entities["quotation_groups"];
         for (let group of quotation_groups) {
-          if (group.id == qgid) {
+          if (group.id == args.qgid) {
             let items = [];
-            items.push({ id: qiid, item: [], quotas: [], prices: [] });
-            group["items"] = items;
+            group["items"].push({ id: args.qiid, item: [], is_must_have: args.is_must_have, quotas: [], prices: [] });
             done();
             break;
           }
@@ -115,21 +152,22 @@ processor.call('addQuotationItem', (db: PGClient, cache: RedisClient, done: Done
    });
 });
 
-processor.call('deleteQuotationItem', (db: PGClient, cache: RedisClient, done: DoneFunction, qid, gid, qiid, invoke_id) => {
+processor.call('deleteQuotationItem', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('deleteQuotationItem');
-  db.query('DELETE FROM quotation_items WHERE id=$1',[qiid],(err: Error) => {
+  db.query('DELETE FROM quotation_items WHERE id=$1',[args.qiid],(err: Error) => {
       if (err) {
         log.error(err);
       } else {
         let multi = cache.multi();
-        let quotation = multi.hget("quotations-entities", qid)
+        let quotation = multi.hget("quotations-entities", args.qid)
         let groups = quotation["groups"];
         for(let group of groups){
-          if(group.id == gid){
+          if(group.id == args.gid){
             let items = group.items;
             for(let item of items){
-              if(item.id == qiid){
+              if(item.id == args.qiid){
                 items.pop(item);
+                break;
               }
             }
           }
@@ -138,29 +176,30 @@ processor.call('deleteQuotationItem', (db: PGClient, cache: RedisClient, done: D
           if (err) {
             log.error(err);
           }else{
-            multi.set(invoke_id, "success");
+            multi.set(args.invoke_id, "success");
             multi.exec();
+            done();
           } 
         });
       }
   });
 });
 
-processor.call('addQuotationQuota', (db: PGClient, cache: RedisClient, done: DoneFunction, qqid, qiid, num, unit, sorted, qid, gid) => {
+processor.call('addQuotationQuota', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationQuota');
-  db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit, sorted) VALUES ($1, $2, $3, $4)',[qqid, qiid, num, unit, sorted], (err: Error) => {
+  db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit, sorted) VALUES ($1, $2, $3, $4)',[args.qqid, args.qiid, args.num, args.unit, args.sorted], (err: Error) => {
      if (err) {
       log.error(err, 'query error');
      }else{
         let multi = cache.multi();
-        let quotations_entities = multi.hget("quotations-entities", qid);
-        let quotation_groups = quotations_entities["groups"];
+        let quotations_entities = multi.hget("quotations-entities", args.qid);
+        let quotation_groups = quotations_entities["quotation_groups"];
         for (let group of quotation_groups) {
-          if (group.id == gid) {
+          if (group.id == args.gid) {
             for(let item of group.items){
-              if(item.id == qiid){
+              if(item.id == args.qiid){
                 let quotas = [];
-                quotas.push({id:qqid, num:num, unit:unit, sorted:sorted});
+                quotas.push({id:args.qqid, num:args.num, unit:args.unit, sorted:args.sorted});
                 item["quotas"] = quotas;
                 done();
                 break;
@@ -172,23 +211,23 @@ processor.call('addQuotationQuota', (db: PGClient, cache: RedisClient, done: Don
    });
 });
 
-processor.call('deleteQuotationQuota', (db: PGClient, cache: RedisClient, done: DoneFunction, qid, gid, qiid, qqid, invoke_id) => {
+processor.call('deleteQuotationQuota', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('deleteQuotationQuota');
-  db.query('DELETE FROM quotation_item_quotas WHERE id=$1',[qqid],(err: Error) => {
+  db.query('DELETE FROM quotation_item_quotas WHERE id=$1',[args.qqid],(err: Error) => {
       if (err) {
         log.error(err);
       } else {
         let multi = cache.multi();
-        let quotation = multi.hget("quotations-entities", qid)
+        let quotation = multi.hget("quotations-entities", args.qid)
         let groups = quotation["groups"];
         for(let group of groups){
-          if(group.id == gid){
+          if(group.id == args.gid){
             let items = group.items;
             for(let item of items){
-              if(item.id == qiid){
+              if(item.id == args.qiid){
                 let quotas = item.quotas;
                 for(let quota of quotas){
-                  if(quota.id = qqid){
+                  if(quota.id = args.qqid){
                     quotas.pop(quota);
                   }
                 }
@@ -200,31 +239,37 @@ processor.call('deleteQuotationQuota', (db: PGClient, cache: RedisClient, done: 
           if (err) {
             log.error(err);
           }else{
-            multi.set(invoke_id, "success");
+            multi.set(args.invoke_id, "success");
             multi.exec();
+            done();
           } 
         });
       }
   });
 });
 
-processor.call('addQuotationPrice', (db: PGClient, cache: RedisClient, done: DoneFunction,qpid, qiid, price, real_price, sorted, qid, gid) => {
+processor.call('addQuotationPrice', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationPrice');
-  db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price, sorted) VALUES ($1, $2, $3, $4)',[qpid, qiid, price, real_price, sorted], (err: Error) => {
+  db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price, sorted) VALUES ($1, $2, $3, $4)',[args.qpid, args.qiid, args.price, args.real_price, args.sorted], (err: Error) => {
      if (err) {
       log.error(err, 'query error');
      }else{
         let multi = cache.multi();
-        let quotations_entities = multi.hget("quotations-entities", qid);
-        let quotation_groups = quotations_entities["groups"];
+        let quotations_entities = multi.hget("quotations-entities", args.qid);
+        let quotation_groups = quotations_entities["quotation_groups"];
         for (let group of quotation_groups) {
-          if (group.id == gid) {
+          if (group.id == args.gid) {
             for(let item of group.items){
-              if(item.id == qiid){
+              if(item.id == args.qiid){
                 let prices = [];
-                prices.push({id:qpid, price:price, real_price:real_price, sorted:sorted});
+                prices.push({id:args.qpid, price:args.price, real_price:args.real_price, sorted:args.sorted});
                 item["prices"] = prices;
                 done();
+                 db.query('UPDATE quotations SET state = 3',[], (err: Error) => {
+                  if (err) {
+                    log.error(err);
+                  }
+                });
                 break;
               }
             }
@@ -234,23 +279,23 @@ processor.call('addQuotationPrice', (db: PGClient, cache: RedisClient, done: Don
    });
 });
 
-processor.call('deleteQuotationPrice', (db: PGClient, cache: RedisClient, done: DoneFunction, qid, gid, qiid, qpid, invoke_id) => {
+processor.call('deleteQuotationPrice', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('deleteQuotationPrice');
-  db.query('DELETE FROM quotation_item_prices WHERE id=$1',[qpid],(err: Error) => {
+  db.query('DELETE FROM quotation_item_prices WHERE id=$1',[args.qpid],(err: Error) => {
       if (err) {
         log.error(err);
       } else {
         let multi = cache.multi();
-        let quotation = multi.hget("quotations-entities", qid)
+        let quotation = multi.hget("quotations-entities", args.qid)
         let groups = quotation["groups"];
         for(let group of groups){
-          if(group.id == gid){
+          if(group.id == args.gid){
             let items = group.items;
             for(let item of items){
-              if(item.id == qiid){
+              if(item.id == args.qiid){
                 let prices = item.prices;
                 for(let price of prices){
-                  if(price.id = qpid){
+                  if(price.id = args.qpid){
                     prices.pop(price);
                   }
                 }
@@ -262,8 +307,9 @@ processor.call('deleteQuotationPrice', (db: PGClient, cache: RedisClient, done: 
           if (err) {
             log.error(err);
           }else{
-            multi.set(invoke_id, "success");
+            multi.set(args.invoke_id, "success");
             multi.exec();
+            done();
           } 
         });
       }

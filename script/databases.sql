@@ -3,6 +3,7 @@
 CREATE TABLE quotations(
     id uuid PRIMARY KEY,
     vid uuid NOT NULL,
+    state int DEFAULT 0,
     FOREIGN KEY (vid) REFERENCES vehicles(id) ON DELETE CASCADE
 );
 
