@@ -4,13 +4,16 @@
 
 ### quotation
 
-| name         | type              | note         |
-| ----         | ----              | ----         |
-| id           | uuid              | 主键         |
-| groups       | [quotation-group] | 对应计划集合 |
-| vehicle      | vehicle           | 对应的车辆   |
+| name    | type              | note         |
+| ----    | ----              | ----         |
+| id      | uuid              | 主键         |
+| state   | int               | 报价状态     |
+| groups  | [quotation-group] | 对应计划集合 |
+| vehicle | vehicle           | 对应的车辆   |
 
 报价的 ID 与 vehicle 的 ID 是一致的。
+
+[![报价状态转换图](../img/quotation-states.png)](报价状态转换图)
 
 ### quotation-group
 
@@ -54,10 +57,13 @@ prices 的长度与 quotas 相同，其内部的元素与 quotas 一一对应。
 
 ### quotations
 
-| field | type | null | default | index   | reference |
-| ----  | ---- | ---- | ----    | ----    | ----      |
-| id    | uuid |      |         | primary |           |
-| vid   | uuid |      |         |         | vehicles  |
+| field       | type      | null | default | index   | reference |
+| ----        | ----      | ---- | ----    | ----    | ----      |
+| id          | uuid      |      |         | primary |           |
+| vid         | uuid      |      |         |         | vehicles  |
+| state       | int       |      | 0       |         |           |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
 
 ### quotation\_groups
 
@@ -119,24 +125,53 @@ sorted 是元素在列表中的顺序
 
 ## 接口
 
-### 增加报价组 addQuotationGroup
-
-不能从 mobile 域调用!
+### 创建报价 createQuotation
 
 #### request
 
 | name           | type    | note     |
 | ----           | ----    | ----     |
 | vid            | uuid    | 车辆 ID  |
+
+```javascript
+let vid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("quotation", "createQuotation", vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
+#### response
+
+| name         | type | note         |
+| ----         | ---- | ----         |
+| quotation-id | uuid | Quotation ID |
+
+See [example](../data/quotation/createQuotation.json)
+
+
+### 增加报价组 addQuotationGroup
+
+**不能从 mobile 域调用!**
+
+#### request
+
+| name           | type    | note     |
+| ----           | ----    | ----     |
+| qid            | uuid    | 报价 ID  |
 | pid            | uuid    | 计划 ID  |
 | is\_must\_have | boolean | 是否必选 |
 
 ```javascript
-let vid = "00000000-0000-0000-0000-000000000000";
+let qid = "00000000-0000-0000-0000-000000000000";
 let pid = "00000000-0000-0000-0000-000000000000";
 let is_must_have = true;
 
-rpc.call("quotation", "addQuotationGroup", vid, pid, is_must_have)
+rpc.call("quotation", "addQuotationGroup", qid, pid, is_must_have)
   .then(function (result) {
 
   }, function (error) {
@@ -155,7 +190,7 @@ See [example](../data/quotation/addQuotationGroup.json)
 
 ### 删除报价组 deleteQuotationGroup
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -190,7 +225,7 @@ See [example](../data/quotation/deleteQuotationGroup.json)
 
 ### 增加报价条目 addQuotationItem
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -224,7 +259,7 @@ See [example](../data/quotation/addQuotationItem.json)
 
 ### 删除报价条目 deleteQuotationItem
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -259,7 +294,7 @@ See [example](../data/quotation/deleteQuotationItem.json)
 
 ### 增加报价限额 addQuotationQuota
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -295,7 +330,7 @@ See [example](../data/quotation/addQuotationQuota.json)
 
 ### 删除报价限额 deleteQuotationQuota
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -330,7 +365,7 @@ See [example](../data/quotation/deleteQuotationQuota.json)
 
 ### 增加报价价格 addQuotationPrice
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -366,7 +401,7 @@ See [example](../data/quotation/addQuotationPrice.json)
 
 ### 删除报价价格 deleteQuotationPrice
 
-不能从 mobile 域调用!
+**不能从 mobile 域调用!**
 
 #### request
 
@@ -400,7 +435,7 @@ rpc.call("quotation", "deleteQuotationPrice", qpid)
 See [example](../data/quotation/deleteQuotationPrice.json)
 
 
-### 获取车辆报价信息 getQuotation
+### 获取车辆报价信息 getQuotations
 
 #### request
 
@@ -411,7 +446,33 @@ See [example](../data/quotation/deleteQuotationPrice.json)
 ```javascript
 let vid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("quotation", "getQuotation", vid)
+rpc.call("quotation", "getQuotations", vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+#### response
+
+| name       | type        | note         |
+| ----       | ----        | ----         |
+| quotations | [quotation] | 车辆报价信息 |
+
+See [example](../data/quotation/getQuotations.json)
+
+### 获取车辆报价信息 getQuotation
+
+#### request
+
+| name | type | note       |
+| ---- | ---- | ----       |
+| qid  | uuid | Vehicle ID |
+
+```javascript
+let qid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("quotation", "getQuotation", qid)
   .then(function (result) {
 
   }, function (error) {
