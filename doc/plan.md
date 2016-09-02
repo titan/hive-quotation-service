@@ -86,8 +86,7 @@
 ##### example
 
 ```javascript
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("plan", "getAvailablePlans", uid)
+rpc.call("plan", "getAvailablePlans")
   .then(function (data) {
 
   }, function (err) {
@@ -114,8 +113,7 @@ See [example](../data/plan/getAvailablePlans.json)
 ##### example
 
 ```javascript
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("plan", "getJoinedPlans", uid)
+rpc.call("plan", "getJoinedPlans")
   .then(function (data) {
 
   }, function (err) {

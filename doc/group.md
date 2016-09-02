@@ -14,6 +14,21 @@
 | items            | [group-item] | 互助小组条目 |
 | created-at       | date         | 创建时间     |
 
+### group-item
+
+| name             | type         | note         |
+| ----             | ----         | ----         |
+|vehicle|vehicle|参与车辆|
+|balance|float|个人余额|
+|init-balance|float|个人初始余额|
+|days|integer|剩余互助期(天数)|
+
+个人余额来自 Wallet 的 Account。
+个人初始总额来自 Order 模块。
+
+`剩余互助期百分比 = 剩余互助期 / 365 * 100 %`
+`互助金余额百分比 = 个人余额 / 个人初始余额 * 100 %`
+
 ### group-status
 
 |name|type|note|
