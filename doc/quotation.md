@@ -434,6 +434,41 @@ rpc.call("quotation", "deleteQuotationPrice", qpid)
 
 See [example](../data/quotation/deleteQuotationPrice.json)
 
+### 结束报价 completeQuotation
+
+**不能从 mobile 域调用!**
+
+#### request
+
+| name | type | note         |
+| ---- | ---- | ----         |
+| qid  | uuid | Quotation ID |
+
+```javascript
+let qid = "00000000-0000-0000-0000-000000000000";
+
+rpc.call("quotation", "completeQuotation", qid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See [example](../data/quotation/completeQuotation.json)
+
 
 ### 获取车辆报价信息 getQuotations
 
