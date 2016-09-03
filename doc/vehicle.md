@@ -99,7 +99,9 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 
 | name                     | type     | note           |
 | ----                     | ----     | ----           |
-| drivers                  | [person] | 驾驶人信息     |
+| name         | string  | 驾驶人姓名       |
+| identity\_no | string  | 身份证编号       |
+| phone        | string  | 电话号码         |
 | vehicle\_code            | string   | 车型代码       |
 | license\_no              | string   | 车牌           |
 | engine\_no               | string   | 发动机号       |
@@ -112,13 +114,9 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 ##### example
 
 ```javascript
-var drivers = [
-  {
-    name: "",
-    identity_no: "",
-    phone: ""
-  }
-];
+var name = "";
+var identity_no = "";
+var phone = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -128,7 +126,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", drivers, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -157,7 +155,9 @@ See [example](../data/vehicle/setVehicleInfoOnCard.json)
 
 | name                     | type     | note           |
 | ----                     | ----     | ----           |
-| drivers                  | [person] | 驾驶人信息     |
+| name         | string  | 驾驶人姓名       |
+| identity\_no | string  | 身份证编号       |
+| phone        | string  | 电话号码         |
 | vehicle\_code            | string   | 车型代码       |
 | license\_no              | string   | 车牌           |
 | engine\_no               | string   | 发动机号       |
@@ -171,13 +171,9 @@ See [example](../data/vehicle/setVehicleInfoOnCard.json)
 ##### example
 
 ```javascript
-var drivers = [
-  {
-    name: "",
-    identity_no: "",
-    phone: ""
-  }
-];
+var name = "";
+var identity_no = "";
+var phone = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -188,7 +184,7 @@ var receipt_date = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfo", drivers, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vehicle_code, license_no, engine_no, 
   receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -218,19 +214,20 @@ See [example](../data/vehicle/setVehicleInfo.json)
 | name         | type    | note             |
 | ----         | ----    | ----             |
 | vid          | uuid    | 车辆 ID          |
-| name         | string  | 驾驶人姓名       |
-| identity\_no | string  | 身份证编号       |
-| phone        | string  | 电话号码         |
-| is\_primary  | boolean | 是否是主要驾驶人 |
+| drivers                  | [person] | 驾驶人信息     |
 
 ```javascript
-var vid = ""; 
-var name = "";
-var identity_no = "";
-var phone = "";
-var is_primary = "";
 
-rpc.call("vehicle", "setDriverInfo", vid, name, identity_no, phone, is_primary)
+var drivers = [
+  {
+    name: "",
+    identity_no: "",
+    phone: "",
+    is_primary: ""
+  }
+];
+
+rpc.call("vehicle", "setDriverInfo", vid, drivers)
   .then(function (result) {
 
   }, function (error) {
