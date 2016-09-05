@@ -33,7 +33,7 @@
 | id                       | uuid     | 车ID                   |
 | user\_id                 | user     | 用户                   |
 | owner                    | person   | 车主                   |
-| owner_tpye               | int      | 车主类型               |
+| owner_type               | int      | 车主类型               |
 | drivers                  | [person] | 驾驶人                 |
 | vehicle\_code            | string   | 车型代码               |
 | license\_no              | string   | 车牌                   |
@@ -148,7 +148,6 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_co
 | 200   | null     | 成功    |
 | other | 错误信息 | 失败    |
 
-See [example](../data/vehicle/setVehicleInfoOnCard.json)
 
 ### 获取报价提交表单(新车未上牌)(个人) setVehicleInfo
 
@@ -262,7 +261,6 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, co
 | 200   | null     | 成功    |
 | other | 错误信息 | 失败    |
 
-See [example](../data/vehicle/setVehicleInfoOnCard.json)
 
 ### 获取报价提交表单(新车未上牌)(企业) setVehicleInfo
 
@@ -320,7 +318,6 @@ rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_
 | 200   | null     | 成功    |
 | other | 错误信息 | 失败    |
 
-See [example](../data/vehicle/setVehicleInfo.json)
 
 ### 提交驾驶人信息 setDriverInfo
 
