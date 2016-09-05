@@ -33,6 +33,7 @@
 | id                       | uuid     | 车ID                   |
 | user\_id                 | user     | 用户                   |
 | owner                    | person   | 车主                   |
+| owner_type               | int      | 车主类型               |
 | drivers                  | [person] | 驾驶人                 |
 | vehicle\_code            | string   | 车型代码               |
 | license\_no              | string   | 车牌                   |
@@ -93,7 +94,7 @@ rpc.call("vehicle", "getVehicleModelsByMake", code)
 
 See [example](../data/vehicle/getVehicleModelsByMake.json)
 
-### 获取报价提交表单(新车已上牌) setVehicleInfoOnCard
+### 获取报价提交表单(新车已上牌)(个人) setVehicleInfoOnCard
 
 #### request
 
@@ -147,9 +148,8 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_co
 | 200   | null     | 成功    |
 | other | 错误信息 | 失败    |
 
-See [example](../data/vehicle/setVehicleInfoOnCard.json)
 
-### 获取报价提交表单(新车未上牌) setVehicleInfo
+### 获取报价提交表单(新车未上牌)(个人) setVehicleInfo
 
 #### request
 
@@ -166,7 +166,6 @@ See [example](../data/vehicle/setVehicleInfoOnCard.json)
 | average\_mileage         | string   | 年平均行驶里程 |
 | is\_transfer             | boolean  | 是否过户       |
 | last\_insurance\_company | string   | 上次投保的公司 |
-| insurance\_due\_date     | iso8601  | 保险到期时间   |
 
 ##### example
 
@@ -182,10 +181,9 @@ var is_transfer = "";
 var receipt_no = ""; 
 var receipt_date = "";
 var last_insurance_company = ""; 
-var insurance_due_date = "";
 
 rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vehicle_code, license_no, engine_no, 
-  receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
+  receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company)
   .then(function (result) {
 
   }, function (error) {
@@ -206,6 +204,120 @@ rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vehicle_code, li
 | other | 错误信息 | 失败    |
 
 See [example](../data/vehicle/setVehicleInfo.json)
+
+### 获取报价提交表单(新车已上牌)(企业) setVehicleInfoOnCardEnterprise
+
+#### request
+
+| name                     | type     | note           |
+| ----                     | ----     | ----           |
+| name         | string  | 企业名称       |
+| society_code | string  | 统一社会信用代码  |
+| contact_name | string  | 指定联系人       |
+| contact_phone        | string  | 联系人手机号        |
+| vehicle\_code            | string   | 车型代码       |
+| license\_no              | string   | 车牌           |
+| engine\_no               | string   | 发动机号       |
+| register\_date           | iso8601  | 注册日期       |
+| average\_mileage         | string   | 年平均行驶里程 |
+| is\_transfer             | boolean  | 是否过户       |
+| last\_insurance\_company | string   | 上次投保的公司 |
+| insurance\_due\_date     | iso8601  | 保险到期时间   |
+
+##### example
+
+```javascript
+var name = "";
+var society_code = "";
+var contact_name = "";
+var contact_phone = "";
+var vehicle_code = ""; 
+var license_no = ""; 
+var engine_no = ""; 
+var register_date = ""; 
+var average_mileage = ""; 
+var is_transfer = "";
+var last_insurance_company = ""; 
+var insurance_due_date = "";
+
+rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, contact_phone, vehicle_code, license_no, engine_no, 
+  register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+
+### 获取报价提交表单(新车未上牌)(企业) setVehicleInfo
+
+#### request
+
+| name                     | type     | note           |
+| ----                     | ----     | ----           |
+| name         | string  | 企业名称       |
+| society_code | string  | 统一社会信用代码  |
+| contact_name | string  | 指定联系人       |
+| contact_phone        | string  | 联系人手机号        |
+| vehicle\_code            | string   | 车型代码       |
+| license\_no              | string   | 车牌           |
+| engine\_no               | string   | 发动机号       |
+| receipt\_no              | string   | 发票编号       |
+| receipt\_date            | iso8601  | 发票开具时间   |
+| average\_mileage         | string   | 年平均行驶里程 |
+| is\_transfer             | boolean  | 是否过户       |
+| last\_insurance\_company | string   | 上次投保的公司 |
+
+##### example
+
+```javascript
+var name = "";
+var society_code = "";
+var contact_name = "";
+var contact_phone = "";
+var vehicle_code = ""; 
+var license_no = ""; 
+var engine_no = ""; 
+var average_mileage = ""; 
+var is_transfer = "";
+var receipt_no = ""; 
+var receipt_date = "";
+var last_insurance_company = ""; 
+
+rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_phone, vehicle_code, license_no, engine_no, 
+  receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码 |
+| status | string | 结果内容 |
+
+| code  | status   | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
 
 ### 提交驾驶人信息 setDriverInfo
 
@@ -264,7 +376,7 @@ rpc.call("vehicle", "changeDriverInfo", vid, name, identity_no, phone)
 ##### example
 
 ```javascript
-rpc.call("vehicle", "getVehicleInfos")
+rpc.call("vehicle", "getVehicleInfos", uid)
   .then(function (result) {
 
   }, function (error) {
@@ -293,7 +405,7 @@ rpc.call("vehicle", "getVehicleInfo"， vid)
 See [example](../data/vehicle/getVehicleInfos.json)
 
 ### 获取驾驶人信息 getDriverPids
-
+### 注：前端禁用
 
 ```javascript
 var vid = "00000000-0000-0000-0000-000000000000";
