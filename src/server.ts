@@ -5,20 +5,21 @@ import * as msgpack from 'msgpack-lite';
 import * as http from 'http';
 import * as bunyan from 'bunyan';
 import * as uuid from 'node-uuid';
+import * as hostmap from './hostmap';
 
 let log = bunyan.createLogger({
   name: 'quotation-server',
   streams: [
     {
       level: 'info',
-      path: '/var/log/server-info.log',  // log ERROR and above to a file
+      path: '/var/log/quotation-server-info.log',  // log ERROR and above to a file
       type: 'rotating-file',
       period: '1d',   // daily rotation
       count: 7        // keep 7 back copies
     },
     {
       level: 'error',
-      path: '/var/log/server-error.log',  // log ERROR and above to a file
+      path: '/var/log/quotation-server-error.log',  // log ERROR and above to a file
       type: 'rotating-file',
       period: '1w',   // daily rotation
       count: 3        // keep 7 back copies
@@ -31,8 +32,8 @@ let list_key = "quotations";
 let entity_key = "quotations-entities";
 
 let config: Config = {
-  svraddr: 'tcp://0.0.0.0:4040',
-  msgaddr: 'ipc:///tmp/queue.ipc'
+  svraddr: hostmap.default["quotation"],
+  msgaddr: 'ipc:///tmp/quotation.ipc'
 };
 
 let svc = new Server(config);
@@ -215,13 +216,22 @@ svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid
     if (err) {
       rep([]);
     } else {
-      for (let quotation of result){
-        if(quotation.vehicle.id == vid){
-          rep(quotation);
+      let quotations = [];
+      for (let res of result){
+        let quotation = redis.hget(res);
+        if(quotation["vehicle"].id == vid){
+          quotations.push(quotation);
         }
       }
+      rep(quotations);
     }
   });
+});
+
+svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:string) => {
+  log.info('getQuotations %j', ctx);
+  let quotation = redis.hget(entity_key, qid);
+  rep(quotation);
 });
 
 
