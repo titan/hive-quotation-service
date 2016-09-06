@@ -39,7 +39,7 @@ SALE_ORDER_DEPS = sale-order.yaml $(VEHICLE_DEPS) $(PLAN_DEPS) $(ORDER_ITEMS_PLA
 ORDERS = ../data/order/getOrders.json
 ORDERS_DEPS = orders.yaml $(PLAN_ORDER_DEPS) $(DRIVER_ORDER_DEPS) $(THIRD_ORDER_DEPS)
 
-all: $(QUOTATIONS) $(QUOTATION) $(AVAILABLE_PLANS) $(JOINED_PLANS) $(PLAN) $(GROUP) $(PROFILE) $(ORDERS) $(PLAN_ORDER) $(DRIVER_ORDER) $(THIRD_ORDER)
+all: $(QUOTATIONS) $(QUOTATION) $(AVAILABLE_PLANS) $(JOINED_PLANS) $(PLAN) $(GROUP) $(PROFILE) $(ORDERS) $(PLAN_ORDER) $(DRIVER_ORDER) $(SALE_ORDER)
 
 $(QUOTATIONS): $(QUOTATIONS_DEPS)
 	yaml2json quotations.yaml | aeson-pretty > $@
@@ -71,7 +71,7 @@ $(PLAN_ORDER): $(PLAN_ORDER_DEPS)
 $(DRIVER_ORDER): $(DRIVER_ORDER_DEPS)
 	yaml2json driver-order.yaml | aeson-pretty > $@
 
-$(SALE_ORDERS): $(SALE_ORDER_DEPS)
+$(SALE_ORDER): $(SALE_ORDER_DEPS)
 	yaml2json sale-order.yaml | aeson-pretty > $@
 
 clean:
