@@ -1,6 +1,9 @@
 id: 00000000-0000-0000-0000-000000000000
 name: 风小宝的蜂巢
-vehicles:
+joined_vehicles:
   - !include vehicle.yaml
+waiting_vehicles: []
+applied_vehicles: []
 founder: !include profile.yaml
-created: 100
+created_at: 2016-08-01T00:00:00.000Z
+items: !include group-items.yaml
