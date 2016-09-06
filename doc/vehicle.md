@@ -34,7 +34,7 @@
 | user\_id                 | user     | 用户                   |
 | owner                    | person   | 车主                   |
 | owner_type               | int      | 车主类型               |
-| recommend                | string   | 推荐人               |
+| recommend                | string   | 推荐人                 |
 | drivers                  | [person] | 驾驶人                 |
 | vehicle\_code            | string   | 车型代码               |
 | license\_no              | string   | 车牌                   |
@@ -269,7 +269,7 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, co
 | other | 错误信息 | 失败    |
 
 
-### 获取报价提交表单(新车未上牌)(企业) setVehicleInfo
+### 获取报价提交表单(新车未上牌)(企业) setVehicleInfoEnterprise
 
 #### request
 
@@ -368,11 +368,12 @@ See [example](../data/vehicle/setVehicleInfo.json)
 
 ```javascript
 var vid = ""; 
+var pid = "";
 var name = "";
 var identity_no = "";
 var phone = "";
 
-rpc.call("vehicle", "changeDriverInfo", vid, name, identity_no, phone)
+rpc.call("vehicle", "changeDriverInfo", vid, pid, name, identity_no, phone)
   .then(function (result) {
 
   }, function (error) {
