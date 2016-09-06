@@ -8,8 +8,8 @@
 | ----        | ----     | ----         |
 | id          | uuid     | 主键         |
 | type        | int      | 订单类型 1   |
-| status-code | int      | 订单状态编码 |
-| status      | string   | 订单状态     |
+| state-code  | int      | 订单状态编码 |
+| stat3       | string   | 订单状态     |
 | vehicle     | vehicle  | 车辆         |
 | drivers     | [driver] | 增加的司机   |
 | summary     | float    | 订单总额     |
@@ -21,8 +21,8 @@
 | ----        | ----         | ----              |
 | id          | uuid         | 主键              |
 | type        | int          | 订单类型 2        |
-| status-code | int          | 订单状态编码      |
-| status      | string       | 订单状态          |
+| state-code  | int          | 订单状态编码      |
+| state       | string       | 订单状态          |
 | vehicle     | vehicle      | 车辆              |
 | plan        | plan         | 对应的 plan       |
 | order-items | [order-item] | 包含的 order-item |
@@ -37,8 +37,8 @@
 | ----           | ----      | ----         |
 | id             | uuid      | 主键         |
 | type           | int       | 订单类型 0   |
-| status-code    | int       | 订单状态编码 |
-| status         | string    | 订单状态     |
+| state-code     | int       | 订单状态编码 |
+| state          | string    | 订单状态     |
 | vehicle        | vehicle   | 车辆         |
 | plans          | [plan]    | 包含的 plan  |
 | promotion      | promotion | 促销         |
@@ -74,61 +74,49 @@
 
 ## 数据库结构
 
-### driver-order
-
-| field        | type      | null | default | index   | reference |
-| ----         | ----      | ---- | ----    | ----    | ----      |
-| id           | uuid      |      |         | primary |           |
-| vid          | uuid      |      |         |         | vehicles  |
-| status\_code | int       |      | 0       |         |           |
-| status       | string    | ✓    |         |         |           |
-| summary      | float     |      | 0.0     |         |           |
-| payment      | float     |      |         |         |           |
-| created\_at  | timestamp |      | now     |         |           |
-| updated\_at  | timestamp |      | now     |         |           |
-
-### sale-order
-
-| field        | type      | null | default | index   | reference |
-| ----         | ----      | ---- | ----    | ----    | ----      |
-| id           | uuid      |      |         | primary |           |
-| vid          | uuid      |      |         |         | vehicles  |
-| pid          | uuid      |      |         |         | plans     |
-| status\_code | int       |      | 0       |         |           |
-| status       | string    | ✓    |         |         |           |
-| summary      | float     |      | 0.0     |         |           |
-| payment      | float     |      |         |         |           |
-| start\_at    | timestamp |      | now     |         |           |
-| stop\_at     | timestamp |      | now     |         |           |
-| created\_at  | timestamp |      | now     |         |           |
-| updated\_at  | timestamp |      | now     |         |           |
-
-### plan-order
-
-| field          | type      | null | default | index   | reference  |
-| ----           | ----      | ---- | ----    | ----    | ----       |
-| id             | uuid      |      |         | primary |            |
-| vid            | uuid      |      |         |         | vehicles   |
-| pmid           | uuid      | ✓    |         |         | promotions |
-| status\_code   | int       |      | 0       |         |            |
-| status         | string    | ✓    |         |         |            |
-| service\_ratio | float     |      |         |         |            |
-| summary        | float     |      | 0.0     |         |            |
-| payment        | float     |      |         |         |            |
-| expect\_at     | timestamp |      | now     |         |            |
-| start\_at      | timestamp |      | now     |         |            |
-| stop\_at       | timestamp |      | now     |         |            |
-| created\_at    | timestamp |      | now     |         |            |
-| updated\_at    | timestamp |      | now     |         |            |
-
-### order-drivers
+### orders
 
 | field       | type      | null | default | index   | reference |
 | ----        | ----      | ---- | ----    | ----    | ----      |
 | id          | uuid      |      |         | primary |           |
+| vid         | uuid      |      |         |         | vehicles  |
+| type        | smallint  |      | 0       |         |           |
+| state\_code | int       |      | 0       |         |           |
+| state       | string    | ✓    |         |         |           |
+| summary     | float     |      | 0.0     |         |           |
+| payment     | float     |      | 0.0     |         |           |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
+
+### plan\_order\_ext
+
+| field          | type      | null | default | index   | reference  |
+| ----           | ----      | ---- | ----    | ----    | ----       |
+| id             | uuid      |      |         | primary |            |
+| pmid           | uuid      | ✓    |         |         | promotions |
+| service\_ratio | float     |      |         |         |            |
+| expect\_at     | timestamp |      | now     |         |            |
+| start\_at      | timestamp |      | now     |         |            |
+| stop\_at       | timestamp |      | now     |         |            |
+
+### driver\_order\_ext
+
+| field       | type      | null | default | index   | reference |
+| ----        | ----      | ---- | ----    | ----    | ----      |
+| id          | serial    |      |         | primary |           |
+| oid         | uuid      |      |         |         | orders    |
 | pid         | uuid      |      |         |         | person    |
 
-### order-item
+### sale\_order\_ext
+
+| field        | type      | null | default | index   | reference |
+| ----         | ----      | ---- | ----    | ----    | ----      |
+| id           | uuid      |      |         | primary | orders    |
+| pid          | uuid      |      |         |         | plans     |
+| start\_at    | timestamp |      | now     |         |           |
+| stop\_at     | timestamp |      | now     |         |           |
+
+### order\_items
 
 | field | type  | null | default | index   | reference   |
 | ----  | ----  | ---- | ----    | ----    | ----        |
@@ -140,7 +128,7 @@
 注意：此表的 pid 不是 plan-id 的缩写，是 parent-id 的意思。
 可以成为 parent 的有 plan (对应 plan-order)，或者 sale-order。
 
-### order-event
+### order\_events
 
 | field        | type      | null | default | index   | reference |
 | ----         | ----      | ---- | ----    | ----    | ----      |
@@ -148,7 +136,7 @@
 | oid          | uuid      |      |         |         |           |
 | uid          | uuid      |      |         |         |           |
 | data         | json      |      |         |         |           |
-| occurred\_at | timestamp |      |         |         |           |
+| occurred\_at | timestamp |      | now     |         |           |
 
 ## 缓存结构
 
@@ -173,11 +161,18 @@
 | driver-orders       | sorted set | (订单更新时间, 订单ID) | 计划订单汇总       |
 | driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的计划订单 |
 
-### order
+### orders
 
-| key    | type | value               | note         |
-| ----   | ---- | ----                | ----         |
-| orders | hash | 订单ID => 订单 JSON | 所有订单实体 |
+| key          | type       | value                  | note           |
+| ----         | ----       | ----                   | ----           |
+| orders       | sorted set | (订单更新时间, 订单ID) | 订单汇总       |
+| orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的订单 |
+
+### order-entities
+
+| key            | type | value               | note         |
+| ----           | ---- | ----                | ----         |
+| order-entities | hash | 订单ID => 订单 JSON | 所有订单实体 |
 
 ## 接口
 
