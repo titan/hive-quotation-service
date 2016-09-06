@@ -34,6 +34,7 @@
 | user\_id                 | user     | 用户                   |
 | owner                    | person   | 车主                   |
 | owner_type               | int      | 车主类型               |
+| recommend                | string   | 推荐人               |
 | drivers                  | [person] | 驾驶人                 |
 | vehicle\_code            | string   | 车型代码               |
 | license\_no              | string   | 车牌                   |
@@ -103,6 +104,7 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 | name         | string  | 驾驶人姓名       |
 | identity\_no | string  | 身份证编号       |
 | phone        | string  | 电话号码         |
+| recommend    | string  | 推荐人           |
 | vehicle\_code            | string   | 车型代码       |
 | license\_no              | string   | 车牌           |
 | engine\_no               | string   | 发动机号       |
@@ -118,6 +120,7 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 var name = "";
 var identity_no = "";
 var phone = "";
+var recommend = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -127,7 +130,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, recommend, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -158,6 +161,7 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_co
 | name         | string  | 驾驶人姓名       |
 | identity\_no | string  | 身份证编号       |
 | phone        | string  | 电话号码         |
+| recommend    | string  | 推荐人           |
 | vehicle\_code            | string   | 车型代码       |
 | license\_no              | string   | 车牌           |
 | engine\_no               | string   | 发动机号       |
@@ -173,6 +177,7 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, vehicle_co
 var name = "";
 var identity_no = "";
 var phone = "";
+var recommend = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -182,7 +187,7 @@ var receipt_no = "";
 var receipt_date = "";
 var last_insurance_company = ""; 
 
-rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, recommend, vehicle_code, license_no, engine_no, 
   receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company)
   .then(function (result) {
 
@@ -215,6 +220,7 @@ See [example](../data/vehicle/setVehicleInfo.json)
 | society_code | string  | 统一社会信用代码  |
 | contact_name | string  | 指定联系人       |
 | contact_phone        | string  | 联系人手机号        |
+| recommend    | string  | 推荐人           |
 | vehicle\_code            | string   | 车型代码       |
 | license\_no              | string   | 车牌           |
 | engine\_no               | string   | 发动机号       |
@@ -231,6 +237,7 @@ var name = "";
 var society_code = "";
 var contact_name = "";
 var contact_phone = "";
+var recommend = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -240,7 +247,7 @@ var is_transfer = "";
 var last_insurance_company = ""; 
 var insurance_due_date = "";
 
-rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, contact_phone, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, contact_phone, recommend, vehicle_code, license_no, engine_no, 
   register_date, average_mileage, is_transfer,last_insurance_company, insurance_due_date)
   .then(function (result) {
 
@@ -272,6 +279,7 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, co
 | society_code | string  | 统一社会信用代码  |
 | contact_name | string  | 指定联系人       |
 | contact_phone        | string  | 联系人手机号        |
+| recommend    | string  | 推荐人           |
 | vehicle\_code            | string   | 车型代码       |
 | license\_no              | string   | 车牌           |
 | engine\_no               | string   | 发动机号       |
@@ -288,6 +296,7 @@ var name = "";
 var society_code = "";
 var contact_name = "";
 var contact_phone = "";
+var recommend = "";
 var vehicle_code = ""; 
 var license_no = ""; 
 var engine_no = ""; 
@@ -297,7 +306,7 @@ var receipt_no = "";
 var receipt_date = "";
 var last_insurance_company = ""; 
 
-rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_phone, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_phone, recommend, vehicle_code, license_no, engine_no, 
   receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company)
   .then(function (result) {
 
