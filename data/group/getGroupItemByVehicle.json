@@ -1,26 +1,6 @@
 {
-    "summary": 1000.0,
-    "state": "已创建订单",
-    "payment": 1000.0,
-    "stop_at": "2016-08-01T00:00:00.000Z",
-    "drivers": [
-        {
-            "phone": "00000000000",
-            "identity_rear_view": null,
-            "identity_frontal_view": null,
-            "license_frontal_view": null,
-            "name": "王宝强",
-            "license_rear_view": null,
-            "id": "00000000-0000-0000-0000-000000000000",
-            "identity_no": "000000000000000000"
-        }
-    ],
-    "updated_at": "2016-08-01T00:00:00.000Z",
-    "start_at": "2016-08-01T00:00:00.000Z",
-    "created_at": "2016-08-01T00:00:00.000Z",
-    "state_code": 1.0,
-    "id": "00000000-0000-0000-0000-000000000000",
-    "type": 1.0,
+    "days": 365.0,
+    "balance": 1000.0,
     "vehicle": {
         "receipt_date": "2016-08-01T00:00:00.000Z",
         "insurance_due_date": "2016-08-01T00:00:00.000Z",
@@ -76,5 +56,6 @@
         "license_no": "京A00000",
         "id": "00000000-0000-0000-0000-000000000000",
         "user_id": "00000000-0000-0000-0000-000000000000"
-    }
+    },
+    "init_balance": 1000.0
 }

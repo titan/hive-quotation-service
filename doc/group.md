@@ -16,57 +16,61 @@
 
 ### group-item
 
-| name             | type         | note         |
-| ----             | ----         | ----         |
-|vehicle|vehicle|参与车辆|
-|balance|float|个人余额|
-|init-balance|float|个人初始余额|
-|days|integer|剩余互助期(天数)|
+| name         | type    | note             |
+| ----         | ----    | ----             |
+| vehicle      | vehicle | 参与车辆         |
+| balance      | float   | 个人余额         |
+| init-balance | float   | 个人初始余额     |
+| days         | integer | 剩余互助期(天数) |
 
-个人余额来自 Wallet 的 Account。
-个人初始总额来自 Order 模块。
+1. 个人余额来自 Wallet 的 Account。
+
+2. 个人初始总额来自 Order 模块。
+
+3. 剩余互助期来自 Order 模块。
 
 `剩余互助期百分比 = 剩余互助期 / 365 * 100 %`
 `互助金余额百分比 = 个人余额 / 个人初始余额 * 100 %`
 
-### group-status
+## 数据库结构
 
-|name|type|note|
-|----|----|----|
-|percentage-of-period|integer|剩余互助期百分比|
-|percentage-of-balance|integer|互助金余额百分比|
+### groups
 
-### group-info
+| field       | type      | null | default | index   | reference |
+| ----        | ----      | ---- | ----    | ----    | ----      |
+| id          | uuid      |      |         | primary |           |
+| name        | char(128) |      |         |         |           |
+| founder     | uuid      |      |         |         | users     |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
 
-|name|type|note|
-|----|----|----|
-|apportion-ratio|float|分摊比例(每日更新)|
-|population|integer|人口数量|
-|personal-balance|float|个人余额(从缓存中读取)|
-|public-balance|float|互助基金(从缓存中读取)|
+### group\_vehicles
 
-### group-event
+| field       | type      | null | default | index   | reference |
+| ----        | ----      | ---- | ----    | ----    | ----      |
+| id          | serial    |      |         | primary |           |
+| gid         | uuid      |      |         |         | groups    |
+| vid         | uuid      |      |         |         | vehicles  |
+| type        | smallint  |      |         |         |           |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
 
-|name|type|note|
-|----|----|----|
-|no|string|事件编号|
-|type|integer|事件类型|
-|description|string|事件描述|
-|occurred-at|iso8601|事件发生时间|
-|small-group-apportion-ratio|float|小互助组分摊比例|
-|small-group-fee|float|小互助组互助基金|
-|big-group-apportion-ratio|float|大互助组分摊比例|
-|big-group-fee|float|大互助组互助基金|
+| type | meaning      |
+| ---- | ----         |
+| 1    | 已加入车辆   |
+| 2    | 申请加入车辆 |
+| 3    | 等待生效车辆 |
+| 4    | 已退出车辆   |
 
 ## 接口
 
-### 获得互助组基本信息 getGroup
+### 获得互助组信息 getGroup
 
 #### request
 
-|name|type|note|
-|----|----|----|
-|uid|uuid|用户ID|
+| name | type | note      |
+| ---- | ---- | ----      |
+| gid  | uuid | 互助组 ID |
 
 ##### example
 
@@ -83,27 +87,26 @@ rpc.call("group" ,"getGroup", uid)
 
 #### response
 
-|name|type|note|
-|----|----|----|
-|group|group|Group|
+| name  | type  | note  |
+| ----  | ----  | ----  |
+| group | group | Group |
 
-See [example](../data/hive/getSmallHiveStatus.json)
+See [example](../data/group/getGroup.json)
 
-### 获得互助组状态 getGroupStatus
+### 按车辆获得互助组条目 getGroupItemByVehicle
 
 #### request
 
-|name|type|note|
-|----|----|----|
-|uid|uuid|用户 ID|
+| name | type | note    |
+| ---- | ---- | ----    |
+| vid  | uuid | 车辆 ID |
 
 ##### example
 
 ```javascript
 
-
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "getGroupStatus"，uid)
+var vid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "getGroupItemByVehicle"，uid)
   .then(function (result) {
 
   }, function (error) {
@@ -113,68 +116,9 @@ rpc.call("group", "getGroupStatus"，uid)
 
 #### response
 
-|name|type|note|
-|----|----|----|
-|status|group-status|GroupStatus|
+| name | type       | note       |
+| ---- | ----       | ----       |
+| item | group-item | Group Item |
 
-See [example](../data/hive/getBigHiveStatus.json)
+See [example](../data/group/getGroupItemByVehicle.json)
 
-
-
-### 获得互助组信息 getGroupInfo
-
-#### request
-
-|name|type|note|
-|----|----|----|
-|uid|uuid|用户 ID|
-
-##### example
-
-```javascript
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "getGroupInfo", uid)
-  .then(function (result) {
-
-  }, function (error) {
-
-  });
-```
-
-#### response
-
-|name|type|note|
-|----|----|----|
-|info|group-info|GroupInfo|
-
-See [example](../data/hive/getHiveInfo.json)
-
-
-
-### 获得互助组事件 getGroupEvent
-
-#### request
-
-|name|type|note|
-|----|----|----|
-|uid|uuid|用户 ID|
-
-##### example
-
-```javascript
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "getGroupEvent", uid)
-  .then(function (result) {
-
-  }, function (error) {
-
-  });
-```
-
-#### response
-
-|name|type|note|
-|----|----|----|
-|events|[group-event]|Group events|
-
-See [example](../data/hive/getTransactionHistory.json)

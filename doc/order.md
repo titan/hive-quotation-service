@@ -4,50 +4,53 @@
 
 ### driver-order
 
-| name        | type     | note         |
-| ----        | ----     | ----         |
-| id          | uuid     | 主键         |
-| type        | int      | 订单类型 1   |
-| state-code  | int      | 订单状态编码 |
-| stat3       | string   | 订单状态     |
-| vehicle     | vehicle  | 车辆         |
-| drivers     | [driver] | 增加的司机   |
-| summary     | float    | 订单总额     |
-| payment     | float    | 订单实付     |
+| name       | type     | note         |
+| ----       | ----     | ----         |
+| id         | uuid     | 主键         |
+| type       | int      | 订单类型 1   |
+| state-code | int      | 订单状态编码 |
+| state      | string   | 订单状态     |
+| vehicle    | vehicle  | 车辆         |
+| drivers    | [driver] | 增加的司机   |
+| summary    | float    | 订单总额     |
+| payment    | float    | 订单实付     |
+| start-at   | date     | 合约生效时间 |
+| stop-at    | date     | 合约失效时间 |
 
 ### sale-order
 
-| name        | type         | note              |
-| ----        | ----         | ----              |
-| id          | uuid         | 主键              |
-| type        | int          | 订单类型 2        |
-| state-code  | int          | 订单状态编码      |
-| state       | string       | 订单状态          |
-| vehicle     | vehicle      | 车辆              |
-| plan        | plan         | 对应的 plan       |
-| order-items | [order-item] | 包含的 order-item |
-| summary     | float        | 订单总额          |
-| payment     | float        | 订单实付          |
-| start\_at   | date         | 合约生效时间      |
-| stop\_at    | date         | 合约失效时间      |
+| name       | type         | note              |
+| ----       | ----         | ----              |
+| id         | uuid         | 主键              |
+| type       | int          | 订单类型 2        |
+| state-code | int          | 订单状态编码      |
+| state      | string       | 订单状态          |
+| vehicle    | vehicle      | 车辆              |
+| plan       | plan         | 对应的 plan       |
+| items      | [order-item] | 包含的 order-item |
+| summary    | float        | 订单总额          |
+| payment    | float        | 订单实付          |
+| start-at   | date         | 合约生效时间      |
+| stop-at    | date         | 合约失效时间      |
 
 ### plan-order
 
-| name           | type      | note         |
-| ----           | ----      | ----         |
-| id             | uuid      | 主键         |
-| type           | int       | 订单类型 0   |
-| state-code     | int       | 订单状态编码 |
-| state          | string    | 订单状态     |
-| vehicle        | vehicle   | 车辆         |
-| plans          | [plan]    | 包含的 plan  |
-| promotion      | promotion | 促销         |
-| service\_ratio | float     | 服务费率     |
-| summary        | float     | 订单总额     |
-| payment        | float     | 订单实付     |
-| expect\_at     | date      | 预计生效日期 |
-| start\_at      | date      | 合约生效时间 |
-| stop\_at       | date      | 合约失效时间 |
+| name          | type         | note              |
+| ----          | ----         | ----              |
+| id            | uuid         | 主键              |
+| type          | int          | 订单类型 0        |
+| state-code    | int          | 订单状态编码      |
+| state         | string       | 订单状态          |
+| vehicle       | vehicle      | 车辆              |
+| plans         | [plan]       | 包含的 plan       |
+| items         | [order-item] | 包含的 order-item |
+| promotion     | promotion    | 促销              |
+| service-ratio | float        | 服务费率          |
+| summary       | float        | 订单总额          |
+| payment       | float        | 订单实付          |
+| expect-at     | date         | 预计生效日期      |
+| start-at      | date         | 合约生效时间      |
+| stop-at       | date         | 合约失效时间      |
 
 ### order-item
 
@@ -85,6 +88,8 @@
 | state       | string    | ✓    |         |         |           |
 | summary     | float     |      | 0.0     |         |           |
 | payment     | float     |      | 0.0     |         |           |
+| start\_at   | timestamp |      | now     |         |           |
+| stop\_at    | timestamp |      | now     |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
 
@@ -93,11 +98,12 @@
 | field          | type      | null | default | index   | reference  |
 | ----           | ----      | ---- | ----    | ----    | ----       |
 | id             | uuid      |      |         | primary |            |
+| pid            | uuid      |      |         |         | plans      |
 | pmid           | uuid      | ✓    |         |         | promotions |
 | service\_ratio | float     |      |         |         |            |
 | expect\_at     | timestamp |      | now     |         |            |
-| start\_at      | timestamp |      | now     |         |            |
-| stop\_at       | timestamp |      | now     |         |            |
+| created\_at    | timestamp |      | now     |         |            |
+| updated\_at    | timestamp |      | now     |         |            |
 
 ### driver\_order\_ext
 
@@ -106,15 +112,18 @@
 | id          | serial    |      |         | primary |           |
 | oid         | uuid      |      |         |         | orders    |
 | pid         | uuid      |      |         |         | person    |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
 
 ### sale\_order\_ext
 
-| field        | type      | null | default | index   | reference |
-| ----         | ----      | ---- | ----    | ----    | ----      |
-| id           | uuid      |      |         | primary | orders    |
-| pid          | uuid      |      |         |         | plans     |
-| start\_at    | timestamp |      | now     |         |           |
-| stop\_at     | timestamp |      | now     |         |           |
+| field       | type      | null | default | index   | reference |
+| ----        | ----      | ---- | ----    | ----    | ----      |
+| id          | serial    |      |         | primary |           |
+| oid         | uuid      |      |         |         | orders    |
+| pid         | uuid      |      |         |         | plans     |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
 
 ### order\_items
 
@@ -142,24 +151,21 @@
 
 ### driver-order
 
-| key                 | type       | value                  | note               |
-| ----                | ----       | ----                   | ----               |
-| driver-orders       | sorted set | (订单更新时间, 订单ID) | 司机订单汇总       |
-| driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的司机订单 |
+| key           | type       | value                  | note         |
+| ----          | ----       | ----                   | ----         |
+| driver-orders | sorted set | (订单更新时间, 订单ID) | 司机订单汇总 |
 
 ### sale-order
 
-| key                 | type       | value                  | note               |
-| ----                | ----       | ----                   | ----               |
-| driver-orders       | sorted set | (订单更新时间, 订单ID) | 代售订单汇总       |
-| driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的代售订单 |
+| key           | type       | value                  | note         |
+| ----          | ----       | ----                   | ----         |
+| driver-orders | sorted set | (订单更新时间, 订单ID) | 代售订单汇总 |
 
 ### plan-order
 
-| key                 | type       | value                  | note               |
-| ----                | ----       | ----                   | ----               |
-| driver-orders       | sorted set | (订单更新时间, 订单ID) | 计划订单汇总       |
-| driver-orders-{uid} | sorted set | (订单更新时间, 订单ID) | 每个用户的计划订单 |
+| key           | type       | value                  | note         |
+| ----          | ----       | ----                   | ----         |
+| driver-orders | sorted set | (订单更新时间, 订单ID) | 计划订单汇总 |
 
 ### orders
 
@@ -207,8 +213,9 @@ let pmid = null;
 let service_ratio = 0;
 let summary = 6000;
 let payment = 6000;
+let expect_at = "2016-08-01T00:00:00.000+800Z";
 
-rpc.call("order", "placeAnPlanOrder", vid, plans, pmid, service_ratio, summary, payment)
+rpc.call("order", "placeAnPlanOrder", vid, plans, pmid, service_ratio, summary, payment, expect_at)
   .then(function (result) {
 
   }, function (error) {
@@ -225,40 +232,6 @@ rpc.call("order", "placeAnPlanOrder", vid, plans, pmid, service_ratio, summary, 
 | order-no | string | Order No |
 
 See [example](../data/order/placeAnPlanOrder.json)
-
-### 获取计划订单列表 getPlanOrders
-
-#### request
-
-| name   | type | note           |
-| ----   | ---- | ----           |
-| uid    | uuid | User ID        |
-| offset | int  | 结果集起始地址 |
-| limit  | int  | 结果集大小     |
-
-#### response
-
-| name   | type         | note        |
-| ----   | ----         | ----        |
-| orders | [plan-order] | Plan Orders |
-
-See [example](../data/order/getPlanOrders.json)
-
-### 获取计划订单详情 getPlanOrder
-
-#### request
-
-| name     | type | note     |
-| ----     | ---- | ----     |
-| order-id | uuid | Order ID |
-
-#### response
-
-|name|type|note|
-|----|----|----|
-|order|plan-order|Order 详情|
-
-See [example](../data/order/getPlanOrder.json)
 
 ### 下司机单 placeAnDriverOrder
 
@@ -300,40 +273,6 @@ rpc.call("order", "placeAnDriverOrder", vid, dids, summary, payment)
 
 See [example](../data/order/placeAnDriverOrder.json)
 
-### 获取司机订单列表 getDriverOrders
-
-#### request
-
-| name   | type | note           |
-| ----   | ---- | ----           |
-| uid    | uuid | User ID        |
-| offset | int  | 结果集起始地址 |
-| limit  | int  | 结果集大小     |
-
-#### response
-
-| name   | type           | note          |
-| ----   | ----           | ----          |
-| orders | [driver-order] | Driver Orders |
-
-See [example](../data/order/getDriverOrders.json)
-
-### 获取司机订单详情 getDriverOrder
-
-#### request
-
-| name     | type | note     |
-| ----     | ---- | ----     |
-| order-id | uuid | Order ID |
-
-#### response
-
-|name|type|note|
-|----|----|----|
-|order|driver-order|Order 详情|
-
-See [example](../data/order/getDriverOrder.json)
-
 ### 下代售单 placeAnSaleOrder
 
 #### request
@@ -372,7 +311,7 @@ rpc.call("order", "placeAnSaleOrder", vid, items, summary, payment)
 
 See [example](../data/order/placeAnSaleOrder.json)
 
-### 获取司机订单列表 getSaleOrders
+### 获取订单列表 getOrders
 
 #### request
 
@@ -384,24 +323,28 @@ See [example](../data/order/placeAnSaleOrder.json)
 
 #### response
 
-| name   | type           | note        |
-| ----   | ----           | ----        |
-| orders | [driver-order] | Sale Orders |
+| name   | type    | note   |
+| ----   | ----    | ----   |
+| orders | [order] | Orders |
 
-See [example](../data/order/getSaleOrders.json)
+See [example](../data/order/getOrders.json)
 
-### 获取司机订单详情 getSaleOrder
+### 获取订单详情 getOrder
 
 #### request
 
 | name     | type | note     |
 | ----     | ---- | ----     |
-| order-id | uuid | Order ID |
+| oorder-id | uuid | Order ID |
 
 #### response
 
-|name|type|note|
-|----|----|----|
-|order|sale-order|Order 详情|
+| name  | type  | note       |
+| ----  | ----  | ----       |
+| order | order | Order 详情 |
 
-See [example](../data/order/getSaleOrder.json)
+See [计划订单](../data/order/getPlanOrder.json)
+
+See [司机订单](../data/order/getDriverOrder.json)
+
+See [代售订单](../data/order/getSaleOrder.json)
