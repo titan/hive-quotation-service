@@ -368,11 +368,12 @@ See [example](../data/vehicle/setVehicleInfo.json)
 
 ```javascript
 var vid = ""; 
+var pid = "";
 var name = "";
 var identity_no = "";
 var phone = "";
 
-rpc.call("vehicle", "changeDriverInfo", vid, name, identity_no, phone)
+rpc.call("vehicle", "changeDriverInfo", vid, pid, name, identity_no, phone)
   .then(function (result) {
 
   }, function (error) {
