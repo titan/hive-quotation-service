@@ -235,6 +235,12 @@ svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:
 });
 
 
+svc.call('refresh', permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info('refresh uid: %s', ctx.uid);
+  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: null}));
+  rep({status: 'okay'});
+});
+
 
 function ids2objects(key: string, ids: string[], rep: ResponseFunction) {
   let multi = redis.multi();
