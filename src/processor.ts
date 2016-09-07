@@ -37,6 +37,67 @@ let config: Config = {
 
 let processor = new Processor(config);
 
+processor.call('insertData', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('insertData');
+  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
+    if (err) {
+      log.error(err, 'query error');
+     } else {
+       db.query('INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)',[args.gid, args.qid, args.pid], (err: Error) => {
+        if (err) {
+          log.error(err, 'query error');
+        } else {
+          db.query('INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)', [args.qiid, args.gid, args.piid], (err: Error) => {
+            if (err) {
+              log.error(err, 'query error');
+            } else {
+              db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)',[args.qqid, args.qiid, args.num, args.unit], (err: Error) => {
+                if (err) {
+                  log.error(err, 'query error');
+                }else{
+                  db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)',[args.qpid, args.qiid, args.price, args.real_price], (err: Error) => {
+                    if (err) {
+                      log.error(err, 'query error');
+                    }else{
+                      let quotations_entities = { id: args.qid, state: args.state, quotation_groups: [{id:args.gid, plan:[], items:[{ id: args.qiid, item: [], 
+                        quotas: [{id:args.qqid, num:args.num, unit:args.unit}], prices: [{id:args.qpid, price:args.price, real_price:args.real_price}] }]}], vehicle: [] };
+                      let multi = cache.multi();
+                      multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
+                      multi.sadd("quotations", args.qid);
+                      multi.exec((err, replies) => {
+                        if (err) {
+                          log.error(err);
+                        }else{
+                          done();
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+       });
+        // let vehicle = "";
+        // let v = rpc(args.domain, hostmap.default["vehicle"], args.uid, 'getVehicleInfo', args.vid);
+        // v.then((vehicle) => {
+        //   let quotations_entities = { id: args.qid, state: args.state, quotation_groups: [], vehicle: vehicle };
+        //   let multi = cache.multi();
+        //   multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
+        //   multi.sadd("quotations", args.qid);
+        //   multi.exec((err, replies) => {
+        //     if (err) {
+        //       log.error(err);
+        //     }else{
+        //       done();
+        //     }
+        //   });
+        // });
+     }
+  });
+});
+
 processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationGroup');
   db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
