@@ -76,8 +76,8 @@
 
 ```javascript
 
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group" ,"getGroup", uid)
+var gid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group" ,"getGroup", gid)
   .then(function (result) {
 
   }, function (error) {
@@ -106,7 +106,7 @@ See [example](../data/group/getGroup.json)
 ```javascript
 
 var vid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "getGroupItemByVehicle"，uid)
+rpc.call("group", "getGroupItemByVehicle"，vid)
   .then(function (result) {
 
   }, function (error) {
