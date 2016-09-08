@@ -1,4 +1,5 @@
 import { Server, Config, Context, ResponseFunction, Permission } from 'hive-server';
+import { Quota, Price, Item, Group } from './quotation-definations';
 import * as Redis from "redis";
 import * as nanomsg from 'nanomsg';
 import * as msgpack from 'msgpack-lite';
@@ -41,25 +42,12 @@ let svc = new Server(config);
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
 //暂存数据库
-svc.call('insertData', permissions, (ctx: Context, rep: ResponseFunction, vid:string, pid:string, piid:string, quotas:any, prices:any ) => {
+svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[]) => {
   
-  let qid = uuid.v1();
-  let gid = uuid.v1();
-  let qiids = [];
-  let qqids = [];
-  let qpids = [];
   let state = 3;
-  for (let quota of quotas){
-    let qiid = uuid.v1();
-    let qqid = uuid.v1();
-    let qpid = uuid.v1();
-    qiids.push(piid);
-    qqids.push(qqid);
-    qpids.push(qpid);
-  }
-  let args = {qid, vid, state, gid, qiids, qqids, qpids, pid, piid, quotas, prices};
-  log.info('insertData '+ JSON.stringify(args));
-  ctx.msgqueue.send(msgpack.encode({cmd: "insertData", args:args}));
+  let args = {qid, vid, state, groups};
+  log.info({ args: args }, 'addQuotationGroups');
+  ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationGroups", args:args}));
   rep("quotation:" + qid);
 });
 
@@ -71,7 +59,7 @@ svc.call('createQuotation', permissions, (ctx: Context, rep: ResponseFunction, v
   let args = {qid, vid, state};
   log.info('createQuotation '+JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({cmd: "createQuotation", args:args}));
-
+  rep(qid);
 });
 
 //结束报价
