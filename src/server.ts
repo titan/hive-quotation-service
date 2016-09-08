@@ -40,20 +40,45 @@ let svc = new Server(config);
 
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
+//暂存数据库
+svc.call('insertData', permissions, (ctx: Context, rep: ResponseFunction, vid:string, pid:string, piid:string, quotas:any, prices:any ) => {
+  
+  let qid = uuid.v1();
+  let gid = uuid.v1();
+  let qiids = [];
+  let qqids = [];
+  let qpids = [];
+  let state = 3;
+  for (let quota of quotas){
+    let qiid = uuid.v1();
+    let qqid = uuid.v1();
+    let qpid = uuid.v1();
+    qiids.push(piid);
+    qqids.push(qqid);
+    qpids.push(qpid);
+  }
+  let args = {qid, vid, state, gid, qiids, qqids, qpids, pid, piid, quotas, prices};
+  log.info('insertData '+ JSON.stringify(args));
+  ctx.msgqueue.send(msgpack.encode({cmd: "insertData", args:args}));
+  rep("quotation:" + qid);
+});
+
 //创建报价
 svc.call('createQuotation', permissions, (ctx: Context, rep: ResponseFunction, vid:string) => {
-  log.info('createQuotation %j', ctx);
+  
   let qid = uuid.v1();
   let state = 1;
-  let args = [qid, vid, state];
+  let args = {qid, vid, state};
+  log.info('createQuotation '+JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({cmd: "createQuotation", args:args}));
+
 });
 
 //结束报价
 svc.call('completeQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:string) => {
   log.info('completeQuotation %j', ctx);
   let invoke_id: string = uuid.v1();
-  let args = [qid, invoke_id];
+  let args = {qid, invoke_id};
   ctx.msgqueue.send(msgpack.encode({cmd: "completeQuotation", args:args}));
   let countdown = 10;
   let timer = setInterval(() => {
@@ -80,14 +105,14 @@ svc.call('completeQuotation', permissions, (ctx: Context, rep: ResponseFunction,
 svc.call('addQuotationGroup', permissions, (ctx: Context, rep: ResponseFunction, qid:string, pid:string, is_must_have:boolean) => {
   log.info('addQuotationGroup %j', ctx);
   let gid = uuid.v1();
-  let args = [qid, gid, pid, is_must_have];
+  let args = {qid, gid, pid, is_must_have};
   ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationGroup", args:args}));
 });
 //删除报价组
 svc.call('deleteQuotationGroup', permissions, (ctx: Context, rep: ResponseFunction, qid:string, gid:string) => {
   log.info('deleteQuotationGroup %j', ctx);
   let invoke_id: string = uuid.v1();
-  let args = [qid, gid, invoke_id];
+  let args = {qid, gid, invoke_id};
   ctx.msgqueue.send(msgpack.encode({cmd: "deleteQuotationGroup", args:args}));
   let countdown = 10;
   let timer = setInterval(() => {
@@ -114,14 +139,14 @@ svc.call('deleteQuotationGroup', permissions, (ctx: Context, rep: ResponseFuncti
 svc.call('addQuotationItem', permissions, (ctx: Context, rep: ResponseFunction, qgid:string, piid:string, is_must_have:boolean, qid:string) => {
   log.info('addQuotationItem %j', ctx);
   let qiid = uuid.v1();
-  let args = [qiid, qgid, piid, is_must_have, qid];
+  let args = {qiid, qgid, piid, is_must_have, qid};
   ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationItem", args:args}));
 });
 //删除报价条目
 svc.call('deleteQuotationItem', permissions, (ctx: Context, rep: ResponseFunction, qid:string, gid:string, qiid:string) => {
   log.info('deleteQuotationItem %j', ctx);
   let invoke_id: string = uuid.v1();
-  let args = [qid, gid, qiid, invoke_id]
+  let args = {qid, gid, qiid, invoke_id};
   ctx.msgqueue.send(msgpack.encode({cmd: "deleteQuotationItem", args}));
   let countdown = 10;
   let timer = setInterval(() => {
@@ -147,14 +172,14 @@ svc.call('deleteQuotationItem', permissions, (ctx: Context, rep: ResponseFunctio
 svc.call('addQuotationQuota', permissions, (ctx: Context, rep: ResponseFunction, qiid:string, num:number, unit:string, sorted:number, qid:string, gid:string) => {
   log.info('addQuotationQuota %j', ctx);
   let qqid = uuid.v1();
-  let args = [qqid, qiid, num, unit, sorted, qid, gid];
+  let args = {qqid, qiid, num, unit, sorted, qid, gid};
   ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationQuota", args:args}));
 });
 //删除报价限额
 svc.call('deleteQuotationQuota', permissions, (ctx: Context, rep: ResponseFunction, qid:string, gid:string, qiid:string, qqid:string) => {
   log.info('deleteQuotationQuota %j', ctx);
   let invoke_id: string = uuid.v1();
-  let args = [qid, gid, qiid, qqid, invoke_id]
+  let args = {qid, gid, qiid, qqid, invoke_id}
   ctx.msgqueue.send(msgpack.encode({cmd: "deleteQuotationQuota", args:args}));
   let countdown = 10;
   let timer = setInterval(() => {
@@ -180,14 +205,14 @@ svc.call('deleteQuotationQuota', permissions, (ctx: Context, rep: ResponseFuncti
 svc.call('addQuotationPrice', permissions, (ctx: Context, rep: ResponseFunction, qiid:string, price:number, real_price:number, sorted:number, qid:string, gid:string) => {
   log.info('addQuotationPrice %j', ctx);
   let qpid = uuid.v1();
-  let args = [qpid, qiid, price, real_price, sorted, qid, gid];
+  let args = {qpid, qiid, price, real_price, sorted, qid, gid};
   ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationPrice", args:args}));
 });
 //删除报价价格
 svc.call('deleteQuotationPrice', permissions, (ctx: Context, rep: ResponseFunction, qid:string,  gid:string, qiid:string, qpid:string) => {
   log.info('deleteQuotationPrice %j', ctx);
   let invoke_id: string = uuid.v1();
-  let args = [qid, gid, qiid, qpid, invoke_id];
+  let args = {qid, gid, qiid, qpid, invoke_id};
   ctx.msgqueue.send(msgpack.encode({cmd: "deleteQuotationPrice", args:args}));
   let countdown = 10;
   let timer = setInterval(() => {
@@ -211,19 +236,25 @@ svc.call('deleteQuotationPrice', permissions, (ctx: Context, rep: ResponseFuncti
 });
 
 svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid:string) => {
-  log.info('getQuotations %j', ctx);
+  log.info('getQuotations' + vid);
   redis.smembers(list_key, function (err, result) {
     if (err) {
       rep([]);
     } else {
       let quotations = [];
-      for (let res of result){
-        let quotation = redis.hget(res);
-        if(quotation["vehicle"].id == vid){
-          quotations.push(quotation);
-        }
+      let multi = redis.multi();
+      for (let id of result) {
+        multi.hget(entity_key, id);
       }
-      rep(quotations);
+      multi.exec((err,result) => {
+        if(err){
+          rep([]);
+        }else{
+          let quotations = result.map(e => JSON.parse(e));
+          // .filter(q => q.vid == vid);
+          rep(quotations);
+        }
+      });
     }
   });
 });
