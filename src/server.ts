@@ -41,17 +41,26 @@ let svc = new Server(config);
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
 //暂存数据库
-svc.call('insertData', permissions, (ctx: Context, rep: ResponseFunction, vid:string, pid:string, piid:string, num:number, unit:string, price:number, real_price:number ) => {
+svc.call('insertData', permissions, (ctx: Context, rep: ResponseFunction, vid:string, pid:string, piid:string, quotas:any, prices:any ) => {
   
   let qid = uuid.v1();
   let gid = uuid.v1();
-  let qiid = uuid.v1();
-  let qqid = uuid.v1();
-  let qpid = uuid.v1();
-  let state = 1;
-  let args = {qid, vid, state, gid, qiid, qqid, qpid, pid, piid, num, unit, price, real_price};
+  let qiids = [];
+  let qqids = [];
+  let qpids = [];
+  let state = 3;
+  for (let quota of quotas){
+    let qiid = uuid.v1();
+    let qqid = uuid.v1();
+    let qpid = uuid.v1();
+    qiids.push(piid);
+    qqids.push(qqid);
+    qpids.push(qpid);
+  }
+  let args = {qid, vid, state, gid, qiids, qqids, qpids, pid, piid, quotas, prices};
   log.info('insertData '+ JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({cmd: "insertData", args:args}));
+  rep("quotation:" + qid);
 });
 
 //创建报价
@@ -62,6 +71,7 @@ svc.call('createQuotation', permissions, (ctx: Context, rep: ResponseFunction, v
   let args = {qid, vid, state};
   log.info('createQuotation '+JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({cmd: "createQuotation", args:args}));
+
 });
 
 //结束报价
@@ -226,19 +236,25 @@ svc.call('deleteQuotationPrice', permissions, (ctx: Context, rep: ResponseFuncti
 });
 
 svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid:string) => {
-  log.info('getQuotations %j', ctx);
+  log.info('getQuotations' + vid);
   redis.smembers(list_key, function (err, result) {
     if (err) {
       rep([]);
     } else {
       let quotations = [];
-      for (let res of result){
-        let quotation = redis.hget(res);
-        if(quotation["vehicle"].id == vid){
-          quotations.push(quotation);
-        }
+      let multi = redis.multi();
+      for (let id of result) {
+        multi.hget(entity_key, id);
       }
-      rep(quotations);
+      multi.exec((err,result) => {
+        if(err){
+          rep([]);
+        }else{
+          let quotations = result.map(e => JSON.parse(e));
+          // .filter(q => q.vid == vid);
+          rep(quotations);
+        }
+      });
     }
   });
 });

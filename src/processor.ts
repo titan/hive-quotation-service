@@ -38,71 +38,118 @@ let config: Config = {
 let processor = new Processor(config);
 
 processor.call('insertData', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
-  log.info('insertData');
-  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
+  log.info('insertData' + args);
+  db.query('BEGIN', [], (err: Error) => {
     if (err) {
-      log.error(err, 'query error');
-     } else {
-       db.query('INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)',[args.gid, args.qid, args.pid], (err: Error) => {
+      done();
+      log.error(err, 'query error begin');
+    } else {
+      db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)', [args.qid, args.vid, args.state], (err: Error) => {
         if (err) {
-          log.error(err, 'query error');
+          log.error(err, 'query error quotations');
+          db.query('ROLLBACK', [], (err: Error) => {
+            done();
+          });
         } else {
-          db.query('INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)', [args.qiid, args.gid, args.piid], (err: Error) => {
+          db.query('INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)', [args.gid, args.qid, args.pid], (err: Error) => {
             if (err) {
-              log.error(err, 'query error');
-            } else {
-              db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)',[args.qqid, args.qiid, args.num, args.unit], (err: Error) => {
-                if (err) {
-                  log.error(err, 'query error');
-                }else{
-                  db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)',[args.qpid, args.qiid, args.price, args.real_price], (err: Error) => {
-                    if (err) {
-                      log.error(err, 'query error');
-                    }else{
-                      let quotations_entities = { id: args.qid, state: args.state, quotation_groups: [{id:args.gid, plan:[], items:[{ id: args.qiid, item: [], 
-                        quotas: [{id:args.qqid, num:args.num, unit:args.unit}], prices: [{id:args.qpid, price:args.price, real_price:args.real_price}] }]}], vehicle: [] };
-                      let multi = cache.multi();
-                      multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
-                      multi.sadd("quotations", args.qid);
-                      multi.exec((err, replies) => {
-                        if (err) {
-                          log.error(err);
-                        }else{
-                          done();
-                        }
-                      });
-                    }
-                  });
-                }
+              db.query('ROLLBACK', [], (err: Error) => {
+                done();
               });
+              log.error(err, 'query error quotation_groups');
+            } else {
+
+              let i = 0;
+              for (let item of args.qiids) {
+                db.query('INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)', [item.qiids[i], args.gid, args.piid], (err: Error) => {
+                  if (err) {
+                    db.query('ROLLBACK', [], (err: Error) => {
+                      done();
+                    });
+                    log.error(err, 'query error quotation_items');
+                  } else {
+                    db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)', [args.qqids[i], args.qiid, args.quotas[i].num, args.quotas[i].unit], (err: Error) => {
+                      if (err) {
+                        db.query('ROLLBACK', [], (err: Error) => {
+                          done();
+                        });
+                        log.error(err, 'query error quotation_item_quotas');
+                      } else {
+                        db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)', [args.qpids[i], args.qiid, args.prices[i].price, args.prices[i].real_price], (err: Error) => {
+                          if (err) {
+                            db.query('ROLLBACK', [], (err: Error) => {
+                              done();
+                            });
+                            log.error(err, 'query error quotation_item_prices');
+                          } else {
+                            i++;
+                          }
+                        });
+                      }
+                    });
+                  }
+                  if(i == args.qiids.length-1){
+                    db.query('COMMIT', [], (err: Error) => {
+                      if (err) {
+                        db.query('ROLLBACK', [], (err: Error) => {
+                          done();
+                        });
+                        log.error(err, 'query error COMMIT');
+                      } else {
+                        let items = [];
+                        for(let i=0; i<args.qiids.length;i++){
+                          let item ={
+                            qiid:args.qiids[i],
+                            quota:args.quotas[i],
+                            price:args.prices[i]
+                          }
+                          items.push(item);
+                        }
+                        let quotations_entities = {
+                          id: args.qid, state: args.state, quotation_groups: [{id: args.gid, plan: args.pid, items:items }], vehicle: args.vid
+                        };
+                        let multi = cache.multi();
+                        multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
+                        multi.sadd("quotations", args.qid);
+                        multi.exec((err, replies) => {
+                          if (err) {
+                            log.error(err);
+                          } else {
+                            done();
+                          }
+                        });
+                      }
+                    });
+                  }
+                  
+                });
+              }
             }
           });
         }
-       });
-        // let vehicle = "";
-        // let v = rpc(args.domain, hostmap.default["vehicle"], args.uid, 'getVehicleInfo', args.vid);
-        // v.then((vehicle) => {
-        //   let quotations_entities = { id: args.qid, state: args.state, quotation_groups: [], vehicle: vehicle };
-        //   let multi = cache.multi();
-        //   multi.hset("quotations-entities", args.qid, JSON.stringify(quotations_entities));
-        //   multi.sadd("quotations", args.qid);
-        //   multi.exec((err, replies) => {
-        //     if (err) {
-        //       log.error(err);
-        //     }else{
-        //       done();
-        //     }
-        //   });
-        // });
-     }
+      });
+    }
   });
+
 });
+
+
+
+function recur(prices) {
+  if (prices.length == 0) {
+  } else {
+    let price = prices.shift();
+    // price sql
+    recur(prices);
+  }
+}
 
 processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationGroup');
   db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
     if (err) {
       log.error(err, 'query error');
+      done();
      } else {
         let vehicle = "";
         let v = rpc(args.domain, hostmap.default["vehicle"], args.uid, 'getVehicleInfo', args.vid);
@@ -128,6 +175,7 @@ processor.call('completeQuotation', (db: PGClient, cache: RedisClient, done: Don
   db.query('DELETE FROM quotations WHERE id=$1',[args.qid],(err: Error) => {
       if (err) {
         log.error(err);
+        done();
       } else {
         let multi = cache.multi();
         multi.hdel("quotations-entities", args.qid);
@@ -154,6 +202,7 @@ processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: Don
     db.query('INSERT INTO quotation_groups (id, qid, pid, is_must_have) VALUES ($1, $2, $3, $4)',[args.gid, args.qid, args.pid, args.is_must_have], (err: Error) => {
     if (err) {
       log.error(err, 'query error');
+      done();
     } else {
         let plan = "";
         let multi = cache.multi();
@@ -184,6 +233,7 @@ processor.call('deleteQuotationGroup', (db: PGClient, cache: RedisClient, done: 
   db.query('DELETE FROM quotation_groups WHERE id=$1',[args.gid],(err: Error) => {
       if (err) {
         log.error(err);
+        done();
       } else {
         let multi = cache.multi();
         let quotation = multi.hget("quotations-entities", args.qid)
@@ -216,6 +266,7 @@ processor.call('addQuotationItem', (db: PGClient, cache: RedisClient, done: Done
   db.query('INSERT INTO quotation_items (id, qgid, piid, is_must_have) VALUES ($1, $2, $3, $4)', [args.qiid, args.qgid, args.piid, args.is_must_have], (err: Error) => {
      if (err) {
       log.error(err, 'query error');
+      done();
      } else {
         let multi = cache.multi();
         let quotations_entities = multi.hget("quotations-entities", args.qid);
@@ -243,6 +294,7 @@ processor.call('deleteQuotationItem', (db: PGClient, cache: RedisClient, done: D
   db.query('DELETE FROM quotation_items WHERE id=$1',[args.qiid],(err: Error) => {
       if (err) {
         log.error(err);
+        done();
       } else {
         let multi = cache.multi();
         let quotation = multi.hget("quotations-entities", args.qid)
@@ -281,6 +333,7 @@ processor.call('addQuotationQuota', (db: PGClient, cache: RedisClient, done: Don
   db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit, sorted) VALUES ($1, $2, $3, $4)',[args.qqid, args.qiid, args.num, args.unit, args.sorted], (err: Error) => {
      if (err) {
       log.error(err, 'query error');
+      done();
      }else{
         let multi = cache.multi();
         let quotations_entities = multi.hget("quotations-entities", args.qid);
@@ -313,6 +366,7 @@ processor.call('deleteQuotationQuota', (db: PGClient, cache: RedisClient, done: 
   db.query('DELETE FROM quotation_item_quotas WHERE id=$1',[args.qqid],(err: Error) => {
       if (err) {
         log.error(err);
+        done();
       } else {
         let multi = cache.multi();
         let quotation = multi.hget("quotations-entities", args.qid)
@@ -355,6 +409,7 @@ processor.call('addQuotationPrice', (db: PGClient, cache: RedisClient, done: Don
   db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price, sorted) VALUES ($1, $2, $3, $4)',[args.qpid, args.qiid, args.price, args.real_price, args.sorted], (err: Error) => {
      if (err) {
       log.error(err, 'query error');
+      done();
      }else{
         let multi = cache.multi();
         let quotations_entities = multi.hget("quotations-entities", args.qid);
@@ -391,6 +446,7 @@ processor.call('deleteQuotationPrice', (db: PGClient, cache: RedisClient, done: 
   db.query('DELETE FROM quotation_item_prices WHERE id=$1',[args.qpid],(err: Error) => {
       if (err) {
         log.error(err);
+        done();
       } else {
         let multi = cache.multi();
         let quotation = multi.hget("quotations-entities", args.qid)
