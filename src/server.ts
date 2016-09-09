@@ -248,9 +248,10 @@ svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid
 });
 
 svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:string) => {
-  log.info('getQuotations %j', ctx);
-  let quotation = redis.hget(entity_key, qid);
-  rep(quotation);
+  log.info('getQuotation, qid: %s', qid);
+  redis.hget(entity_key, qid, (err, quotation) => {
+    rep(JSON.parse(quotation));
+  });
 });
 
 
