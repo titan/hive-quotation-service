@@ -1,5 +1,6 @@
 {
   "dependencies": {
+
     "bunyan": "^1.8.1",
     "hive-server": "git+http://git.fengchaohuzhu.com:10080/Titan/hive-server.git",
     "hive-processor": "git+http://git.fengchaohuzhu.com:10080/Titan/hive-processor.git",
@@ -8,5 +9,6 @@
     "pg": "^6.1.0",
     "pg-pool": "^1.4.0",
     "redis": "^2.6.2"
+
   }
 }

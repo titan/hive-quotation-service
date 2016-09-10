@@ -1,0 +1,52 @@
+[
+  {
+    "city": "北京",
+    "district": "东城区",
+    "street": "东直门",
+    "driver": {
+      "name": "王宝强",
+      "gender": "男",
+      "identity_no": "xxxxxxxxxxxxxxxxxxxxxxxxx",
+      "phone": "13723687462",
+      "identity_frontal_view": "http://aliyun.com/xxx.png",
+      "identity_rear_view": "http://aliyun.com/yyy.png",
+      "license_frontal_view": "http://aliyun.com/xxx.png",
+      "license_rear_view": "http://aliyun.com/yyy.png",
+      "driving_years": 5
+    },
+    "phone": "13723687462",
+    "vehicle": {
+      "license_no": "京A00000",
+      "model": "江南奥拓",
+      "vin": "0",
+      "engine_no": "0",
+      "register_date": "2016-08-01T00:00:00.000Z",
+      "average_mileage": "1万公里",
+      "fuel_type": "汽油",
+      "receipt_no": "0",
+      "receipt_date": "2016-08-01T00:00:00.000Z",
+      "last_insurance_company": "平安保险",
+      "vehicle_license_frontal_view": "http://aliyun.com/xxx.png",
+      "vehicle_license_rear_view": "http://aliyun.com/yyy.png"
+    },
+    "occurred_at": "2016-08-01T00:00:00.000Z",
+    "responsibility": "全部责任",
+    "situation": "追尾",
+    "description": "后车眼瞎，追尾我了，车屁股都撞凹了",
+    "scene_view": "http://aliyun.com/0.png",
+    "vehicle_damaged_view": "http://aliyun.com/1.png",
+    "vehicle_frontal_view": "http://aliyun.com/2.png",
+    "driver_view": "http://aliyun.com/3.png",
+    "driver_license_view": "http://aliyun.com/4.png",
+    "state": 2,
+    "recompense": {
+      "personal_fee": 1000,
+      "personal_balance": 0,
+      "small_hive_fee": 10000,
+      "small_hive_balance": 0,
+      "big_hive_fee": 10000,
+      "big_hive_balance": 100000,
+      "paid_at": "2016-08-01T00:00:00.000Z"
+    }
+  }
+]

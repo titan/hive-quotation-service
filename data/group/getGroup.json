@@ -1,0 +1,139 @@
+{
+    "items": [
+        {
+            "days": 365.0,
+            "balance": 1000.0,
+            "vehicle": {
+                "receipt_date": "2016-08-01T00:00:00.000Z",
+                "insurance_due_date": "2016-08-01T00:00:00.000Z",
+                "average_mileage": "30000",
+                "drivers": [
+                    {
+                        "phone": "00000000000",
+                        "identity_rear_view": null,
+                        "identity_frontal_view": null,
+                        "license_frontal_view": null,
+                        "name": "王宝强",
+                        "license_rear_view": null,
+                        "id": "00000000-0000-0000-0000-000000000000",
+                        "identity_no": "000000000000000000"
+                    }
+                ],
+                "engine_no": "xxxx",
+                "vehicle_model": {
+                    "pl": "1.595",
+                    "body_type": "三厢",
+                    "vin_code": "LSVFA49J232037048",
+                    "family_name": "宝来",
+                    "fuel_jet_type": "多点电喷",
+                    "purchase_price": 113800.0,
+                    "gearbox_name": "手动档",
+                    "effluent_standard": "国二",
+                    "group_name": "宝来GP 三厢(06/07-08/09)",
+                    "vehicle_code": "I0000000000000000250000000000040",
+                    "engine_number": "BWG 058892",
+                    "driven_type": "前置前驱",
+                    "vehicle_name": "宝来FV7162F轿车",
+                    "engine_desc": "1.6L",
+                    "year_pattern": "2006",
+                    "purchase_price_tax": 118663.0,
+                    "cfg_level": "豪华版",
+                    "brand_name": "大众",
+                    "seat": 5.0
+                },
+                "is_transfer": true,
+                "owner": {
+                    "phone": "00000000000",
+                    "identity_rear_view": null,
+                    "identity_frontal_view": null,
+                    "license_frontal_view": null,
+                    "name": "王宝强",
+                    "license_rear_view": null,
+                    "id": "00000000-0000-0000-0000-000000000000",
+                    "identity_no": "000000000000000000"
+                },
+                "last_insurance_company": "中国人保",
+                "receipt_no": "xxx",
+                "register_date": "2016-08-01T00:00:00.000Z",
+                "license_no": "京A00000",
+                "id": "00000000-0000-0000-0000-000000000000",
+                "user_id": "00000000-0000-0000-0000-000000000000"
+            },
+            "init_balance": 1000.0
+        }
+    ],
+    "founder": {
+        "phone": 1.87e10,
+        "identity-no": "xxxxxxxxxxxxxxxxxx",
+        "openid": "xxxxxxxx",
+        "gender": "female",
+        "name": "vivian",
+        "password": "xxxxxxxx",
+        "portrait": "https://www.baidu.com/img/bd_logo1.png",
+        "id": "00000000-0000-0000-0000-000000000000",
+        "nickname": "vivian"
+    },
+    "applied_vehicles": [],
+    "joined_vehicles": [
+        {
+            "receipt_date": "2016-08-01T00:00:00.000Z",
+            "insurance_due_date": "2016-08-01T00:00:00.000Z",
+            "average_mileage": "30000",
+            "drivers": [
+                {
+                    "phone": "00000000000",
+                    "identity_rear_view": null,
+                    "identity_frontal_view": null,
+                    "license_frontal_view": null,
+                    "name": "王宝强",
+                    "license_rear_view": null,
+                    "id": "00000000-0000-0000-0000-000000000000",
+                    "identity_no": "000000000000000000"
+                }
+            ],
+            "engine_no": "xxxx",
+            "vehicle_model": {
+                "pl": "1.595",
+                "body_type": "三厢",
+                "vin_code": "LSVFA49J232037048",
+                "family_name": "宝来",
+                "fuel_jet_type": "多点电喷",
+                "purchase_price": 113800.0,
+                "gearbox_name": "手动档",
+                "effluent_standard": "国二",
+                "group_name": "宝来GP 三厢(06/07-08/09)",
+                "vehicle_code": "I0000000000000000250000000000040",
+                "engine_number": "BWG 058892",
+                "driven_type": "前置前驱",
+                "vehicle_name": "宝来FV7162F轿车",
+                "engine_desc": "1.6L",
+                "year_pattern": "2006",
+                "purchase_price_tax": 118663.0,
+                "cfg_level": "豪华版",
+                "brand_name": "大众",
+                "seat": 5.0
+            },
+            "is_transfer": true,
+            "owner": {
+                "phone": "00000000000",
+                "identity_rear_view": null,
+                "identity_frontal_view": null,
+                "license_frontal_view": null,
+                "name": "王宝强",
+                "license_rear_view": null,
+                "id": "00000000-0000-0000-0000-000000000000",
+                "identity_no": "000000000000000000"
+            },
+            "last_insurance_company": "中国人保",
+            "receipt_no": "xxx",
+            "register_date": "2016-08-01T00:00:00.000Z",
+            "license_no": "京A00000",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "user_id": "00000000-0000-0000-0000-000000000000"
+        }
+    ],
+    "name": "风小宝的蜂巢",
+    "waiting_vehicles": [],
+    "created_at": "2016-08-01T00:00:00.000Z",
+    "id": "00000000-0000-0000-0000-000000000000"
+}

@@ -1,0 +1,5 @@
+id: 00000000-0000-0000-0000-000000000000
+item: !include plan-item-additional3.yaml
+quotas: !include quotation-item-quotas-additional3.yaml
+prices: !include quotation-item-prices-additional3.yaml
+is_must_have: false

@@ -1,0 +1,4 @@
+vehicle: !include vehicle.yaml
+balance: 1000
+init_balance: 1000
+days: 365

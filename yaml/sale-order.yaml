@@ -1,0 +1,13 @@
+id: '00000000-0000-0000-0000-000000000000'
+type: 2
+vehicle: !include vehicle.yaml
+state_code: 1
+state: 已创建订单
+summary: 1000
+payment: 1000
+start_at: 2016-08-01T00:00:00.000Z
+stop_at: 2016-08-01T00:00:00.000Z
+created_at: 2016-08-01T00:00:00.000Z
+updated_at: 2016-08-01T00:00:00.000Z
+plan: !include plan-third.yaml
+items: !include order-items-sale.yaml
