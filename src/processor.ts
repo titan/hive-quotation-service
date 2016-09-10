@@ -108,6 +108,7 @@ function insert_items_recur (ctx: InsertCtx, qgid: string, items: Item[], acc: O
 
           let item = {
             qiid,
+            piid,
             quotas: qs,
             prices: ps
           }
@@ -160,28 +161,36 @@ processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: Do
       done();
       log.error(err, 'query error begin');
     } else {
-      let ctx = {
-        db,
-        cache,
-        done
-      };
-      insert_groups_recur(ctx, args.qid, args.groups, [], (groups) => {
-        let quotation = {
-          id: args.qid,
-          state: args.state,
-          quotation_groups: groups,
-          vehicle: args.vid
-        };
-        let multi = cache.multi();
-        multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
-        multi.sadd("quotations", args.qid);
-        multi.exec((err, replies) => {
-          if (err) {
-            log.error(err);
-          } else {
-            done();
-          }
-        });
+      db.query('UPDATE quotations SET promotion = $1 WHERE id = $2 ',[args.promotion, args.qid], (err:Error) =>{
+        if (err) {
+          done();
+          log.error(err, 'query error quotations');
+        } else {
+          let ctx = {
+            db,
+            cache,
+            done
+          };
+          insert_groups_recur(ctx, args.qid, args.groups, [], (groups) => {
+            let quotation = {
+              id: args.qid,
+              state: args.state,
+              quotation_groups: groups,
+              vehicle: args.vid,
+              promotion:args.promotion
+            };
+            let multi = cache.multi();
+            multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
+            multi.sadd("quotations", args.qid);
+            multi.exec((err, replies) => {
+              if (err) {
+                log.error(err);
+              } else {
+                done();
+              }
+            });
+          });
+        }
       });
     }
   });
@@ -451,6 +460,28 @@ processor.call('deleteQuotationQuota', (db: PGClient, cache: RedisClient, done: 
             }
           });
         } 
+      });
+    }
+  });
+});
+
+processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('createQuotation');
+  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
+    if (err) {
+      log.error(err, 'query error');
+      done();
+    }else{
+      let quotation = {id:args.qid, vid:args.vid, state:args.state};
+      let multi = cache.multi();
+      multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
+      multi.sadd("quotations", args.qid);
+      multi.exec((err, replies) => {
+        if (err) {
+          log.error(err);
+        }
+          done();
+        
       });
     }
   });

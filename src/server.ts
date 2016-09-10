@@ -42,10 +42,10 @@ let svc = new Server(config);
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
 //暂存数据库
-svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[]) => {
+svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion:number) => {
   
   let state = 3;
-  let args = {qid, vid, state, groups};
+  let args = {qid, vid, state, groups, promotion};
   log.info({ args: args }, 'addQuotationGroups');
   ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationGroups", args:args}));
   rep("quotation:" + qid);
@@ -53,7 +53,6 @@ svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction
 
 //创建报价
 svc.call('createQuotation', permissions, (ctx: Context, rep: ResponseFunction, vid:string) => {
-  
   let qid = uuid.v1();
   let state = 1;
   let args = {qid, vid, state};
@@ -223,6 +222,27 @@ svc.call('deleteQuotationPrice', permissions, (ctx: Context, rep: ResponseFuncti
   }, 3000);
 });
 
+svc.call('getAllQuotations', permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info('getAllQuotations' );
+  redis.smembers(list_key, function (err, result) {
+    if (err) {
+      rep([]);
+    } else {
+      let multi = redis.multi();
+      for (let id of result) {
+        multi.hget(entity_key, id);
+      }
+      multi.exec((err,result2) => {
+        if(err){
+          rep([]);
+        }else{
+          rep(result2.map(e=>JSON.parse(e)));
+        }
+      });
+    }
+  });
+});
+
 svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid:string) => {
   log.info('getQuotations' + vid);
   redis.smembers(list_key, function (err, result) {
@@ -238,8 +258,7 @@ svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid
         if(err){
           rep([]);
         }else{
-          let quotations = result.map(e => JSON.parse(e));
-          // .filter(q => q.vid == vid);
+          let quotations = result.map(e => JSON.parse(e)).filter(q => q.vid == vid);
           rep(quotations);
         }
       });
