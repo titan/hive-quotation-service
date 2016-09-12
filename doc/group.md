@@ -83,7 +83,7 @@ user 是收到申请的互助组成员。
 
 | field       | type      | null | default | index   | reference |
 | ----        | ----      | ---- | ----    | ----    | ----      |
-| id          | serial    |      |         | primary |           |
+| id          | uuid      |      |         | primary |           |
 | uid         | uuid      |      |         |         | users     |
 | vid         | uuid      |      |         |         | vehicles  |
 | state       | smallint  |      |         |         |           |
@@ -125,33 +125,6 @@ rpc.call("group" ,"getGroup", gid)
 | group | group | Group |
 
 See [example](../data/group/getGroup.json)
-
-### 按车辆获得互助组条目 getGroupItemByVehicle
-
-#### request
-
-| name | type | note    |
-| ---- | ---- | ----    |
-| vid  | uuid | 车辆 ID |
-
-```javascript
-
-var vid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "getGroupItemByVehicle"，vid)
-  .then(function (result) {
-
-  }, function (error) {
-
-  });
-```
-
-#### response
-
-| name | type       | note       |
-| ---- | ----       | ----       |
-| item | group-item | Group Item |
-
-See [example](../data/group/getGroupItemByVehicle.json)
 
 ### 创建互助组 createGroup
 
