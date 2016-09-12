@@ -30,7 +30,24 @@
 3. 剩余互助期来自 Order 模块。
 
 `剩余互助期百分比 = 剩余互助期 / 365 * 100 %`
+
 `互助金余额百分比 = 个人余额 / 个人初始余额 * 100 %`
+
+### group-workitem
+
+| name    | type    | note             |
+| ----    | ----    | ----             |
+| user    | profile | 工作项的目标用户 |
+| vehicle | vehicle | 申请车辆         |
+| state   | integer | 工作项状态       |
+| result  | boolean | 是否同意         |
+
+| state | meaning |
+| ----  | ----    |
+| 1     | 开始    |
+| 2     | 结束    |
+
+user 是收到申请的互助组成员。
 
 ## 数据库结构
 
@@ -62,6 +79,24 @@
 | 3    | 等待生效车辆 |
 | 4    | 已退出车辆   |
 
+### group\_workitems
+
+| field       | type      | null | default | index   | reference |
+| ----        | ----      | ---- | ----    | ----    | ----      |
+| id          | serial    |      |         | primary |           |
+| uid         | uuid      |      |         |         | users     |
+| vid         | uuid      |      |         |         | vehicles  |
+| state       | smallint  |      |         |         |           |
+| result      | boolean   | ✓    |         |         |           |
+| created\_at | timestamp |      | now     |         |           |
+| updated\_at | timestamp |      | now     |         |           |
+
+## 缓存结构
+
+| key            | type | value                  | note           |
+| ----           | ---- | ----                   | ----           |
+| group-entities | hash | Group ID => Group JSON | 所有互助组实体 |
+
 ## 接口
 
 ### 获得互助组信息 getGroup
@@ -71,8 +106,6 @@
 | name | type | note      |
 | ---- | ---- | ----      |
 | gid  | uuid | 互助组 ID |
-
-##### example
 
 ```javascript
 
@@ -101,8 +134,6 @@ See [example](../data/group/getGroup.json)
 | ---- | ---- | ----    |
 | vid  | uuid | 车辆 ID |
 
-##### example
-
 ```javascript
 
 var vid = "00000000-0000-0000-0000-000000000000";
@@ -121,4 +152,122 @@ rpc.call("group", "getGroupItemByVehicle"，vid)
 | item | group-item | Group Item |
 
 See [example](../data/group/getGroupItemByVehicle.json)
+
+### 创建互助组 createGroup
+
+#### request
+
+| name | type | note    |
+| ---- | ---- | ----    |
+| vid  | uuid | 车辆 ID |
+
+```javascript
+
+var vid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "createGroup"，vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+See [example](../data/group/createGroup.json)
+
+### 申请加入互助组 joinGroup
+
+#### request
+
+| name | type | note      |
+| ---- | ---- | ----      |
+| gid  | uuid | 互助组 ID |
+| vid  | uuid | 车辆 ID   |
+
+```javascript
+
+var gid = "00000000-0000-0000-0000-000000000000";
+var vid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "joinGroup"，gid, vid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+See [example](../data/group/joinGroup.json)
+
+### 同意加入申请 agree
+
+#### request
+
+| name | type | note        |
+| ---- | ---- | ----        |
+| wid  | uuid | WorkItem ID |
+| uid  | uuid | 用户 ID     |
+
+```javascript
+
+var wid = "00000000-0000-0000-0000-000000000000";
+var uid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "agree"，wid, uid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+See [example](../data/group/agree.json)
+
+### 拒绝加入申请 refuse
+
+#### request
+
+| name | type | note        |
+| ---- | ---- | ----        |
+| wid  | uuid | WorkItem ID |
+| uid  | uuid | 用户 ID     |
+
+```javascript
+
+var wid = "00000000-0000-0000-0000-000000000000";
+var uid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "refuse"，wid, uid)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+See [example](../data/group/refuse.json)
 
