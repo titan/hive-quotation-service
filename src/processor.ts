@@ -472,7 +472,7 @@ processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneF
       log.error(err, 'query error');
       done();
     }else{
-      let quotation = {id:args.qid, vid:args.vid, state:args.state};
+      let quotation = {id:args.qid, vehicle:args.vid, state:args.state};
       let multi = cache.multi();
       multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
       multi.sadd("quotations", args.qid);

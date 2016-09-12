@@ -41,6 +41,29 @@ let svc = new Server(config);
 
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
+svc.call('searchQuotation', permissions, (ctx: Context, rep: ResponseFunction, svehicleid:string, sownername:string, phone:string, slicense_no:string, sbegintime:any, sendtime:any, sstate:number) => {
+  let args = {svehicleid, sownername, phone, slicense_no, sbegintime, sendtime, sstate}
+  log.info('searchQuotation' + args );
+  redis.smembers(list_key, function (err, result) {
+    if (err) {
+      rep([]);
+    } else {
+      let multi = redis.multi();
+      for (let id of result) {
+        multi.hget(entity_key, id);
+      }
+      multi.exec((err,result2) => {
+        if(err){
+          rep([]);
+        }else{
+          
+          rep(result2.map(e=>JSON.parse(e)));
+        }
+      });
+    }
+  });
+});
+
 //暂存数据库
 svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion:number) => {
   
