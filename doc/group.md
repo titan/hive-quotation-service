@@ -10,6 +10,7 @@
 | joined-vehicles  | [vehicle]    | 参与车辆     |
 | waiting-vehicles | [vehicle]    | 等待生效车辆 |
 | applied-vehicles | [vehicle]    | 申请加入车辆 |
+| quitted-vehicles | [vehicle]    | 退出车辆     |
 | founder          | profile      | 创始人       |
 | items            | [group-item] | 互助小组条目 |
 | created-at       | date         | 创建时间     |
@@ -33,14 +34,19 @@
 
 `互助金余额百分比 = 个人余额 / 个人初始余额 * 100 %`
 
-### group-workitem
+### group-poll-item
 
-| name    | type    | note             |
-| ----    | ----    | ----             |
-| user    | profile | 工作项的目标用户 |
-| vehicle | vehicle | 申请车辆         |
-| state   | integer | 工作项状态       |
-| result  | boolean | 是否同意         |
+| name    | type    | note       |
+| ----    | ----    | ----       |
+| user    | profile | 投票的用户 |
+| type    | integer | 投票内容   |
+| vehicle | vehicle | 申请车辆   |
+| state   | integer | 投票项状态 |
+| result  | boolean | 是否同意   |
+
+| type | meaning  |
+| ---- | ----     |
+| 1    | 申请加入 |
 
 | state | meaning |
 | ----  | ----    |
@@ -75,27 +81,30 @@ user 是收到申请的互助组成员。
 | type | meaning      |
 | ---- | ----         |
 | 1    | 已加入车辆   |
-| 2    | 申请加入车辆 |
-| 3    | 等待生效车辆 |
+| 2    | 等待生效车辆 |
+| 3    | 申请加入车辆 |
 | 4    | 已退出车辆   |
 
-### group\_workitems
+### group\_poll\_items
 
 | field       | type      | null | default | index   | reference |
 | ----        | ----      | ---- | ----    | ----    | ----      |
 | id          | uuid      |      |         | primary |           |
 | uid         | uuid      |      |         |         | users     |
 | vid         | uuid      |      |         |         | vehicles  |
-| state       | smallint  |      |         |         |           |
+| type        | smallint  |      | 1       |         |           |
+| state       | smallint  |      | 1       |         |           |
 | result      | boolean   | ✓    |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
 
 ## 缓存结构
 
-| key            | type | value                  | note           |
-| ----           | ---- | ----                   | ----           |
-| group-entities | hash | Group ID => Group JSON | 所有互助组实体 |
+| key                    | type  | value                  | note             |
+| ----                   | ----  | ----                   | ----             |
+| group-entities         | hash  | Group ID => Group JSON | 所有互助组实体   |
+| global-balance-percent | float |                        | 剩余余额百分比   |
+| global-days-percent    | float |                        | 剩余互助期百分比 |
 
 ## 接口
 
