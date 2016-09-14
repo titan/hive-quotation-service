@@ -71,7 +71,7 @@ svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction
   let args = {qid, vid, state, groups, promotion};
   log.info({ args: args }, 'addQuotationGroups');
   ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationGroups", args:args}));
-  rep("quotation:" + qid);
+  rep("addQuotationGroups:" + qid);
 });
 
 //创建报价
@@ -291,8 +291,13 @@ svc.call('getQuotations', permissions, (ctx: Context, rep: ResponseFunction, vid
 
 svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:string) => {
   log.info('getQuotation, qid: %s', qid);
-  redis.hget(entity_key, qid, (err, quotation) => {
-    rep(JSON.parse(quotation));
+  redis.hget(entity_key, qid, (err, quotation) => {    
+    if(err){
+      rep("error:" + err);
+      log.info("getQuotation" + err);
+    } else {
+      rep(JSON.parse(quotation));
+    }
   });
 });
 
@@ -300,7 +305,7 @@ svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:
 svc.call('refresh', permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info('refresh uid: %s', ctx.uid);
   ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: null}));
-  rep({status: 'okay'});
+  rep({status: 'refresh okay'});
 });
 
 

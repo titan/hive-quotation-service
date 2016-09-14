@@ -275,10 +275,12 @@ processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: Don
           if (err) {
             log.error(err);
           }else{
-            db.query('UPDATE quotations SET state = 2',[], (err: Error) => {
+            log.info("addQuotationGroup  state is " );
+            db.query('UPDATE quotations SET state = 3',[], (err: Error) => {
               if (err) {
                 log.error(err);
               }
+              log.info("addQuotationGroup state end")
             });
           }
           done();
@@ -472,7 +474,8 @@ processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneF
       log.error(err, 'query error');
       done();
     }else{
-      let quotation = {id:args.qid, vehicle:args.vid, state:args.state};
+      let now = new Date();
+      let quotation = {id:args.qid, vehicle:args.vid, state:args.state, create_at:now};
       let multi = cache.multi();
       multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
       multi.sadd("quotations", args.qid);
