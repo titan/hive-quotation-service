@@ -161,7 +161,7 @@ processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: Do
       done();
       log.error(err, 'query error begin');
     } else {
-      db.query('UPDATE quotations SET promotion = $1 WHERE id = $2 ',[args.promotion, args.qid], (err:Error) =>{
+      db.query('UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ',[args.promotion, args.state, args.qid], (err:Error) =>{
         if (err) {
           done();
           log.error(err, 'query error quotations');
@@ -177,7 +177,8 @@ processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: Do
               state: args.state,
               quotation_groups: groups,
               vehicle: args.vid,
-              promotion:args.promotion
+              promotion:args.promotion,
+              create_at: new Date(),
             };
             let multi = cache.multi();
             multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
@@ -205,6 +206,187 @@ function recur(prices) {
   }
 }
 
+processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('createQuotation');
+  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
+    if (err) {
+      log.error(err, ' createQuotation query error');
+      done();
+    }else{
+      let now = new Date();
+      let quotation = {id:args.qid, vehicle:args.vid, state:args.state, create_at:now};
+      let multi = cache.multi();
+      multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
+      multi.sadd("quotations", args.qid);
+      multi.exec((err, replies) => {
+        if (err) {
+          log.error('createQuotation err' +err);
+        }
+          done();
+        
+      });
+    }
+  });
+});
+
+
+interface QuotationCtx {
+  db: PGClient;
+  cache: RedisClient;
+  domain: string;
+}
+
+function fetch_quotation_items_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((items: Object[]) => void)): void {
+  if (rows.length == 0) {
+    cb(acc);
+  } else {
+    let row = rows.shift();
+    ctx.db.query('SELECT id, number, unit, created_at, updated_at FROM quotation_item_quotas WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err: Error, result: ResultSet) => {
+      if (err) {
+        fetch_quotation_items_recur(ctx, rows, acc, cb);
+      } else {
+        let quotas = [];
+        for (let r of result.rows) {
+          quotas.push({
+            id: r.id,
+            number: r.number,
+            unit: r.unit? r.unit.trim(): null,
+            created_at: r.created_at,
+            updated_at: r.updated_at
+          });
+        }
+        ctx.db.query('SELECT id, price, real_price, created_at, updated_at FROM quotation_item_prices WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err1: Error, result1: ResultSet) => {
+          if (err1) {
+            let item = {
+              id: row["id"],
+              is_must_have: row["is_must_have"],
+              created_at: row["created_at"],
+              updated_at: row["updated_at"],
+              quotas: quotas
+            };
+            acc.push(item);
+            fetch_quotation_items_recur(ctx, rows, acc, cb);
+          } else {
+            let prices = [];
+            for (let r1 of result1.rows) {
+              prices.push({
+                id: r1.id,
+                price: r1.price,
+                real_price: r1.real_price,
+                created_at: r1.created_at,
+                updated_at: r1.updated_at
+              });
+            }
+            let item = {
+              id: row["id"],
+              is_must_have: row["is_must_have"],
+              created_at: row["created_at"],
+              updated_at: row["updated_at"],
+              quotas: quotas,
+              prices: prices
+            };
+            acc.push(item);
+            fetch_quotation_items_recur(ctx, rows, acc, cb);
+          }
+        });
+      }
+    });
+  }
+}
+
+function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((groups: Object[]) => void)): void {
+  if (rows.length == 0) {
+    cb(acc);
+  } else {
+    let row = rows.shift();
+    let p = rpc(ctx.domain, hostmap.default["plan"], null, "getPlan", row["pid"]);
+    p.then((plan) => {
+      ctx.db.query('SELECT id, piid, is_must_have, created_at, updated_at FROM quotation_items WHERE qgid = $1', [row["id"]], (err: Error, result: ResultSet) => {
+        if (err) {
+          fetch_quotation_groups_recur(ctx, rows, acc, cb);
+        } else {
+          fetch_quotation_items_recur(ctx, result.rows, [], (items) => {
+            let group = {
+              id: row["id"],
+              is_must_have: row["is_must_have"],
+              created_at: row["created_at"],
+              updated_at: row["updated_at"],
+              plan: plan,
+              items: items
+            };
+
+            acc.push(group);
+            fetch_quotation_groups_recur(ctx, rows, acc, cb);
+          });
+        }
+      });
+    });
+  }
+}
+
+function fetch_quotations_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((quotations: Object[]) => void)): void {
+  if (rows.length == 0) {
+    cb(acc);
+  } else {
+    let db = ctx.db;
+    let row = rows.shift();
+    let quotation = {
+      id: row["id"],
+      state: row["state"],
+      vid: row["vid"],
+      created_at: row["created_at"],
+      updated_at: row["updated_at"]
+    };
+    db.query('SELECT id, pid, is_must_have, created_at, updated_at FROM quotation_groups WHERE qid = $1', [row["id"]], (err: Error, result: ResultSet) => {
+      if (err) {
+        fetch_quotations_recur(ctx, rows, acc, cb);
+      } else {
+        fetch_quotation_groups_recur(ctx, result.rows, [], (groups) => {
+          log.info("=============rows.length====================" +rows.length)
+          quotation["groups"] = groups;
+          acc.push(quotation);
+          fetch_quotations_recur(ctx, rows, acc, cb);
+        });
+      }
+    }); 
+  }
+}
+
+processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string) => {
+  log.info('refresh');
+
+  db.query('SELECT id, state, vid, created_at, updated_at FROM quotations', [], (err: Error, result: ResultSet) => {
+    if (err) {
+      log.error(err, 'query error');
+      done();
+      return;
+    } else {
+      let ctx: QuotationCtx = { db, cache, domain };
+      fetch_quotations_recur(ctx, result.rows, [], (quotations) => {
+        let multi = cache.multi();
+        for(let quotation of quotations) {
+           multi.hset("quotations-entities", quotation["id"], JSON.stringify(quotation));
+           if (quotation["state"] == 1) {
+             log.info("quotationstate===================" + quotation["state"]);
+             multi.zadd("unquotated_quotations", quotation["id"]);
+           } else {
+             log.info("quotationstate===================" + quotation["state"]);
+             multi.zadd("quotated_quotations", quotation["id"]);
+           }
+        }
+        multi.exec((err, replies) => {
+          if (err) {
+            log.error(err);
+          } 
+          done();
+          
+        });
+      });
+    }
+  });
+});
+
+//以下接口好像没有用到
 processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationGroup');
   db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
@@ -467,28 +649,6 @@ processor.call('deleteQuotationQuota', (db: PGClient, cache: RedisClient, done: 
   });
 });
 
-processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
-  log.info('createQuotation');
-  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
-    if (err) {
-      log.error(err, 'query error');
-      done();
-    }else{
-      let now = new Date();
-      let quotation = {id:args.qid, vehicle:args.vid, state:args.state, create_at:now};
-      let multi = cache.multi();
-      multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
-      multi.sadd("quotations", args.qid);
-      multi.exec((err, replies) => {
-        if (err) {
-          log.error(err);
-        }
-          done();
-        
-      });
-    }
-  });
-});
 
 processor.call('addQuotationPrice', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
   log.info('addQuotationPrice');
@@ -565,143 +725,6 @@ processor.call('deleteQuotationPrice', (db: PGClient, cache: RedisClient, done: 
             }
           });
         } 
-      });
-    }
-  });
-});
-
-interface QuotationCtx {
-  db: PGClient;
-  cache: RedisClient;
-  domain: string;
-}
-
-function fetch_quotation_items_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((items: Object[]) => void)): void {
-  if (rows.length == 0) {
-    cb(acc);
-  } else {
-    let row = rows.shift();
-    ctx.db.query('SELECT id, number, unit, created_at, updated_at FROM quotation_item_quotas WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err: Error, result: ResultSet) => {
-      if (err) {
-        fetch_quotation_items_recur(ctx, rows, acc, cb);
-      } else {
-        let quotas = [];
-        for (let r of result.rows) {
-          quotas.push({
-            id: r.id,
-            number: r.number,
-            unit: r.unit? r.unit.trim(): null,
-            created_at: r.created_at,
-            updated_at: r.updated_at
-          });
-        }
-        ctx.db.query('SELECT id, price, real_price, created_at, updated_at FROM quotation_item_prices WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err1: Error, result1: ResultSet) => {
-          if (err1) {
-            let item = {
-              id: row["id"],
-              is_must_have: row["is_must_have"],
-              created_at: row["created_at"],
-              updated_at: row["updated_at"],
-              quotas: quotas
-            };
-            acc.push(item);
-            fetch_quotation_items_recur(ctx, rows, acc, cb);
-          } else {
-            let prices = [];
-            for (let r1 of result1.rows) {
-              prices.push({
-                id: r1.id,
-                price: r1.price,
-                real_price: r1.real_price,
-                created_at: r1.created_at,
-                updated_at: r1.updated_at
-              });
-            }
-            let item = {
-              id: row["id"],
-              is_must_have: row["is_must_have"],
-              created_at: row["created_at"],
-              updated_at: row["updated_at"],
-              quotas: quotas,
-              prices: prices
-            };
-            acc.push(item);
-            fetch_quotation_items_recur(ctx, rows, acc, cb);
-          }
-        });
-      }
-    });
-  }
-}
-
-function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((groups: Object[]) => void)): void {
-  if (rows.length == 0) {
-    cb(acc);
-  } else {
-    let row = rows.shift();
-    let p = rpc(ctx.domain, hostmap.default["plan"], null, "getPlan", row["pid"]);
-    p.then((plan) => {
-      ctx.db.query('SELECT id, piid, is_must_have, created_at, updated_at FROM quotation_items WHERE qgid = $1', [row["id"]], (err: Error, result: ResultSet) => {
-        if (err) {
-          fetch_quotation_groups_recur(ctx, rows, acc, cb);
-        } else {
-          fetch_quotation_items_recur(ctx, result.rows, [], (items) => {
-            let group = {
-              id: row["id"],
-              is_must_have: row["is_must_have"],
-              created_at: row["created_at"],
-              updated_at: row["updated_at"],
-              plan: plan,
-              items: items
-            };
-
-            acc.push(group);
-            fetch_quotation_groups_recur(ctx, rows, acc, cb);
-          });
-        }
-      });
-    });
-  }
-}
-
-function fetch_quotations_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((quotations: Object[]) => void)): void {
-  if (rows.length == 0) {
-    cb(acc);
-  } else {
-    let db = ctx.db;
-    let row = rows.shift();
-    let quotation = {
-      id: row["id"],
-      state: row["state"],
-      created_at: row["created_at"],
-      updated_at: row["updated_at"]
-    };
-    db.query('SELECT id, pid, is_must_have, created_at, updated_at FROM quotation_groups WHERE qid = $1', [row["id"]], (err: Error, result: ResultSet) => {
-      if (err) {
-        fetch_quotations_recur(ctx, rows, acc, cb);
-      } else {
-        fetch_quotation_groups_recur(ctx, result.rows, [], (groups) => {
-          quotation["groups"] = groups;
-          acc.push(quotation);
-          fetch_quotations_recur(ctx, rows, acc, cb);
-        });
-      }
-    }); 
-  }
-}
-
-processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string) => {
-  log.info('refresh');
-
-  db.query('SELECT id, state, vid, created_at, updated_at FROM quotations', [], (err: Error, result: ResultSet) => {
-    if (err) {
-      log.error(err, 'query error');
-      done();
-      return;
-    } else {
-      let ctx: QuotationCtx = { db, cache, domain };
-      fetch_quotations_recur(ctx, result.rows, [], (quotations) => {
-        done();
       });
     }
   });
