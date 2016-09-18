@@ -139,14 +139,16 @@ See [example](../data/group/getGroup.json)
 
 #### request
 
-| name | type | note    |
-| ---- | ---- | ----    |
-| vid  | uuid | 车辆 ID |
+| name | type   | note       |
+| ---- | ----   | ----       |
+| name | string | 互助组名称 |
+| vid  | uuid   | 车辆 ID    |
 
 ```javascript
 
 var vid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "createGroup"，vid)
+var name = "XXX 的互助组";
+rpc.call("group", "createGroup"，name, vid)
   .then(function (result) {
 
   }, function (error) {
@@ -156,10 +158,24 @@ rpc.call("group", "createGroup"，vid)
 
 #### response
 
+成功：
+
+| name | type | note      |
+| ---- | ---- | ----      |
+| gid  | uuid | 互助组 ID |
+
+
+失败：
+
 | name | type   | note |
 | ---- | ----   | ---- |
 | code | int    |      |
 | msg  | string |      |
+
+| code | meanning             |
+| ---- | ----                 |
+| 404  | 车辆已属于其它互助组 |
+| 500  | 未知错误             |
 
 See [example](../data/group/createGroup.json)
 
