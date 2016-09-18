@@ -31,8 +31,8 @@ let log = bunyan.createLogger({
 let redis = Redis.createClient(6379, "redis"); // port, host
 let list_key = "quotations";
 let entity_key = "quotations-entities";
-let quotated_key = "quotated_quotations";
-let unquotated_key = "unquotated_quotations";
+let quotated_key = "quotated-quotations";
+let unquotated_key = "unquotated-quotations";
 
 let config: Config = {
   svraddr: hostmap.default["quotation"],
@@ -43,6 +43,15 @@ let svc = new Server(config);
 
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
+
+//改变报价状态
+svc.call('changeQuotationState', permissions, (ctx: Context, rep: ResponseFunction, qid:string, state:number) => {
+
+  log.info('changeQuotationState, state is' + state);
+  let args = {qid, state}
+  ctx.msgqueue.send(msgpack.encode({cmd: "addQuotationGroups", args:args}));
+  rep({"status":"ok"} );
+});
 
 //增加报价组
 svc.call('addQuotationGroups', permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion:number) => {
@@ -144,19 +153,33 @@ svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:
 //获取二维码
 svc.call('getTicketInfo', permissions, (ctx: Context, rep: ResponseFunction, oid:string) => {
   log.info('getTicketInfo, openid is' + oid);
-  redis.hget("wechat_code" , oid , (err, result) => {    
+  redis.hget("openid_ticket" , oid, (err, result) => {    
     if(err){
-      rep("error:" + err);
+      rep([]);
       log.info("getTicketInfo" + err);
     } else {
-      rep(JSON.parse(result));
+      if(result != null){
+        let json1 = JSON.parse(result);
+        redis.hget("wechat_code1", json1.ticket, (err2, result2) => {
+          if(err2){
+            rep([]);
+            log.info("getTicketInfo" + err);
+          } else {
+            log.info("ticket info:" + result2);
+            rep(JSON.parse(result2));
+          }
+        });
+      }else{
+        rep([]);
+      }
     }
   });
 });
+
 //refresh
 svc.call('refresh', permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info('refresh uid: %s', ctx.uid);
-  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: null}));
+  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: [ctx.domain]}));
   rep({status: 'refresh okay'});
 });
 

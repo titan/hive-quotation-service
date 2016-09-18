@@ -44,6 +44,20 @@ interface InsertCtx {
   done: DoneFunction;
 };
 
+processor.call('changeQuotationState', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info('changeQuotationState');
+  db.query('UPDATE quotations SET state = $1 WHERE id = $2 ',[args.state, args.qid], (err: Error) => {
+    if (err) {
+      log.error(err, 'changeQuotationState query error');
+      done();
+    }else{
+      rpc(args.domain, hostmap.default["quotation"], null, "refresh", null).then(() =>{
+        done();
+      });
+    }
+  });
+});
+
 function insert_quotas_and_prices (ctx: InsertCtx, qiid: string, pairs: Object[], acc: Object[], cb) {
   if (pairs.length == 0) {
     cb(acc);
@@ -172,17 +186,20 @@ processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: Do
             done
           };
           insert_groups_recur(ctx, args.qid, args.groups, [], (groups) => {
+            let date = new Date();
             let quotation = {
               id: args.qid,
               state: args.state,
               quotation_groups: groups,
-              vehicle: args.vid,
+              vid: args.vid,
               promotion:args.promotion,
-              create_at: new Date(),
+              created_at: date,
             };
             let multi = cache.multi();
             multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
             multi.sadd("quotations", args.qid);
+            multi.zrem("unquotated-quotations", args.qid); 
+            multi.zadd("quotated-quotations", date.getTime(), args.qid )
             multi.exec((err, replies) => {
               if (err) {
                 log.error(err);
@@ -214,7 +231,7 @@ processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneF
       done();
     }else{
       let now = new Date();
-      let quotation = {id:args.qid, vehicle:args.vid, state:args.state, create_at:now};
+      let quotation = {id:args.qid, vehicle:args.vid, state:args.state, created_at:now};
       let multi = cache.multi();
       multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
       multi.sadd("quotations", args.qid);
@@ -222,8 +239,7 @@ processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneF
         if (err) {
           log.error('createQuotation err' +err);
         }
-          done();
-        
+          done();       
       });
     }
   });
@@ -299,6 +315,7 @@ function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Ob
     cb(acc);
   } else {
     let row = rows.shift();
+      log.info("plan id is ---------" + row["pid"]);
     let p = rpc(ctx.domain, hostmap.default["plan"], null, "getPlan", row["pid"]);
     p.then((plan) => {
       ctx.db.query('SELECT id, piid, is_must_have, created_at, updated_at FROM quotation_items WHERE qgid = $1', [row["id"]], (err: Error, result: ResultSet) => {
@@ -314,7 +331,6 @@ function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Ob
               plan: plan,
               items: items
             };
-
             acc.push(group);
             fetch_quotation_groups_recur(ctx, rows, acc, cb);
           });
@@ -342,8 +358,7 @@ function fetch_quotations_recur(ctx: QuotationCtx, rows: Object[], acc: Object[]
         fetch_quotations_recur(ctx, rows, acc, cb);
       } else {
         fetch_quotation_groups_recur(ctx, result.rows, [], (groups) => {
-          log.info("=============rows.length====================" +rows.length)
-          quotation["groups"] = groups;
+          quotation["quotation_groups"] = groups;
           acc.push(quotation);
           fetch_quotations_recur(ctx, rows, acc, cb);
         });
@@ -366,18 +381,19 @@ processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction,
         let multi = cache.multi();
         for(let quotation of quotations) {
            multi.hset("quotations-entities", quotation["id"], JSON.stringify(quotation));
-           if (quotation["state"] == 1) {
-             log.info("quotationstate===================" + quotation["state"]);
-             multi.zadd("unquotated_quotations", quotation["id"]);
+           let date = new Date(quotation["created_at"]);
+           if (quotation["state"] <3 ) {
+             multi.zadd("unquotated-quotations", date.getTime(), quotation["id"]);
            } else {
-             log.info("quotationstate===================" + quotation["state"]);
-             multi.zadd("quotated_quotations", quotation["id"]);
+             multi.zadd("quotated-quotations", date.getTime(), quotation["id"]);
            }
         }
         multi.exec((err, replies) => {
           if (err) {
             log.error(err);
-          } 
+          } else {
+            log.info("replies" + replies);
+          }
           done();
           
         });
