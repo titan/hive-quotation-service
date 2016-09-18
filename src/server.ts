@@ -257,7 +257,7 @@ svc.call('getQuotation', permissions, (ctx: Context, rep: ResponseFunction, qid:
 
 svc.call('refresh', permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info('refresh uid: %s', ctx.uid);
-  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: null}));
+  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: [ ctx.domain ]}));
   rep({status: 'okay'});
 });
 
