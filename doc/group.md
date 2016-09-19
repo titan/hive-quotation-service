@@ -175,6 +175,7 @@ rpc.call("group", "createGroup"，name, vid)
 | code | meanning             |
 | ---- | ----                 |
 | 404  | 车辆已属于其它互助组 |
+| 408  | 请求超时             |
 | 500  | 未知错误             |
 
 See [example](../data/group/createGroup.json)
