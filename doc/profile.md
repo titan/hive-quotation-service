@@ -24,13 +24,13 @@
 | ----            | ----       | ---- | ----    | ----    | ----      |
 | id              | uuid       |      |         | primary |           |
 | openid          | char(28)   |      |         |         |           |
-| passsword       | char(28)   |   ✓  |         |         |           |
-| name            | char(28)   |   ✓  |         |         |           |
-| gender          | char(28)   |   ✓  |         |         |           |
-| identity\_no    | char(28)   |   ✓  |         |         |           |
-| phone           | char(28)   |   ✓  |         |         |           |
-| nickname        | char(28)   |   ✓  |         |         |           |
-| portrait        | char(28)   |   ✓  |         |         |           |
+| passsword       | char(32)   |   ✓  |         |         |           |
+| name            | char(64)   |   ✓  |         |         |           |
+| gender          | char(4)    |   ✓  |         |         |           |
+| identity\_no    | char(18)   |   ✓  |         |         |           |
+| phone           | char(16)   |   ✓  |         |         |           |
+| nickname        | char(64)   |   ✓  |         |         |           |
+| portrait        | char(1024) |   ✓  |         |         |           |
 | created\_at     | timestamp  |      | now     |         |           |
 | updated\_at     | timestamp  |      | now     |         |           |
 
