@@ -187,8 +187,8 @@ See [example](../data/profile/sucessful.json)
 
 | name    | type   | note    |
 | ----    | ----   | ----    |
-| start   | integer| 起始记录 |
-| limit   | integer| 记录条数 |
+| start   | int    | 起始记录 |
+| limit   | int    | 记录条数 |
 
 ##### example
 
