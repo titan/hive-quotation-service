@@ -40,7 +40,8 @@
 
 #### request
 
-ctx:Context
+| name    | type   | note    |
+| ----    | ----   | ----    |
 
 ##### example
 
@@ -66,7 +67,7 @@ rpc.call("profile", "getUserInfo")
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-#### 成功返回数据：
+##### 成功返回数据：
 See [example](../data/profile/getUserInfo.json)
 
 ### 获得用户openid getUserOpenId
@@ -102,7 +103,7 @@ rpc.call("profile", "getUserOpenId", uid)
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-#### 成功返回数据：
+##### 成功返回数据：
 See [example](../data/profile/getUserOpenId.json)
 
 ### 添加用户信息 addUserInfo
@@ -120,10 +121,10 @@ See [example](../data/profile/getUserOpenId.json)
 
 ```javascript
 
-var openid = "xxxxxxxx";
+var openid = "obxM2wvAjoNGtHZkYzBI_I4blpl8";
 var gender = "女";
-var nickname = "xxx";
-var portrait = "xxxxx";
+var nickname = "vivian";
+var portrait = "https://www.baidu.com/img/bd_logo1.png";
 
 rpc.call("profile", "addUserInfo", openid, gender, nickname, portrait)
   .then(function (result) {
@@ -149,7 +150,7 @@ See [example](../data/profile/sucessful.json)
 
 ### 刷新用户缓存 refresh
 
-### !!禁止前端调用！！
+#### !!禁止前端调用！！
 #### request
 
 | name    | type   | note    |
@@ -178,7 +179,7 @@ rpc.call("profile", "refresh")
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-#### 成功返回数据：
+##### 成功返回数据：
 See [example](../data/profile/sucessful.json)
 
 ### 获取所有用户信息 getAllUsers
@@ -214,5 +215,5 @@ rpc.call("profile", "getAllUsers", start, limit)
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-#### 成功返回数据：
+##### 成功返回数据：
 See [example](../data/profile/getAllUsers.json)

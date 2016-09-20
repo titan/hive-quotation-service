@@ -1,24 +1,28 @@
-[
-	{
+{
+    "code":200,
+    "users":
+	[
+	  {
 	    "id": "00000000-0000-0000-0000-000000000000",
-	    "phone": 1.87e10,
-	    "identity-no": "xxxxxxxxxxxxxxxxxx",
-	    "openid": "xxxxxxxx",
-	    "gender": "female",
-	    "name": "vivian",
+	    "openid": "obxM2wvAjoNGtHZkYzBI_I4blpl8",
 	    "password": "xxxxxxxx",
-	    "portrait": "https://www.baidu.com/img/bd_logo1.png",
-	    "nickname": "vivian"
-	},
-	{
+	    "name": "vivian",
+	    "gender": "female",
+	    "identity-no": "xxxxxxxxxxxxxxxxxx",
+	    "phone":18700000000,
+	    "nickname": "vivian",
+	    "portrait": "https://www.baidu.com/img/bd_logo1.png"
+	  },
+	  {
 	    "id": "00000000-0000-0000-0000-000000000000",
-	    "phone": 1.87e10,
-	    "identity-no": "xxxxxxxxxxxxxxxxxx",
-	    "openid": "xxxxxxxx",
-	    "gender": "female",
-	    "name": "vivian",
+	    "openid": "obxM2wvAjoNGtHZkYzBI_I4blpl8",
 	    "password": "xxxxxxxx",
-	    "portrait": "https://www.baidu.com/img/bd_logo1.png",
-	    "nickname": "vivian"
-	}
-]
+	    "name": "bob",
+	    "gender": "male",
+	    "identity-no": "xxxxxxxxxxxxxxxxxx",
+	    "phone":18600000000,
+	    "nickname": "vivian",
+	    "portrait": "https://www.baidu.com/img/bd_logo1.png"
+	  }
+	]
+}
