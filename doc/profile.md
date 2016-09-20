@@ -67,8 +67,7 @@ rpc.call("profile", "getUserInfo")
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-##### 成功返回数据：
-See [example](../data/profile/getUserInfo.json)
+See 成功返回数据：[example](../data/profile/getUserInfo.json)
 
 ### 获得用户openid getUserOpenId
 
@@ -103,8 +102,7 @@ rpc.call("profile", "getUserOpenId", uid)
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-##### 成功返回数据：
-See [example](../data/profile/getUserOpenId.json)
+See 成功返回数据：[example](../data/profile/getUserOpenId.json)
 
 ### 添加用户信息 addUserInfo
 
@@ -145,8 +143,7 @@ rpc.call("profile", "addUserInfo", openid, gender, nickname, portrait)
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-#### 成功返回数据：
-See [example](../data/profile/sucessful.json)
+See 成功返回数据: [example](../data/profile/sucessful.json)
 
 ### 刷新用户缓存 refresh
 
@@ -179,8 +176,7 @@ rpc.call("profile", "refresh")
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-##### 成功返回数据：
-See [example](../data/profile/sucessful.json)
+See 成功返回数据：[example](../data/profile/sucessful.json)
 
 ### 获取所有用户信息 getAllUsers
 
@@ -195,7 +191,8 @@ See [example](../data/profile/sucessful.json)
 
 ```javascript
 
-var start = 
+var start = 1;
+var limit = 20;
 rpc.call("profile", "getAllUsers", start, limit)
   .then(function (result) {
 
@@ -215,5 +212,4 @@ rpc.call("profile", "getAllUsers", start, limit)
 | 200   | null     | 成功     |
 | other | 错误信息  | 失败     |
 
-##### 成功返回数据：
-See [example](../data/profile/getAllUsers.json)
+See 成功返回数据：[example](../data/profile/getAllUsers.json)
