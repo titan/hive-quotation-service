@@ -97,7 +97,7 @@
 
 | field          | type      | null | default | index   | reference  |
 | ----           | ----      | ---- | ----    | ----    | ----       |
-| id             | uuid      |      |         | primary |            |
+| id             | serial    |      |         | primary |            |
 | oid            | uuid      |      |         |         | orders     |
 | pid            | uuid      |      |         |         | plans      |
 | qid            | uuid      |      |         |         | quotations |
