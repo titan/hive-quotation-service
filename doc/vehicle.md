@@ -33,7 +33,7 @@
 | id                       | uuid     | 车ID                   |
 | user\_id                 | user     | 用户                   |
 | owner                    | person   | 车主                   |
-| owner_type               | int      | 车主类型               |
+| owner\_type              | int      | 车主类型               |
 | recommend                | string   | 推荐人                 |
 | drivers                  | [person] | 驾驶人                 |
 | vehicle\_code            | string   | 车型代码               |
@@ -63,6 +63,15 @@
 | license\_rear\_view     | string | 驾照背面照   |
 
 
+## 缓存结构
+
+### vehicle-model
+
+| key                    | type | value                            | note       |
+| ----                   | ---- | ----                             | ----       |
+| vehicle-model-entities | hash | VehicleCode => VehicleModel JSON | 车型数据   |
+| vehicle-vin-codes      | has  | vin => [VehicleCode] JSON        | vin 码映射 |
+| vehicle-model          | set  | vin                              | vin 码     |
 
 ## 接口
 
@@ -99,20 +108,20 @@ See [example](../data/vehicle/getVehicleModelsByMake.json)
 
 #### request
 
-| name                     | type     | note           |
-| ----                     | ----     | ----           |
-| name         | string  | 驾驶人姓名       |
-| identity\_no | string  | 身份证编号       |
-| phone        | string  | 电话号码         |
-| recommend    | string  | 推荐人           |
-| vehicle\_code            | string   | 车型代码       |
-| license\_no              | string   | 车牌           |
-| engine\_no               | string   | 发动机号       |
-| register\_date           | iso8601  | 注册日期       |
-| average\_mileage         | string   | 年平均行驶里程 |
-| is\_transfer             | boolean  | 是否过户       |
-| last\_insurance\_company | string   | 上次投保的公司 |
-| insurance\_due\_date     | iso8601  | 保险到期时间   |
+| name                     | type    | note           |
+| ----                     | ----    | ----           |
+| name                     | string  | 驾驶人姓名     |
+| identity\_no             | string  | 身份证编号     |
+| phone                    | string  | 电话号码       |
+| recommend                | string  | 推荐人         |
+| vehicle\_code            | string  | 车型代码       |
+| license\_no              | string  | 车牌           |
+| engine\_no               | string  | 发动机号       |
+| register\_date           | iso8601 | 注册日期       |
+| average\_mileage         | string  | 年平均行驶里程 |
+| is\_transfer             | boolean | 是否过户       |
+| last\_insurance\_company | string  | 上次投保的公司 |
+| insurance\_due\_date     | iso8601 | 保险到期时间   |
 
 ##### example
 
@@ -212,21 +221,21 @@ See [example](../data/vehicle/setVehicleInfo.json)
 
 #### request
 
-| name                     | type     | note           |
-| ----                     | ----     | ----           |
-| name         | string  | 企业名称       |
-| society_code | string  | 统一社会信用代码  |
-| contact_name | string  | 指定联系人       |
-| contact_phone        | string  | 联系人手机号        |
-| recommend    | string  | 推荐人           |
-| vehicle\_code            | string   | 车型代码       |
-| license\_no              | string   | 车牌           |
-| engine\_no               | string   | 发动机号       |
-| register\_date           | iso8601  | 注册日期       |
-| average\_mileage         | string   | 年平均行驶里程 |
-| is\_transfer             | boolean  | 是否过户       |
-| last\_insurance\_company | string   | 上次投保的公司 |
-| insurance\_due\_date     | iso8601  | 保险到期时间   |
+| name                     | type    | note             |
+| ----                     | ----    | ----             |
+| name                     | string  | 企业名称         |
+| society\_code            | string  | 统一社会信用代码 |
+| contact\_name            | string  | 指定联系人       |
+| contact\_phone           | string  | 联系人手机号     |
+| recommend                | string  | 推荐人           |
+| vehicle\_code            | string  | 车型代码         |
+| license\_no              | string  | 车牌             |
+| engine\_no               | string  | 发动机号         |
+| register\_date           | iso8601 | 注册日期         |
+| average\_mileage         | string  | 年平均行驶里程   |
+| is\_transfer             | boolean | 是否过户         |
+| last\_insurance\_company | string  | 上次投保的公司   |
+| insurance\_due\_date     | iso8601 | 保险到期时间     |
 
 ##### example
 
@@ -328,10 +337,10 @@ rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_
 
 #### request
 
-| name         | type    | note             |
-| ----         | ----    | ----             |
-| vid          | uuid    | 车辆 ID          |
-| drivers                  | [person] | 驾驶人信息     |
+| name    | type     | note       |
+| ----    | ----     | ----       |
+| vid     | uuid     | 车辆 ID    |
+| drivers | [person] | 驾驶人信息 |
 
 ```javascript
 

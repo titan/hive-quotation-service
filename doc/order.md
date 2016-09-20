@@ -97,8 +97,10 @@
 
 | field          | type      | null | default | index   | reference  |
 | ----           | ----      | ---- | ----    | ----    | ----       |
-| id             | uuid      |      |         | primary |            |
+| id             | serial    |      |         | primary |            |
+| oid            | uuid      |      |         |         | orders     |
 | pid            | uuid      |      |         |         | plans      |
+| qid            | uuid      |      |         |         | quotations |
 | pmid           | uuid      | ✓    |         |         | promotions |
 | service\_ratio | float     |      |         |         |            |
 | expect\_at     | timestamp |      | now     |         |            |
@@ -117,13 +119,14 @@
 
 ### sale\_order\_ext
 
-| field       | type      | null | default | index   | reference |
-| ----        | ----      | ---- | ----    | ----    | ----      |
-| id          | serial    |      |         | primary |           |
-| oid         | uuid      |      |         |         | orders    |
-| pid         | uuid      |      |         |         | plans     |
-| created\_at | timestamp |      | now     |         |           |
-| updated\_at | timestamp |      | now     |         |           |
+| field       | type      | null | default | index   | reference  |
+| ----        | ----      | ---- | ----    | ----    | ----       |
+| id          | serial    |      |         | primary |            |
+| oid         | uuid      |      |         |         | orders     |
+| pid         | uuid      |      |         |         | plans      |
+| qid         | uuid      |      |         |         | quotations |
+| created\_at | timestamp |      | now     |         |            |
+| updated\_at | timestamp |      | now     |         |            |
 
 ### order\_items
 
@@ -157,15 +160,15 @@
 
 ### sale-order
 
-| key           | type       | value                  | note         |
-| ----          | ----       | ----                   | ----         |
-| driver-orders | sorted set | (订单更新时间, 订单ID) | 代售订单汇总 |
+| key         | type       | value                  | note         |
+| ----        | ----       | ----                   | ----         |
+| sale-orders | sorted set | (订单更新时间, 订单ID) | 代售订单汇总 |
 
 ### plan-order
 
-| key           | type       | value                  | note         |
-| ----          | ----       | ----                   | ----         |
-| driver-orders | sorted set | (订单更新时间, 订单ID) | 计划订单汇总 |
+| key         | type       | value                  | note         |
+| ----        | ----       | ----                   | ----         |
+| plan-orders | sorted set | (订单更新时间, 订单ID) | 计划订单汇总 |
 
 ### orders
 
@@ -190,6 +193,7 @@
 | ----          | ----         | ----         |
 | vid           | uuid         | 车辆 ID      |
 | plans         | {pid: items} | 计划 ID 列表 |
+| qid           | uuid         | 报价 ID      |
 | pmid          | uuid         | 促销 ID      |
 | service-ratio | float        | 服务费率     |
 | summary       | float        | 总价         |
@@ -199,6 +203,7 @@
 
 ```javascript
 let vid = "00000000-0000-0000-0000-000000000000";
+let qid = "00000000-0000-0000-0000-000000000000";
 let plans = {
   "00000000-0000-0000-0000-000000000000": {
     "00000000-0000-0000-0000-000000000000": 1000.00,
@@ -215,7 +220,7 @@ let summary = 6000;
 let payment = 6000;
 let expect_at = "2016-08-01T00:00:00.000+800Z";
 
-rpc.call("order", "placeAnPlanOrder", vid, plans, pmid, service_ratio, summary, payment, expect_at)
+rpc.call("order", "placeAnPlanOrder", vid, plans, qid, pmid, service_ratio, summary, payment, expect_at)
   .then(function (result) {
 
   }, function (error) {
@@ -280,12 +285,14 @@ See [example](../data/order/placeAnDriverOrder.json)
 | name    | type          | note     |
 | ----    | ----          | ----     |
 | vid     | uuid          | 车辆 ID  |
+| qid     | uuid          | 报价 ID  |
 | items   | {piid: price} | 代售条目 |
 | summary | float         | 总价     |
 | payment | float         | 实付     |
 
 ```javascript
 let vid = "00000000-0000-0000-0000-000000000000";
+let qid = "00000000-0000-0000-0000-000000000000";
 let items = {
   "00000000-0000-0000-0000-000000000000": 1000,
   "00000000-0000-0000-0000-000000000001": 2000
@@ -293,7 +300,7 @@ let items = {
 let summary = 2000;
 let payment = 2000;
 
-rpc.call("order", "placeAnSaleOrder", vid, items, summary, payment)
+rpc.call("order", "placeAnSaleOrder", vid, qid, items, summary, payment)
   .then(function (result) {
 
   }, function (error) {
