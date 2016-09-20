@@ -1,5 +1,12 @@
 # Group 模块
 
+## 修改记录
+
+1. 2016-09-20
+  * 为每一个接口增加权限表。
+  * 为每一个接口增加详细错误信息。
+  * 增加了 group 触发器。
+
 ## 数据结构
 
 ### group
@@ -110,6 +117,13 @@ user 是收到申请的互助组成员。
 
 ### 获得互助组信息 getGroup
 
+根据 gid 获得互助组的详细内容。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
 #### request
 
 | name | type | note      |
@@ -129,20 +143,43 @@ rpc.call("group" ,"getGroup", gid)
 
 #### response
 
+成功：
+
 | name  | type  | note  |
 | ----  | ----  | ----  |
+| code  | int   | 200   |
 | group | group | Group |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning     |
+| ---- | ----         |
+| 404  | 互助组不存在 |
+| 500  | 未知错误     |
 
 See [example](../data/group/getGroup.json)
 
 ### 创建互助组 createGroup
 
+为新用户创建互助组。用户自动成为组长。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
 #### request
 
-| name | type   | note       |
-| ---- | ----   | ----       |
-| name | string | 互助组名称 |
-| vid  | uuid   | 车辆 ID    |
+| name | type   | note                     |
+| ---- | ----   | ----                     |
+| name | string | 互助组名称               |
+| vid  | uuid   | 车辆 ID                  |
+| uid  | uuid   | 用户 ID(仅 admin 域需要) |
 
 ```javascript
 
@@ -162,8 +199,8 @@ rpc.call("group", "createGroup"，name, vid)
 
 | name | type | note      |
 | ---- | ---- | ----      |
+| code | int  | 200       |
 | gid  | uuid | 互助组 ID |
-
 
 失败：
 
@@ -181,6 +218,13 @@ rpc.call("group", "createGroup"，name, vid)
 See [example](../data/group/createGroup.json)
 
 ### 申请加入互助组 joinGroup
+
+用户申请加入互助组。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
 
 #### request
 
@@ -203,27 +247,49 @@ rpc.call("group", "joinGroup"，gid, vid)
 
 #### response
 
+成功：
+
+| name | type   | note    |
+| ---- | ----   | ----    |
+| code | int    | 200     |
+| msg  | string | Success |
+
+失败：
+
 | name | type   | note |
 | ---- | ----   | ---- |
 | code | int    |      |
 | msg  | string |      |
+
+| code | meanning          |
+| ---- | ----              |
+| 404  | 互助组/车辆不存在 |
+| 408  | 请求超时          |
+| 500  | 未知错误          |
 
 See [example](../data/group/joinGroup.json)
 
 ### 同意加入申请 agree
 
+用户同意其他用户加入互助组申请。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  |            |
+| mobile | ✓          |
+
 #### request
 
 | name | type | note        |
 | ---- | ---- | ----        |
-| wid  | uuid | WorkItem ID |
-| uid  | uuid | 用户 ID     |
+| piid | uuid | PollItem ID |
+| uid  | uuid | 其他用户 ID |
 
 ```javascript
 
-var wid = "00000000-0000-0000-0000-000000000000";
+var piid = "00000000-0000-0000-0000-000000000000";
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "agree"，wid, uid)
+rpc.call("group", "agree"，piid, uid)
   .then(function (result) {
 
   }, function (error) {
@@ -233,27 +299,49 @@ rpc.call("group", "agree"，wid, uid)
 
 #### response
 
+成功：
+
+| name | type   | note    |
+| ---- | ----   | ----    |
+| code | int    | 200     |
+| msg  | string | Success |
+
+失败：
+
 | name | type   | note |
 | ---- | ----   | ---- |
 | code | int    |      |
 | msg  | string |      |
+
+| code | meanning          |
+| ---- | ----              |
+| 404  | 互助组/车辆不存在 |
+| 408  | 请求超时          |
+| 500  | 未知错误          |
 
 See [example](../data/group/agree.json)
 
 ### 拒绝加入申请 refuse
 
+用户拒绝其他用户加入互助组申请。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  |            |
+| mobile | ✓          |
+
 #### request
 
 | name | type | note        |
 | ---- | ---- | ----        |
-| wid  | uuid | WorkItem ID |
-| uid  | uuid | 用户 ID     |
+| piid | uuid | PollItem ID |
+| uid  | uuid | 其他用户 ID |
 
 ```javascript
 
-var wid = "00000000-0000-0000-0000-000000000000";
+var piid = "00000000-0000-0000-0000-000000000000";
 var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "refuse"，wid, uid)
+rpc.call("group", "refuse"，piid, uid)
   .then(function (result) {
 
   }, function (error) {
@@ -263,10 +351,37 @@ rpc.call("group", "refuse"，wid, uid)
 
 #### response
 
+成功：
+
+| name | type   | note    |
+| ---- | ----   | ----    |
+| code | int    | 200     |
+| msg  | string | Success |
+
+失败：
+
 | name | type   | note |
 | ---- | ----   | ---- |
 | code | int    |      |
 | msg  | string |      |
 
+| code | meanning          |
+| ---- | ----              |
+| 404  | 互助组/车辆不存在 |
+| 408  | 请求超时          |
+| 500  | 未知错误          |
+
 See [example](../data/group/refuse.json)
 
+## 触发器
+
+### group
+
+在创建和修改 group 后会触发该触发器。
+
+| name  | type  | note           |
+| ----  | ----  | ----           |
+| gid   | uuid  | group id       |
+| group | group | group 实体对象 |
+
+See [example](../data/group/group-trigger.json)
