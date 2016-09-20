@@ -165,20 +165,19 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, identity_no, phone, recommend,
 
 #### request
 
-| name                     | type    | note           |
-| ----                     | ----    | ----           |
-| name                     | string  | 驾驶人姓名     |
-| identity\_no             | string  | 身份证编号     |
-| phone                    | string  | 电话号码       |
-| recommend                | string  | 推荐人         |
-| vehicle\_code            | string  | 车型代码       |
-| license\_no              | string  | 车牌           |
-| engine\_no               | string  | 发动机号       |
-| receipt\_no              | string  | 发票编号       |
-| receipt\_date            | iso8601 | 发票开具时间   |
-| average\_mileage         | string  | 年平均行驶里程 |
-| is\_transfer             | boolean | 是否过户       |
-| last\_insurance\_company | string  | 上次投保的公司 |
+| name                     | type     | note           |
+| ----                     | ----     | ----           |
+| name         | string  | 驾驶人姓名       |
+| identity\_no | string  | 身份证编号       |
+| phone        | string  | 电话号码         |
+| recommend    | string  | 推荐人           |
+| vehicle\_code            | string   | 车型代码       |
+| engine\_no               | string   | 发动机号       |
+| receipt\_no              | string   | 发票编号       |
+| receipt\_date            | iso8601  | 发票开具时间   |
+| average\_mileage         | string   | 年平均行驶里程 |
+| is\_transfer             | boolean  | 是否过户       |
+| last\_insurance\_company | string   | 上次投保的公司 |
 
 ##### example
 
@@ -188,7 +187,6 @@ var identity_no = "";
 var phone = "";
 var recommend = "";
 var vehicle_code = ""; 
-var license_no = ""; 
 var engine_no = ""; 
 var average_mileage = ""; 
 var is_transfer = "";
@@ -196,7 +194,7 @@ var receipt_no = "";
 var receipt_date = "";
 var last_insurance_company = ""; 
 
-rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, recommend, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, identity_no, phone, recommend, vehicle_code, engine_no, 
   receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company)
   .then(function (result) {
 
@@ -282,21 +280,20 @@ rpc.call("vehicle", "setVehicleInfoOnCard", name, society_code, contact_name, co
 
 #### request
 
-| name                     | type    | note             |
-| ----                     | ----    | ----             |
-| name                     | string  | 企业名称         |
-| society\_code            | string  | 统一社会信用代码 |
-| contact\_name            | string  | 指定联系人       |
-| contact\_phone           | string  | 联系人手机号     |
-| recommend                | string  | 推荐人           |
-| vehicle\_code            | string  | 车型代码         |
-| license\_no              | string  | 车牌             |
-| engine\_no               | string  | 发动机号         |
-| receipt\_no              | string  | 发票编号         |
-| receipt\_date            | iso8601 | 发票开具时间     |
-| average\_mileage         | string  | 年平均行驶里程   |
-| is\_transfer             | boolean | 是否过户         |
-| last\_insurance\_company | string  | 上次投保的公司   |
+| name                     | type     | note           |
+| ----                     | ----     | ----           |
+| name         | string  | 企业名称       |
+| society_code | string  | 统一社会信用代码  |
+| contact_name | string  | 指定联系人       |
+| contact_phone        | string  | 联系人手机号        |
+| recommend    | string  | 推荐人           |
+| vehicle\_code            | string   | 车型代码       |
+| engine\_no               | string   | 发动机号       |
+| receipt\_no              | string   | 发票编号       |
+| receipt\_date            | iso8601  | 发票开具时间   |
+| average\_mileage         | string   | 年平均行驶里程 |
+| is\_transfer             | boolean  | 是否过户       |
+| last\_insurance\_company | string   | 上次投保的公司 |
 
 ##### example
 
@@ -307,7 +304,6 @@ var contact_name = "";
 var contact_phone = "";
 var recommend = "";
 var vehicle_code = ""; 
-var license_no = ""; 
 var engine_no = ""; 
 var average_mileage = ""; 
 var is_transfer = "";
@@ -315,7 +311,7 @@ var receipt_no = "";
 var receipt_date = "";
 var last_insurance_company = ""; 
 
-rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_phone, recommend, vehicle_code, license_no, engine_no, 
+rpc.call("vehicle", "setVehicleInfo", name, society_code, contact_name, contact_phone, recommend, vehicle_code, engine_no, 
   receipt_no, receipt_date, average_mileage, is_transfer,last_insurance_company)
   .then(function (result) {
 
@@ -447,7 +443,10 @@ var driving_frontal_view = "";
 var driving_rear_view = "";
 var identity_frontal_view = "";
 var identity_rear_view = "";
-var license_frontal_views = {};
+var license_frontal_views = {
+  "00000000-0000-0000-0000-000000000000": "http://www.xxxxxxxxx",
+  "00000000-0000-0000-0000-000000000001": "http://www.xxxxxxxxx"
+};
 
 rpc.call("vehicle", "uploadDriverImages", vid, driving_frontal_view, driving_rear_view, identity_frontal_view, identity_rear_view, license_frontal_views)
   .then(function (result) {
