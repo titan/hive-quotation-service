@@ -5,6 +5,7 @@
 1. 2016-09-21
   * 去掉 agree 接口中多余的参数。
   * 去掉 refuse 接口中多余的参数。
+  * 给表结构加上 deleted 字段。
 
 1. 2016-09-20
   * 为每一个接口增加权限表。
@@ -77,6 +78,7 @@ user 是收到申请的互助组成员。
 | founder     | uuid      |      |         |         | users     |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
+| deleted     | boolean   |      | false   |         |           |
 
 ### group\_vehicles
 
@@ -88,6 +90,7 @@ user 是收到申请的互助组成员。
 | type        | smallint  |      |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
+| deleted     | boolean   |      | false   |         |           |
 
 | type | meaning      |
 | ---- | ----         |
@@ -108,6 +111,7 @@ user 是收到申请的互助组成员。
 | result      | boolean   | ✓    |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
+| deleted     | boolean   |      | false   |         |           |
 
 ## 缓存结构
 
