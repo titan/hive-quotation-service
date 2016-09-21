@@ -4,6 +4,7 @@
 
 1. 2016-09-21
   * 去掉 agree 接口中多余的参数。
+  * 去掉 refuse 接口中多余的参数。
 
 1. 2016-09-20
   * 为每一个接口增加权限表。
@@ -335,13 +336,11 @@ See [example](../data/group/agree.json)
 | name | type | note        |
 | ---- | ---- | ----        |
 | piid | uuid | PollItem ID |
-| uid  | uuid | 其他用户 ID |
 
 ```javascript
 
 var piid = "00000000-0000-0000-0000-000000000000";
-var uid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "refuse"，piid, uid)
+rpc.call("group", "refuse"，piid)
   .then(function (result) {
 
   }, function (error) {
@@ -367,7 +366,6 @@ rpc.call("group", "refuse"，piid, uid)
 
 | code | meanning          |
 | ---- | ----              |
-| 404  | 互助组/车辆不存在 |
 | 408  | 请求超时          |
 | 500  | 未知错误          |
 
