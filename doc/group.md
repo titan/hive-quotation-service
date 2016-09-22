@@ -4,6 +4,7 @@
 
 1. 2016-09-22
   * 给 agree 接口加上缺失的参数。
+  * 给 refuse 接口加上缺失的参数。
 
 1. 2016-09-21
   * 去掉 agree 接口中多余的参数。
@@ -304,7 +305,7 @@ See [example](../data/group/joinGroup.json)
 let gid = "00000000-0000-0000-0000-000000000000";
 let vid = "00000000-0000-0000-0000-000000000000";
 let piid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "agree", piid，gid, vid)
+rpc.call("group", "agree", piid, gid, vid)
   .then(function (result) {
 
   }, function (error) {
@@ -349,11 +350,17 @@ See [example](../data/group/agree.json)
 | name | type | note        |
 | ---- | ---- | ----        |
 | piid | uuid | PollItem ID |
+| gid  | uuid | Group ID    |
+| vid  | uuid | Vehicle ID  |
+
+提供 gid 和 vid 参数可以减轻后端系统的开发工作量。
 
 ```javascript
 
-var piid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "refuse"，piid)
+let piid = "00000000-0000-0000-0000-000000000000";
+let gid = "00000000-0000-0000-0000-000000000000";
+let vid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "refuse"，piid, gid, vid)
   .then(function (result) {
 
   }, function (error) {
