@@ -187,7 +187,7 @@
 
 | key                    | type | value               | note             |
 | ----                   | ---- | ----                | ----             |
-| order-driver-entities- | hash | VID =>  驾驶人 JSON  | 所有车辆已生效驾驶人| 
+| order-driver-entities  | hash | VID =>  驾驶人 JSON  | 所有车辆已生效驾驶人| 
 
 ## 接口
 
@@ -200,11 +200,11 @@
 | vid           | uuid         | 车辆 ID      |
 | plans         | {pid: items} | 计划 ID 列表 |
 | qid           | uuid         | 报价 ID      |
-| pmid          | uuid         | 促销 ID      |
+| pm_price      | float        | 优惠价格      |
 | service-ratio | float        | 服务费率     |
 | summary       | float        | 总价         |
 | payment       | float        | 实付         |
-
+| v_value       | float        | 车辆实际价值  |
 其中, items 的结构为: `{piid: price}`。piid 是 plan-item 的 ID。
 
 ```javascript
@@ -220,10 +220,11 @@ let plans = {
     "00000000-0000-0000-0000-000000000003": 2000.00
   }
 };
-let pmid = null;
+let pm_price = 500;
 let service_ratio = 0;
 let summary = 6000;
 let payment = 6000;
+let v_value = 100000;
 let expect_at = "2016-08-01T00:00:00.000+800Z";
 
 rpc.call("order", "placeAnPlanOrder", vid, plans, qid, pmid, service_ratio, summary, payment, expect_at)
