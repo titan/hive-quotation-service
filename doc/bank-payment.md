@@ -25,15 +25,15 @@
 
 在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
 
-| name      | value        |
-| ----      | ----         |
-| Version   | 10           |
-| CmdId     | UserRegister |
-| MerCustId | 531157       |
-| BgRetUrl  | 见下面       |
-| RetUrl    | 见下面       |
-| PageType  | 2            |
-| ChkValue  | 签名         |
+| name      | value            |
+| ----      | ----             |
+| Version   | 10               |
+| CmdId     | UserRegister     |
+| MerCustId | 6000060004492053 |
+| BgRetUrl  | 见下面           |
+| RetUrl    | 见下面           |
+| PageType  | 2                |
+| ChkValue  | 签名             |
 
 BgRetUrl:
 
@@ -112,15 +112,15 @@ See [example](../data/bank-payment/generateUserRegisterUrl.json)
 
 在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
 
-| name      | value   |
-| ----      | ----    |
-| Version   | 10      |
-| CmdId     | NetSave |
-| MerCustId | 531157  |
-| BgRetUrl  | 见下面  |
-| RetUrl    | 见下面  |
-| PageType  | 2       |
-| ChkValue  | 签名    |
+| name      | value            |
+| ----      | ----             |
+| Version   | 10               |
+| CmdId     | NetSave          |
+| MerCustId | 6000060004492053 |
+| BgRetUrl  | 见下面           |
+| RetUrl    | 见下面           |
+| PageType  | 2                |
+| ChkValue  | 签名             |
 
 BgRetUrl:
 
