@@ -16,9 +16,9 @@
 | nickname    | string  | 昵称     |
 | portrait    | string  | 头像     |
 
-##数据库结构
+## 数据库结构
 
-###users
+### users
 
 | field           | type       | null | default | index   | reference |
 | ----            | ----       | ---- | ----    | ----    | ----      |
