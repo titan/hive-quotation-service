@@ -183,6 +183,12 @@
 | ----           | ---- | ----                | ----         |
 | order-entities | hash | 订单ID => 订单 JSON | 所有订单实体 |
 
+### order-driver-entities
+
+| key                    | type | value               | note             |
+| ----                   | ---- | ----                | ----             |
+| order-driver-entities- | hash | VID =>  驾驶人 JSON  | 所有车辆已生效驾驶人| 
+
 ## 接口
 
 ### 下计划单 placeAnPlanOrder
@@ -325,8 +331,8 @@ See [example](../data/order/placeAnSaleOrder.json)
 | name   | type | note           |
 | ----   | ---- | ----           |
 | uid    | uuid | User ID        |
-| offset | int  | 结果集起始地址 |
-| limit  | int  | 结果集大小     |
+| offset | int  | 结果集起始地址   | 
+| limit  | int  | 结果集大小      |
 
 #### response
 
@@ -340,15 +346,30 @@ See [example](../data/order/getOrders.json)
 
 #### request
 
-| name     | type | note     |
-| ----     | ---- | ----     |
-| oorder-id | uuid | Order ID |
+| name     | type | note      |
+| ----     | ---- | ----      |
+| order-id | uuid | Order ID |
 
 #### response
 
 | name  | type  | note       |
 | ----  | ----  | ----       |
 | order | order | Order 详情 |
+
+### 获取驾驶人信息 getDriverOrders 
+
+#### request
+
+| name     | type | note      |
+| ----     | ---- | ----      |
+| vid      | uuid | vehicle ID  |
+
+#### response
+
+| name    | type   | note         |
+| ----    | ----   | ----         |
+| drivers | driver | 驾驶人详情详情 | 
+
 
 See [计划订单](../data/order/getPlanOrder.json)
 
