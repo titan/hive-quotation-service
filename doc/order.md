@@ -316,14 +316,36 @@ rpc.call("order", "placeAnSaleOrder", vid, qid, items, summary, payment)
 
 ```
 
+### 更新订单状态 updateOrderState
+
+#### request
+
+| name       | type          | note      |
+| ----       | ----          | ----      |
+| order_id   | uuid          | 订单 ID   |
+| state_code | int           |订单状态编码 |
+| state      | string        |订单状态    |
+
+```javascript
+let order_id = "00000000-0000-0000-0000-000000000000";
+let state_code = 2;
+let state = '已支付';
+
+rpc.call("order", "updateOrderState", order_id, state_code, state)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
 #### response
 
 | name     | type   | note     |
 | ----     | ----   | ----     |
 | order-id | uuid   | Order ID |
-| order-no | string | Order No |
 
-See [example](../data/order/placeAnSaleOrder.json)
 
 ### 获取订单列表 getOrders
 
