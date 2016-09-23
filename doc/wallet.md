@@ -5,6 +5,8 @@
 1. 2016-09-23
   * 调整数据结构
   * 删除 getAccounts 接口。
+  * 修改 getWallet 接口的参数。
+  * 修改 getTransactions 接口的参数。
 
 ## 数据结构
 
@@ -17,13 +19,13 @@
 
 ### account
 
-| name         | type          | note            |
-| ----         | ----          | ----            |
-| id           | uuid          | 帐号 ID         |
-| type         | integer       | 帐号类型        |
-| vid          | uuid          | 帐号对应车辆 ID |
-| balance0     | float         | 余额0           |
-| balance1     | float         | 余额1           |
+| name     | type    | note         |
+| ----     | ----    | ----         |
+| id       | uuid    | 帐号 ID      |
+| type     | integer | 帐号类型     |
+| vehicle  | vehicle | 帐号对应车辆 |
+| balance0 | float   | 余额0        |
+| balance1 | float   | 余额1        |
 
 帐号类型
 
@@ -98,19 +100,21 @@ wallets.id == user.id
 
 钱包的数据其实是各个帐号数据的汇总。
 
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
 #### request
 
 | name | type | note    |
 | ---- | ---- | ----    |
-| uid  | uuid | 用户 ID |
 
-##### example
+wallet 的 id 其实就是 user id
 
 ```javascript
 
-var uid = "00000000-0000-0000-0000-000000000000";
-
-rpc.call("wallet", "getWallet", uid)
+rpc.call("wallet", "getWallet")
   .then(function (result) {
 
   }, function (error) {
@@ -121,9 +125,24 @@ rpc.call("wallet", "getWallet", uid)
 
 #### response
 
-| name   | type   | note               |
-| ----   | ----   | ----               |
-| wallet | wallet | Wallet Information |
+成功：
+
+| name   | type   | note   |
+| ----   | ----   | ----   |
+| code   | int    | 200    |
+| wallet | wallet | Wallet |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning   |
+| ---- | ----       |
+| 404  | 钱包不存在 |
+| 500  | 未知错误   |
 
 注意: 帐号对应 balance0，balance1 的含义请参考前文的数据结构。
 
@@ -133,20 +152,21 @@ See [example](../data/wallet/getWallet.json)
 
 钱包交易日志按时间逆序显示。
 
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
 #### request
 
 | name   | type | note                     |
 | ----   | ---- | ----                     |
-| uid    | uuid | 用户 ID                  |
 | offset | int  | 结果在数据集中的起始位置 |
 | limit  | int  | 显示结果的长度           |
 
-##### example
-
 ```javascript
-var uid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("wallet", "getTransactions", uid, 0, 10)
+rpc.call("wallet", "getTransactions", 0, 10)
   .then(function (result) {
 
   }, function (error) {
@@ -157,8 +177,23 @@ rpc.call("wallet", "getTransactions", uid, 0, 10)
 
 #### response
 
+成功：
+
 | name         | type          | note        |
 | ----         | ----          | ----        |
+| code         | int           | 200         |
 | transactions | [transaction] | Transaction |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning          |
+| ---- | ----              |
+| 408  | 请求超时          |
+| 500  | 未知错误          |
 
 See [example](../data/wallet/getTransactions.json)
