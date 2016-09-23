@@ -7,6 +7,10 @@
   * 删除 getAccounts 接口。
   * 修改 getWallet 接口的参数。
   * 修改 getTransactions 接口的参数。
+  * 修改 getWallet 返回的结果。
+  * 修改 getTransactions 返回的结果。
+  * 删除 wallet 表。
+  * 增加缓存设计。
 
 ## 数据结构
 
@@ -58,23 +62,12 @@
 
 ## 数据库结构
 
-### wallets
-
-| field       | type      | null | default | index   | reference |
-| ----        | ----      | ---- | ----    | ----    | ----      |
-| id          | uuid      |      |         | primary |           |
-| created\_at | timestamp |      | now     |         |           |
-| updated\_at | timestamp |      | now     |         |           |
-| deleted     | boolean   |      | false   |         |           |
-
-wallets.id == user.id
-
 ### accounts
 
 | field       | type      | null | default | index   | reference |
 | ----        | ----      | ---- | ----    | ----    | ----      |
 | id          | uuid      |      |         | primary |           |
-| wid         | uuid      |      |         |         | wallets   |
+| uid         | uuid      |      |         |         | users     |
 | type        | smallint  |      |         |         |           |
 | vid         | uuid      | ✓    |         |         | vehicles  |
 | balance0    | float     |      |         |         |           |
@@ -94,6 +87,15 @@ wallets.id == user.id
 | amount       | float     |      |         |         |           |
 | occurred\_at | timestamp |      | now     |         |           |
 
+## 缓存结构
+
+
+| key                 | type       | value                   | note         |
+| ----                | ----       | ----                    | ----         |
+| wallet-entities     | hash       | UID => Wallet           | 所有钱包实体 |
+| transactions-${uid} | sorted set | {occurred, transaction} | 交易记录     |
+
+
 ## 接口
 
 ### 获得钱包信息 getWallet
@@ -107,8 +109,9 @@ wallets.id == user.id
 
 #### request
 
-| name | type | note    |
-| ---- | ---- | ----    |
+| name | type | note          |
+| ---- | ---- | ----          |
+| uid  | uuid | 仅 admin 有效 |
 
 wallet 的 id 其实就是 user id
 
@@ -141,7 +144,6 @@ rpc.call("wallet", "getWallet")
 
 | code | meanning   |
 | ---- | ----       |
-| 404  | 钱包不存在 |
 | 500  | 未知错误   |
 
 注意: 帐号对应 balance0，balance1 的含义请参考前文的数据结构。
@@ -163,6 +165,7 @@ See [example](../data/wallet/getWallet.json)
 | ----   | ---- | ----                     |
 | offset | int  | 结果在数据集中的起始位置 |
 | limit  | int  | 显示结果的长度           |
+| uid    | uuid | 仅 admin 有效            |
 
 ```javascript
 
@@ -193,7 +196,6 @@ rpc.call("wallet", "getTransactions", 0, 10)
 
 | code | meanning          |
 | ---- | ----              |
-| 408  | 请求超时          |
 | 500  | 未知错误          |
 
 See [example](../data/wallet/getTransactions.json)
