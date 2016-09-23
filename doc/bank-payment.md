@@ -30,10 +30,28 @@
 | Version   | 10           |
 | CmdId     | UserRegister |
 | MerCustId | 531157       |
-| BgRetUrl  |              |
-| RetUrl    |              |
+| BgRetUrl  | 见下面       |
+| RetUrl    | 见下面       |
 | PageType  | 2            |
 | ChkValue  | 签名         |
+
+BgRetUrl:
+
+| 场景 | 内容                                       |
+| ---- | ----                                       |
+| 正式 | http://m.fengchaohuzhu.com/bank/register   |
+| 测试 | http://dev.fengchaohuzhu.com/bank/register |
+
+RetUrl:
+
+| 场景 | 内容                                                    |
+| ---- | ----                                                    |
+| 正式 | http://m.fengchaohuzhu.com/#/BankUserRegisterCallback   |
+| 测试 | http://dev.fengchaohuzhu.com/#/BankUserRegisterCallback |
+
+注意：
+
+url 作为参数传递时，需要调用 encodeURIComponent 进行编码。
 
 ```javascript
 let openid = "0000000000000000000000000";
@@ -99,10 +117,26 @@ See [example](../data/bank-payment/generateUserRegisterUrl.json)
 | Version   | 10      |
 | CmdId     | NetSave |
 | MerCustId | 531157  |
-| BgRetUrl  |         |
-| RetUrl    |         |
+| BgRetUrl  | 见下面  |
+| RetUrl    | 见下面  |
 | PageType  | 2       |
 | ChkValue  | 签名    |
+
+BgRetUrl:
+
+| 场景 | 内容                                      |
+| ---- | ----                                      |
+| 正式 | http://m.fengchaohuzhu.com/bank/netsave   |
+| 测试 | http://dev.fengchaohuzhu.com/bank/netsave |
+
+RetUrl:
+
+| 场景 | 内容                                           |
+| ---- | ----                                           |
+| 正式 | http://m.fengchaohuzhu.com/#/NetSaveCallback   |
+| 测试 | http://dev.fengchaohuzhu.com/#/NetSaveCallback |
+
+url 作为参数传递时，需要调用 encodeURIComponent 进行编码。
 
 ```javascript
 let customer_id = "0000000000000000";
