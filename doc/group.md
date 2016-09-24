@@ -2,6 +2,9 @@
 
 ## 修改记录
 
+1. 2016-09-24
+  * group 加入分摊比例。
+
 1. 2016-09-22
   * 给 agree 接口加上缺失的参数。
   * 给 refuse 接口加上缺失的参数。
@@ -28,6 +31,7 @@
 | applied-vehicles | [vehicle]    | 申请加入车辆 |
 | quitted-vehicles | [vehicle]    | 退出车辆     |
 | founder          | profile      | 创始人       |
+| apportion        | float        | 分摊比例     |
 | items            | [group-item] | 互助小组条目 |
 | created-at       | date         | 创建时间     |
 
@@ -80,6 +84,7 @@ user 是收到申请的互助组成员。
 | id          | uuid      |      |         | primary |           |
 | name        | char(128) |      |         |         |           |
 | founder     | uuid      |      |         |         | users     |
+| apportion   | float     |      |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
 | deleted     | boolean   |      | false   |         |           |
@@ -187,17 +192,20 @@ See [example](../data/group/getGroup.json)
 
 #### request
 
-| name | type   | note                     |
-| ---- | ----   | ----                     |
-| name | string | 互助组名称               |
-| vid  | uuid   | 车辆 ID                  |
-| uid  | uuid   | 用户 ID(仅 admin 域需要) |
+| name      | type   | note                     |
+| ----      | ----   | ----                     |
+| name      | string | 互助组名称               |
+| vid       | uuid   | 车辆 ID                  |
+| apportion | float  | 分摊比例                 |
+| uid       | uuid   | 用户 ID(仅 admin 域需要) |
 
 ```javascript
 
-var vid = "00000000-0000-0000-0000-000000000000";
-var name = "XXX 的互助组";
-rpc.call("group", "createGroup"，name, vid)
+let vid = "00000000-0000-0000-0000-000000000000";
+let name = "XXX 的互助组";
+let apportion = 0.20;
+
+rpc.call("group", "createGroup"，name, vid, apportion)
   .then(function (result) {
 
   }, function (error) {
