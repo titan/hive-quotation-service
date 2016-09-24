@@ -1,5 +1,10 @@
 # bank-payment 模块
 
+## 修改记录
+
+1. 2016-09-24
+  * 增加 getCustomerId 接口。
+
 ## 接口
 
 ### 生成开户链接 generateUserRegisterUrl
@@ -173,3 +178,51 @@ rpc.call("bank-payment", "generateNetSaveUrl", customer_id, order_id, order_date
 | 500  | 未知错误 |
 
 See [example](../data/bank-payment/generateNetSaveUrl.json)
+
+### 获得银行帐号 ID getCustomerId
+
+获得已保存的银行帐号 ID 。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
+#### request
+
+| name | type | note          |
+| ---- | ---- | ----          |
+| uid  | uuid | 仅 admin 有效 |
+
+```javascript
+
+rpc.call("bank-payment", "getCustomerId")
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+成功：
+
+| name | type     | note        |
+| ---- | ----     | ----        |
+| code | int      | 200         |
+| cid  | char(16) | 银行帐号 ID |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning           |
+| ---- | ----               |
+| 404  | 银行帐号 ID 不存在 |
+| 500  | 未知错误           |
+
+See [example](../data/bank-payment/getcustomerId.json)
