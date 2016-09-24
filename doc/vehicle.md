@@ -419,13 +419,14 @@ rpc.call("vehicle", "getVehicleInfo"， vid)
 
 See [example](../data/vehicle/getVehicleInfos.json)
 
-### 获取驾驶人信息 getDriverPids
+### 获取驾驶人信息 getDriverInfos
 ### 注：前端禁用
 
 ```javascript
 var vid = "00000000-0000-0000-0000-000000000000";
+var pid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("vehicle", "getDriverPids", vid)
+rpc.call("vehicle", "getDriverInfos", vid, pid)
   .then(function (result) {
 
   }, function (error) {
