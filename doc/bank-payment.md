@@ -10,9 +10,9 @@
 
 ## 缓存结构
 
-| key       | type | value            | note                        |
-| ----      | ---- | ----             | ----                        |
-| customers | hash | openid => custid | openid 与 custid 的对应关系 |
+| key            | type | value            | note                        |
+| ----           | ---- | ----             | ----                        |
+| bank-customers | hash | openid => custid | openid 与 custid 的对应关系 |
 
 注意：openid 只有 25 个字节长。
 
