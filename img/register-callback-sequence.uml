@@ -7,6 +7,6 @@ SignServer -> Server : 返回签名
 Server -> Server : 验证签名
 Server -> Database : 保存数据
 Server -> Cache : 建立缓存
-Server -> Bank : 返回 RECV_ORD_ID 字符串
+Server -> Bank : 返回 RECV_ORD_ID_ + TrxId 字符串
 
 @enduml
