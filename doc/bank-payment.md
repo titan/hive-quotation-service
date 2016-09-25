@@ -2,8 +2,19 @@
 
 ## 修改记录
 
+1. 2016-09-25
+  * 增加缓存设计。
+
 1. 2016-09-24
   * 增加 getCustomerId 接口。
+
+## 缓存结构
+
+| key       | type | value            | note                        |
+| ----      | ---- | ----             | ----                        |
+| customers | hash | openid => custid | openid 与 custid 的对应关系 |
+
+注意：openid 只有 25 个字节长。
 
 ## 接口
 
