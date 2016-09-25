@@ -4,6 +4,7 @@
 
 1. 2016-09-25
   * 增加缓存设计。
+  * 修改回调前端的 url。
 
 1. 2016-09-24
   * 增加 getCustomerId 接口。
@@ -60,10 +61,10 @@ BgRetUrl:
 
 RetUrl:
 
-| 场景 | 内容                                                    |
-| ---- | ----                                                    |
-| 正式 | http://m.fengchaohuzhu.com/#/BankUserRegisterCallback   |
-| 测试 | http://dev.fengchaohuzhu.com/#/BankUserRegisterCallback |
+| 场景 | 内容                                               |
+| ---- | ----                                               |
+| 正式 | http://m.fengchaohuzhu.com/bank/RegisterCallback   |
+| 测试 | http://dev.fengchaohuzhu.com/bank/RegisterCallback |
 
 注意：
 
@@ -149,8 +150,8 @@ RetUrl:
 
 | 场景 | 内容                                           |
 | ---- | ----                                           |
-| 正式 | http://m.fengchaohuzhu.com/#/NetSaveCallback   |
-| 测试 | http://dev.fengchaohuzhu.com/#/NetSaveCallback |
+| 正式 | http://m.fengchaohuzhu.com/bank/NetSaveCallback   |
+| 测试 | http://dev.fengchaohuzhu.com/bank/NetSaveCallback |
 
 url 作为参数传递时，需要调用 encodeURIComponent 进行编码。
 
