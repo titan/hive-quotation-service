@@ -6,6 +6,8 @@
   * 增加生成绑卡链接接口。
   * 增加生成登录链接接口。
   * 增加生成自动投标链接接口。
+  * 增加生成余额查询链接接口。
+  * 增加生成子账户查询链接接口。
 
 1. 2016-09-25
   * 增加缓存设计。
@@ -549,3 +551,61 @@ rpc.call("bank_payment", "generateQueryBalanceBgUrl", customer_id)
 | 500  | 未知错误 |
 
 See [example](../data/bank-payment/generateQueryBalanceBgUrl.json)
+
+### 生成子账户查询链接(后台) generateQueryAcctsUrl
+
+生成跳转到汇付天下的子账户查询链接。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
+#### request
+
+| name        | type     | note                  |
+| ----        | ----     | ----                  |
+| test        | boolean  | 是否开启测试模式      |
+
+默认 test == false，开启测试模式后，返回汇付天下提供的测试链接。
+
+在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
+
+| name      | value            |
+| ----      | ----             |
+| Version   | 10               |
+| CmdId     | QueryAccts       |
+| MerCustId | 6000060004492053 |
+| ChkValue  | 签名             |
+
+```javascript
+
+rpc.call("bank_payment", "generateQueryAcctsUrl")
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+成功：
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 200      |
+| url  | string | 跳转链接 |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning |
+| ---- | ----     |
+| 500  | 未知错误 |
+
+See [example](../data/bank-payment/generateQueryAcctsUrl.json)
