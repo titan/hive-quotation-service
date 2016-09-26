@@ -23,8 +23,8 @@ VEHICLE_DEPS = drivers.yaml driver.yaml owner.yaml vehicle-model1.yaml vehicle-m
 PROFILE = ../data/profile/getProfile.json
 PROFILE_DEPS = profile.yaml
 
-GROUP = ../data/group/getGroup.json
-GROUP_DEPS = get-group.yaml group.yaml group-items.yaml $(GROUP_ITEM) $(VEHICLE_DEPS) $(PROFILE_DEPS)
+GET_GROUP = ../data/group/getGroup.json
+GET_GROUP_DEPS = get-group.yaml group.yaml group-items.yaml $(GROUP_ITEM) $(VEHICLE_DEPS) $(PROFILE_DEPS)
 
 GROUP_ITEM_DEPS = group-item.yaml $(VEHICLE_DEPS)
 
@@ -46,7 +46,13 @@ SALE_ORDER_DEPS = sale-order.yaml $(VEHICLE_DEPS) $(PLAN_DEPS) $(ORDER_ITEMS_PLA
 ORDERS = ../data/order/getOrders.json
 ORDERS_DEPS = orders.yaml $(PLAN_ORDER_DEPS) $(DRIVER_ORDER_DEPS) $(THIRD_ORDER_DEPS)
 
-all: $(QUOTATIONS) $(QUOTATION) $(AVAILABLE_PLANS) $(JOINED_PLANS) $(PLAN) $(GROUP) $(PROFILE) $(ORDERS) $(PLAN_ORDER) $(DRIVER_ORDER) $(SALE_ORDER) $(GROUP_TRIGGER)
+GET_WALLET = ../data/wallet/getWallet.json
+GET_WALLET_DEPS = get-wallet.yaml wallet.yaml accounts.yaml account.yaml $(VEHICLE_DEPS)
+
+GET_TRANSACTIONS = ../data/wallet/getTransactions.json
+GET_TRANSACTIONS_DEPS = get-transactions.yaml transactions.yaml transaction.yaml
+
+all: $(QUOTATIONS) $(QUOTATION) $(AVAILABLE_PLANS) $(JOINED_PLANS) $(PLAN) $(GET_GROUP) $(PROFILE) $(ORDERS) $(PLAN_ORDER) $(DRIVER_ORDER) $(SALE_ORDER) $(GROUP_TRIGGER) $(GET_WALLET) $(GET_TRANSACTIONS)
 
 $(QUOTATIONS): $(QUOTATIONS_DEPS)
 	$(YAML2JSON) quotations.yaml | aeson-pretty > $@
@@ -63,7 +69,7 @@ $(JOINED_PLANS): $(JOINED_PLANS_DEPS)
 $(PLAN): $(PLAN_DEPS)
 	$(YAML2JSON) plan-main.yaml | aeson-pretty > $@
 
-$(GROUP): $(GROUP_DEPS)
+$(GET_GROUP): $(GET_GROUP_DEPS)
 	$(YAML2JSON) get-group.yaml | aeson-pretty > $@
 
 $(GROUP_TRIGGER): $(GROUP_TRIGGER_DEPS)
@@ -84,18 +90,26 @@ $(DRIVER_ORDER): $(DRIVER_ORDER_DEPS)
 $(SALE_ORDER): $(SALE_ORDER_DEPS)
 	$(YAML2JSON) sale-order.yaml | aeson-pretty > $@
 
+$(GET_WALLET): $(GET_WALLET_DEPS)
+	$(YAML2JSON) get-wallet.yaml | aeson-pretty > $@
+
+$(GET_TRANSACTIONS): $(GET_TRANSACTIONS_DEPS)
+	$(YAML2JSON) get-transactions.yaml | aeson-pretty > $@
+
 clean:
 	rm $(QUOTATIONS)
 	rm $(QUOTATION)
 	rm $(AVAILABLE_PLANS)
 	rm $(JOINED_PLANS)
 	rm $(PLAN)
-	rm $(GROUP)
+	rm $(GET_GROUP)
 	rm $(GROUP_TRIGGER)
 	rm $(PROFILE)
 	rm $(PLAN_ORDER)
 	rm $(DRIVER_ORDER)
 	rm $(SALE_ORDER)
 	rm $(ORDERS)
+	rm $(GET_WALLET)
+	rm $(GET_TRANSACTIONS)
 
 .phoney: all clean

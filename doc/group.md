@@ -2,9 +2,17 @@
 
 ## 修改记录
 
+1. 2016-09-24
+  * group 加入分摊比例。
+
+1. 2016-09-22
+  * 给 agree 接口加上缺失的参数。
+  * 给 refuse 接口加上缺失的参数。
+
 1. 2016-09-21
   * 去掉 agree 接口中多余的参数。
   * 去掉 refuse 接口中多余的参数。
+  * 给表结构加上 deleted 字段。
 
 1. 2016-09-20
   * 为每一个接口增加权限表。
@@ -23,6 +31,7 @@
 | applied-vehicles | [vehicle]    | 申请加入车辆 |
 | quitted-vehicles | [vehicle]    | 退出车辆     |
 | founder          | profile      | 创始人       |
+| apportion        | float        | 分摊比例     |
 | items            | [group-item] | 互助小组条目 |
 | created-at       | date         | 创建时间     |
 
@@ -75,8 +84,10 @@ user 是收到申请的互助组成员。
 | id          | uuid      |      |         | primary |           |
 | name        | char(128) |      |         |         |           |
 | founder     | uuid      |      |         |         | users     |
+| apportion   | float     |      |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
+| deleted     | boolean   |      | false   |         |           |
 
 ### group\_vehicles
 
@@ -88,6 +99,7 @@ user 是收到申请的互助组成员。
 | type        | smallint  |      |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
+| deleted     | boolean   |      | false   |         |           |
 
 | type | meaning      |
 | ---- | ----         |
@@ -108,6 +120,7 @@ user 是收到申请的互助组成员。
 | result      | boolean   | ✓    |         |         |           |
 | created\_at | timestamp |      | now     |         |           |
 | updated\_at | timestamp |      | now     |         |           |
+| deleted     | boolean   |      | false   |         |           |
 
 ## 缓存结构
 
@@ -179,17 +192,20 @@ See [example](../data/group/getGroup.json)
 
 #### request
 
-| name | type   | note                     |
-| ---- | ----   | ----                     |
-| name | string | 互助组名称               |
-| vid  | uuid   | 车辆 ID                  |
-| uid  | uuid   | 用户 ID(仅 admin 域需要) |
+| name      | type   | note                     |
+| ----      | ----   | ----                     |
+| name      | string | 互助组名称               |
+| vid       | uuid   | 车辆 ID                  |
+| apportion | float  | 分摊比例                 |
+| uid       | uuid   | 用户 ID(仅 admin 域需要) |
 
 ```javascript
 
-var vid = "00000000-0000-0000-0000-000000000000";
-var name = "XXX 的互助组";
-rpc.call("group", "createGroup"，name, vid)
+let vid = "00000000-0000-0000-0000-000000000000";
+let name = "XXX 的互助组";
+let apportion = 0.20;
+
+rpc.call("group", "createGroup"，name, vid, apportion)
   .then(function (result) {
 
   }, function (error) {
@@ -287,11 +303,17 @@ See [example](../data/group/joinGroup.json)
 | name | type | note        |
 | ---- | ---- | ----        |
 | piid | uuid | PollItem ID |
+| gid  | uuid | Group ID    |
+| vid  | uuid | Vehicle ID  |
+
+提供 gid 和 vid 参数可以减轻后端系统的开发工作量。
 
 ```javascript
 
-var piid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "agree"，piid)
+let gid = "00000000-0000-0000-0000-000000000000";
+let vid = "00000000-0000-0000-0000-000000000000";
+let piid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "agree", piid, gid, vid)
   .then(function (result) {
 
   }, function (error) {
@@ -336,11 +358,17 @@ See [example](../data/group/agree.json)
 | name | type | note        |
 | ---- | ---- | ----        |
 | piid | uuid | PollItem ID |
+| gid  | uuid | Group ID    |
+| vid  | uuid | Vehicle ID  |
+
+提供 gid 和 vid 参数可以减轻后端系统的开发工作量。
 
 ```javascript
 
-var piid = "00000000-0000-0000-0000-000000000000";
-rpc.call("group", "refuse"，piid)
+let piid = "00000000-0000-0000-0000-000000000000";
+let gid = "00000000-0000-0000-0000-000000000000";
+let vid = "00000000-0000-0000-0000-000000000000";
+rpc.call("group", "refuse"，piid, gid, vid)
   .then(function (result) {
 
   }, function (error) {

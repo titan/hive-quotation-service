@@ -268,6 +268,12 @@
 | ----           | ---- | ----                | ----         |
 | order-entities | hash | 订单ID => 订单 JSON | 所有订单实体 |
 
+### order-driver-entities
+
+| key                    | type | value               | note             |
+| ----                   | ---- | ----                | ----             |
+| order-driver-entities  | hash | VID =>  驾驶人 JSON  | 所有车辆已生效驾驶人| 
+
 ### underwrite
 
 | key           | type       | value                  | note     |
@@ -291,11 +297,11 @@
 | vid           | uuid         | 车辆 ID      |
 | plans         | {pid: items} | 计划 ID 列表 |
 | qid           | uuid         | 报价 ID      |
-| pmid          | uuid         | 促销 ID      |
+| pm_price      | float        | 优惠价格      |
 | service-ratio | float        | 服务费率     |
 | summary       | float        | 总价         |
 | payment       | float        | 实付         |
-
+| v_value       | float        | 车辆实际价值  |
 其中, items 的结构为: `{piid: price}`。piid 是 plan-item 的 ID。
 
 ```javascript
@@ -311,10 +317,11 @@ let plans = {
     "00000000-0000-0000-0000-000000000003": 2000.00
   }
 };
-let pmid = null;
+let pm_price = 500;
 let service_ratio = 0;
 let summary = 6000;
 let payment = 6000;
+let v_value = 100000;
 let expect_at = "2016-08-01T00:00:00.000+800Z";
 
 rpc.call("order", "placeAnPlanOrder", vid, plans, qid, pmid, service_ratio, summary, payment, expect_at)
@@ -406,14 +413,36 @@ rpc.call("order", "placeAnSaleOrder", vid, qid, items, summary, payment)
 
 ```
 
+### 更新订单状态 updateOrderState
+
+#### request
+
+| name       | type          | note      |
+| ----       | ----          | ----      |
+| order_id   | uuid          | 订单 ID   |
+| state_code | int           |订单状态编码 |
+| state      | string        |订单状态    |
+
+```javascript
+let order_id = "00000000-0000-0000-0000-000000000000";
+let state_code = 2;
+let state = '已支付';
+
+rpc.call("order", "updateOrderState", order_id, state_code, state)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
 #### response
 
 | name     | type   | note     |
 | ----     | ----   | ----     |
 | order-id | uuid   | Order ID |
-| order-no | string | Order No |
 
-See [example](../data/order/placeAnSaleOrder.json)
 
 ### 获取订单列表 getOrders
 
@@ -422,8 +451,8 @@ See [example](../data/order/placeAnSaleOrder.json)
 | name   | type | note           |
 | ----   | ---- | ----           |
 | uid    | uuid | User ID        |
-| offset | int  | 结果集起始地址 |
-| limit  | int  | 结果集大小     |
+| offset | int  | 结果集起始地址   | 
+| limit  | int  | 结果集大小      |
 
 #### response
 
@@ -437,15 +466,30 @@ See [example](../data/order/getOrders.json)
 
 #### request
 
-| name     | type | note     |
-| ----     | ---- | ----     |
-| oorder-id | uuid | Order ID |
+| name     | type | note      |
+| ----     | ---- | ----      |
+| order-id | uuid | Order ID |
 
 #### response
 
 | name  | type  | note       |
 | ----  | ----  | ----       |
 | order | order | Order 详情 |
+
+### 获取驾驶人信息 getDriverOrders 
+
+#### request
+
+| name     | type | note      |
+| ----     | ---- | ----      |
+| vid      | uuid | vehicle ID  |
+
+#### response
+
+| name    | type   | note         |
+| ----    | ----   | ----         |
+| drivers | driver | 驾驶人详情详情 | 
+
 
 See [计划订单](../data/order/getPlanOrder.json)
 

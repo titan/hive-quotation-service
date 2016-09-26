@@ -52,6 +52,7 @@ package Order {
   }
   object OrderItem
   object OrderEvent
+  object Underwrite
 }
 package Quotation {
   object Quotation
@@ -125,5 +126,7 @@ Quotation -> Vehicle
 Driver --> Person : is >
 
 Group "1" --> "*" GroupEvent
+
+Underwrite --> PlanOrder
 
 @enduml
