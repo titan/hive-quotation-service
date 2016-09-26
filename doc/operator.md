@@ -4,15 +4,15 @@
 
 ### operator
 
-| name        | type    | note    |
-| ----        | ----    | ----    |
-| oname        | string  | 操作员     |
-| passsword   | string  | 密码     |
-| name        | string  | 真实姓名     |
-| gender      | string  | 性别     |
-| phone       | string  | 手机号   |
-| email       | string  | 邮箱   |
-| portrait    | string  | 头像     |
+| name      | type   | note     |
+| ----      | ----   | ----     |
+| oname     | string | 操作员   |
+| passsword | string | 密码     |
+| name      | string | 真实姓名 |
+| gender    | string | 性别     |
+| phone     | string | 手机号   |
+| email     | string | 邮箱     |
+| portrait  | string | 头像     |
 
 ## 数据库结构
 
@@ -70,15 +70,15 @@ rpc.call("operator", "getOperatorInfo", opid)
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
-| 200   | null     | 成功     |
-| other | 错误信息  | 失败     |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
 
 See 成功返回数据：[example](../data/operator/getOperatorInfo.json)
 
@@ -104,15 +104,15 @@ rpc.call("operator", "getOperatorInfos")
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
-| 200   | null     | 成功     |
-| other | 错误信息  | 失败     |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
 
 See 成功返回数据：[example](../data/operator/getOperatorInfos.json)
 
@@ -121,15 +121,15 @@ See 成功返回数据：[example](../data/operator/getOperatorInfos.json)
 
 #### request
 
-| name    | type   | note    |
-| ----    | ----   | ----    |
-| oname        | string  | 操作员     |
-| passsword   | string  | 密码     |
-| name        | string  | 真实姓名     |
-| gender      | string  | 性别     |
-| phone       | string  | 手机号   |
-| email       | string  | 邮箱   |
-| portrait    | string  | 头像     |
+| name      | type   | note     |
+| ----      | ----   | ----     |
+| oname     | string | 操作员   |
+| passsword | string | 密码     |
+| name      | string | 真实姓名 |
+| gender    | string | 性别     |
+| phone     | string | 手机号   |
+| email     | string | 邮箱     |
+| portrait  | string | 头像     |
 
 ##### example
 
@@ -152,15 +152,15 @@ rpc.call("operator", "addOperatorInfo", oname, password, name, gender, phone, em
 ```
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
-| 200   | null     | 成功     |
-| other | 错误信息  | 失败     |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
 
 See 成功返回数据: [example](../data/profile/sucessful.json)
 

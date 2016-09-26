@@ -18,7 +18,7 @@
 | certificate\_state     | int       | 用户证件上传情况         |
 | problems               | [problem] | 车辆存在问题             |
 | note                   | string    | 备注                     |
-| note\_update\_time     | ISO8601   | 备注最后修改时间          |
+| note\_update\_time     | ISO8601   | 备注最后修改时间         |
 | photos                 | [photo]   | 照片                     |
 | underwrite\_result     | string    | 核保结果                 |
 | result\_update\_time   | ISO8601   | 核保结果最后修改时间     |
@@ -110,11 +110,11 @@
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| oid                    | uuid      | 订单id                   |
-| plan_time             | timestamp | 计划核保时间             |
-| validate_place        | string    | 预约验车地点             |
+| name                 | type      | note                     |
+| ----                 | ----      | ----                     |
+| oid                  | uuid      | 订单id                   |
+| plan_time            | timestamp | 计划核保时间             |
+| validate_place       | string    | 预约验车地点             |
 | validate_update_time | timestamp | 预约验车地点最后修改时间 |
 
 ##### example
@@ -148,13 +148,13 @@ See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| real_place            | string    | 实际验车地点             |
-| operator               | operator  | 验车工作人员             |
-| certificate_state     | int       | 用户证件上传情况         |
-| problems               | [problem] | 车辆存在问题             |
-| photos                 | [photo]   | 照片                     |
+| name              | type      | note             |
+| ----              | ----      | ----             |
+| real_place        | string    | 实际验车地点     |
+| operator          | operator  | 验车工作人员     |
+| certificate_state | int       | 用户证件上传情况 |
+| problems          | [problem] | 车辆存在问题     |
+| photos            | [photo]   | 照片             |
 
 
 ##### example
@@ -186,10 +186,10 @@ rpc.call("underwrite", "fillUnderwrite", real_place, operator, certificate_state
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
@@ -202,10 +202,10 @@ See 成功返回数据：[example](../data/underwrite/fillUnderwrite.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| underwrite_result     | string    | 核保结果                 |
-| result_update_time   | ISO8601   | 核保结果最后修改时间     |
+| name               | type    | note                 |
+| ----               | ----    | ----                 |
+| underwrite_result  | string  | 核保结果             |
+| result_update_time | ISO8601 | 核保结果最后修改时间 |
 
 ##### example
 
@@ -224,15 +224,15 @@ rpc.call("underwrite", "submitUnderwriteResult", underwrite_result, result_updat
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name  | type     | note     |
+| ----  | ----     | ----     |
+| code  | int      | 结果编码 |
+| msg   | string   | 结果内容 |
 
-| code  | msg      | meaning |
-| ----  | ----     | ----    |
-| 200   | null     | 成功    |
-| other | 错误信息 | 失败    |
+| code  | msg      | meaning  |
+| ----  | ----     | ----     |
+| 200   | null     | 成功     |
+| other | 错误信息 | 失败     |
 
 See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
@@ -240,10 +240,10 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| validate_place        | string    | 预约验车地点             |
-| validate_update_time | ISO8601   | 预约验车地点最后修改时间 |
+| name                 | type    | note                     |
+| ----                 | ----    | ----                     |
+| validate_place       | string  | 预约验车地点             |
+| validate_update_time | ISO8601 | 预约验车地点最后修改时间 |
 
 ##### example
 
@@ -262,10 +262,10 @@ rpc.call("underwrite", "alterValidatePlace", validate_place, validate_update_tim
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
@@ -278,10 +278,10 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| underwrite_result     | string    | 核保结果                 |
-| result_update_time   | ISO8601   | 核保结果最后修改时间     |
+| name               | type    | note                 |
+| ----               | ----    | ----                 |
+| underwrite_result  | string  | 核保结果             |
+| result_update_time | ISO8601 | 核保结果最后修改时间 |
 
 ##### example
 
@@ -300,10 +300,10 @@ rpc.call("underwrite", "alterUnderwriteResult", underwrite_result, result_update
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
@@ -316,10 +316,10 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| real_place            | string    | 实际验车地点             |
-| real_update_time     | ISO8601   | 实际验车地点最后修改时间 |
+| name             | type    | note                     |
+| ----             | ----    | ----                     |
+| real_place       | string  | 实际验车地点             |
+| real_update_time | ISO8601 | 实际验车地点最后修改时间 |
 
 ##### example
 
@@ -338,10 +338,10 @@ rpc.call("underwrite", "alterRealPlace", real_place, real_update_time)
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
@@ -354,10 +354,10 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| note                   | string    | 备注                     |
-| note_update_time     | ISO8601   | 备注最后修改时间          |
+| name             | type    | note             |
+| ----             | ----    | ----             |
+| note             | string  | 备注             |
+| note_update_time | ISO8601 | 备注最后修改时间 |
 
 ##### example
 
@@ -376,10 +376,10 @@ rpc.call("underwrite", "alterNote", note, note_update_time)
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
@@ -392,10 +392,10 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| uwid                   | uuid    | 核保id                     |
-| photo     | string   | 图片地址          |
+| name  | type   | note     |
+| ----  | ----   | ----     |
+| uwid  | uuid   | 核保id   |
+| photo | string | 图片地址 |
 
 ##### example
 
@@ -414,10 +414,10 @@ rpc.call("underwrite", "uploadPhotos", uwid, photo)
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
@@ -430,9 +430,9 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 #### request
 
-| name                   | type      | note                     |
-| ----                   | ----      | ----                     |
-| oid                   | string    | 订单编号                     |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| oid  | string | 订单编号 |
 
 ##### example
 
@@ -450,10 +450,10 @@ rpc.call("underwrite", "getUnderwriteByOrder", oid)
 
 #### response
 
-| name   | type   | note     |
-| ----   | ----   | ----     |
-| code   | int    | 结果编码  |
-| msg    | string | 结果内容  |
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
 
 | code  | msg      | meaning |
 | ----  | ----     | ----    |
