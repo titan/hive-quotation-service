@@ -9,6 +9,7 @@
   * 增加生成余额查询链接接口。
   * 增加生成子账户查询链接接口。
   * 增加生成交易状态查询链接接口。
+  * 增加生成充值对账链接接口。
 
 1. 2016-09-25
   * 增加缓存设计。
@@ -685,3 +686,69 @@ rpc.call("bank_payment", "generateQueryTransStatUrl", order_id, order_date, quer
 | 500  | 未知错误 |
 
 See [example](../data/bank-payment/generateQueryTransStatUrl.json)
+
+### 生成充值对账链接 generateSaveReconciliationUrl
+
+生成跳转到汇付天下的用户充值链接。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
+#### request
+
+| name       | type    | note              |
+| ----       | ----    | ----              |
+| begin-date | char(8) | 开始日期 YYYYMMDD |
+| end-date   | char(8) | 结束日期 YYYYMMDD |
+| page-num   | string  | 页数              |
+| page-size  | string  | 每页记录数        |
+| test       | boolean | 是否开启测试模式  |
+
+默认 test == false，开启测试模式后，返回汇付天下提供的测试链接。
+
+在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
+
+| name      | value              |
+| ----      | ----               |
+| Version   | 10                 |
+| CmdId     | SaveReconciliation |
+| MerCustId | 6000060004492053   |
+| ChkValue  | 签名               |
+
+```javascript
+let begin_date = "20161001";
+let end_date = "20161031";
+let page_num = "1";
+let page_size = "20";
+
+rpc.call("bank_payment", "generateSaveReconciliationUrl", begin_date, end_date, page_num, page_size)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+成功：
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 200      |
+| url  | string | 跳转链接 |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning |
+| ---- | ----     |
+| 500  | 未知错误 |
+
+See [example](../data/bank-payment/generateSaveReconciliationUrl.json)
