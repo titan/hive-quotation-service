@@ -38,6 +38,13 @@ let config: Config = {
 
 let processor = new Processor(config);
 
+// processor.call('testrpc', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+//   log.info('testrpc');
+//   rpc(args.domain, hostmap.default["plan"], args.uid, "getPlan", args.pid).then((plan) => {
+//     log.info("plan" + JSON.parse(plan));
+//   })
+// });
+
 interface InsertCtx {
   cache: RedisClient;
   db: PGClient;
@@ -231,10 +238,10 @@ processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneF
       done();
     }else{
       let now = new Date();
-      let quotation = {id:args.qid, vehicle:args.vid, state:args.state, created_at:now};
+      let quotation = {id:args.qid, vid:args.vid, state:args.state, created_at:now};
       let multi = cache.multi();
       multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
-      multi.sadd("quotations", args.qid);
+      multi.zadd("unquotated-quotations", now.getTime(), args.qid);
       multi.exec((err, replies) => {
         if (err) {
           log.error('createQuotation err' +err);
@@ -250,17 +257,23 @@ interface QuotationCtx {
   db: PGClient;
   cache: RedisClient;
   domain: string;
+  uid: string;
 }
 
 function fetch_quotation_items_recur(ctx: QuotationCtx, rows: Object[], acc: Object[], cb: ((items: Object[]) => void)): void {
   if (rows.length == 0) {
+    log.info("1111111111111111111111111111111111111")
     cb(acc);
   } else {
     let row = rows.shift();
+    log.info("222222222222222222222222")
     ctx.db.query('SELECT id, number, unit, created_at, updated_at FROM quotation_item_quotas WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err: Error, result: ResultSet) => {
+      log.info("33333333333333333333")
       if (err) {
+        log.info("444444444444444444444444444444")
         fetch_quotation_items_recur(ctx, rows, acc, cb);
       } else {
+        log.info("55555555555555555555555555555555555555555")
         let quotas = [];
         for (let r of result.rows) {
           quotas.push({
@@ -271,8 +284,10 @@ function fetch_quotation_items_recur(ctx: QuotationCtx, rows: Object[], acc: Obj
             updated_at: r.updated_at
           });
         }
+        log.info("66666666666666666666666666666666666666666666")
         ctx.db.query('SELECT id, price, real_price, created_at, updated_at FROM quotation_item_prices WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err1: Error, result1: ResultSet) => {
           if (err1) {
+            log.info("7777777777777777777777777777777777777777")
             let item = {
               id: row["id"],
               is_must_have: row["is_must_have"],
@@ -283,6 +298,7 @@ function fetch_quotation_items_recur(ctx: QuotationCtx, rows: Object[], acc: Obj
             acc.push(item);
             fetch_quotation_items_recur(ctx, rows, acc, cb);
           } else {
+            log.info("88888888888888888888888888888")
             let prices = [];
             for (let r1 of result1.rows) {
               prices.push({
@@ -293,6 +309,7 @@ function fetch_quotation_items_recur(ctx: QuotationCtx, rows: Object[], acc: Obj
                 updated_at: r1.updated_at
               });
             }
+            log.info("item------------------" + row["id"]);
             let item = {
               id: row["id"],
               is_must_have: row["is_must_have"],
@@ -315,9 +332,10 @@ function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Ob
     cb(acc);
   } else {
     let row = rows.shift();
-      log.info("plan id is ---------" + row["pid"]);
-    let p = rpc(ctx.domain, hostmap.default["plan"], null, "getPlan", row["pid"]);
-    p.then((plan) => {
+    //   log.info("plan id is ---------" + row["pid"]);
+    //   log.info("ctx.domain" + ctx.domain);
+    // let p = rpc(ctx.domain, hostmap.default["plan"], ctx.uid, "getPlan", row["pid"]);
+    // p.then((plan) => {
       ctx.db.query('SELECT id, piid, is_must_have, created_at, updated_at FROM quotation_items WHERE qgid = $1', [row["id"]], (err: Error, result: ResultSet) => {
         if (err) {
           fetch_quotation_groups_recur(ctx, rows, acc, cb);
@@ -328,7 +346,7 @@ function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Ob
               is_must_have: row["is_must_have"],
               created_at: row["created_at"],
               updated_at: row["updated_at"],
-              plan: plan,
+              pid: row["pid"],
               items: items
             };
             acc.push(group);
@@ -336,7 +354,7 @@ function fetch_quotation_groups_recur(ctx: QuotationCtx, rows: Object[], acc: Ob
           });
         }
       });
-    });
+    // });
   }
 }
 
@@ -367,7 +385,9 @@ function fetch_quotations_recur(ctx: QuotationCtx, rows: Object[], acc: Object[]
   }
 }
 
-processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string) => {
+
+
+processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string, uid: string) => {
   log.info('refresh');
 
   db.query('SELECT id, state, vid, created_at, updated_at FROM quotations', [], (err: Error, result: ResultSet) => {
@@ -376,7 +396,7 @@ processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction,
       done();
       return;
     } else {
-      let ctx: QuotationCtx = { db, cache, domain };
+      let ctx: QuotationCtx = {db, cache, domain, uid};
       fetch_quotations_recur(ctx, result.rows, [], (quotations) => {
         let multi = cache.multi();
         for(let quotation of quotations) {
@@ -466,7 +486,7 @@ processor.call('addQuotationGroup', (db: PGClient, cache: RedisClient, done: Don
       let plan = "";
       let multi = cache.multi();
       let quotations_entities = multi.hget("quotations-entities", args.qid);
-      let p = rpc(args.domain,  hostmap.default["plan"], args.uid, 'getPlans', args.pid, 0, -1);
+      let p = rpc(args.domain,  hostmap.default["plan"], args.uid, 'getPlan', args.pid);
       p.then((plan) => {
         quotations_entities["quotation_groups"].push({id:args.gid, plan:plan, is_must_have:args.is_must_have, items:[]})
         multi.exec((err, replies) => {

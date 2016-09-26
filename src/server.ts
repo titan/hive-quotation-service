@@ -44,6 +44,12 @@ let svc = new Server(config);
 let permissions: Permission[] = [['mobile', true], ['admin', true]];
 
 
+// svc.call('testrpc', permissions, (ctx: Context, rep: ResponseFunction) => {
+//   log.info('testrpc:' + ctx);
+//   ctx.msgqueue.send(msgpack.encode({cmd: "testrpc", args: [ctx.domain, ctx.uid]}));
+//   rep({status: 'okay'});
+// });
+
 //改变报价状态
 svc.call('changeQuotationState', permissions, (ctx: Context, rep: ResponseFunction, qid:string, state:number) => {
 
@@ -76,7 +82,7 @@ svc.call('createQuotation', permissions, (ctx: Context, rep: ResponseFunction, v
 //获取已报价
 svc.call('getQuotatedQuotations', permissions, (ctx: Context, rep: ResponseFunction, start:number, limit:number) => {
   log.info('getQuotatedQuotations');
-  redis.zrange(quotated_key, start, limit, function (err, result) {
+  redis.zrevrange(quotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
     } else {
@@ -97,7 +103,7 @@ svc.call('getQuotatedQuotations', permissions, (ctx: Context, rep: ResponseFunct
 //获取未报价
 svc.call('getUnQuotatedQuotations', permissions, (ctx: Context, rep: ResponseFunction, start:number, limit:number) => {
   log.info('getUnQuotatedQuotations' );
-  redis.zrange(unquotated_key, start, limit, function (err, result) {
+  redis.zrevrange(unquotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
     } else {
@@ -179,7 +185,11 @@ svc.call('getTicketInfo', permissions, (ctx: Context, rep: ResponseFunction, oid
 //refresh
 svc.call('refresh', permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info('refresh uid: %s', ctx.uid);
-  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: [ctx.domain]}));
+  let pid = '00000000-0000-0000-0000-000000000001';
+  let domain = ctx.domain;
+  let uid = ctx.uid;
+  let args = {pid, domain, uid}
+  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: args}));
   rep({status: 'refresh okay'});
 });
 
