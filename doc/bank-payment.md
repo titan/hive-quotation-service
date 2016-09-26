@@ -489,3 +489,63 @@ rpc.call("bank_payment", "generateAutoTenderUrl", customer_id, order_id, order_d
 | 500  | 未知错误 |
 
 See [example](../data/bank-payment/generateAutoTenderUrl.json)
+
+### 生成余额查询链接(后台) generateQueryBalanceBgUrl
+
+生成跳转到汇付天下的余额查询链接。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
+#### request
+
+| name        | type     | note                  |
+| ----        | ----     | ----                  |
+| customer-id | char(16) | 汇付天下生成的用户 ID |
+| test        | boolean  | 是否开启测试模式      |
+
+默认 test == false，开启测试模式后，返回汇付天下提供的测试链接。
+
+在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
+
+| name      | value            |
+| ----      | ----             |
+| Version   | 10               |
+| CmdId     | QueryBalanceBg   |
+| MerCustId | 6000060004492053 |
+| ChkValue  | 签名             |
+
+```javascript
+let customer_id = "0000000000000000";
+
+rpc.call("bank_payment", "generateQueryBalanceBgUrl", customer_id)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+成功：
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 200      |
+| url  | string | 跳转链接 |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning |
+| ---- | ----     |
+| 500  | 未知错误 |
+
+See [example](../data/bank-payment/generateQueryBalanceBgUrl.json)
