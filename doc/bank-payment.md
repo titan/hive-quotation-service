@@ -4,6 +4,7 @@
 
 1. 2016-09-26
   * 增加生成绑卡链接接口。
+  * 增加生成登录链接接口。
 
 1. 2016-09-25
   * 增加缓存设计。
@@ -244,7 +245,7 @@ See [example](../data/bank-payment/getCustomerId.json)
 
 ### 生成绑卡链接 generateUserBindCardUrl
 
-生成跳转到汇付天下的用户开户链接。
+生成跳转到汇付天下的用户绑卡链接。
 
 | domain | accessable |
 | ----   | ----       |
@@ -265,7 +266,7 @@ See [example](../data/bank-payment/getCustomerId.json)
 | name      | value            |
 | ----      | ----             |
 | Version   | 10               |
-| CmdId     | UserRegister     |
+| CmdId     | UserBindCard     |
 | MerCustId | 6000060004492053 |
 | BgRetUrl  | 见下面           |
 | PageType  | 2                |
@@ -312,3 +313,64 @@ rpc.call("bank_payment", "generateUserBindCardUrl", customer_id)
 | 500  | 未知错误 |
 
 See [example](../data/bank-payment/generateUserBindCardUrl.json)
+
+### 生成用户登录链接 generateUserLoginUrl
+
+生成跳转到汇付天下的用户登录链接。
+
+| domain | accessable |
+| ----   | ----       |
+| admin  | ✓          |
+| mobile | ✓          |
+
+#### request
+
+| name        | type     | note                  |
+| ----        | ----     | ----                  |
+| customer-id | char(16) | 汇付天下生成的用户 ID |
+| test        | boolean  | 是否开启测试模式      |
+
+默认 test == false，开启测试模式后，返回汇付天下提供的测试链接。
+
+在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
+
+| name      | value            |
+| ----      | ----             |
+| Version   | 10               |
+| CmdId     | UserLogin        |
+| MerCustId | 6000060004492053 |
+| PageType  | 2                |
+| ChkValue  | 签名             |
+
+```javascript
+let customer_id = "0000000000000000";
+
+rpc.call("bank_payment", "generateUserLoginUrl", customer_id)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+```
+
+#### response
+
+成功：
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 200      |
+| url  | string | 跳转链接 |
+
+失败：
+
+| name | type   | note |
+| ---- | ----   | ---- |
+| code | int    |      |
+| msg  | string |      |
+
+| code | meanning |
+| ---- | ----     |
+| 500  | 未知错误 |
+
+See [example](../data/bank-payment/generateUserLoginUrl.json)
