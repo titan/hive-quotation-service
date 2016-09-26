@@ -70,11 +70,6 @@
 | data        | json | JSON 格式的事件数据 |
 | occurred-at | date | 事件发生时间        |
 
-### order states
-
-[![订单状态转换图](../img/order-states.svg)](订单状态转换图)
-[![订单状态转换图](../img/order-states.png)](订单状态转换图)
-
 ### underwrite
 
 | name                   | type      | note                     |
@@ -108,6 +103,11 @@
 | ----        | ----   | ----             |
 | type        | string | 车辆存在问题类型 |
 | description | string | 车辆存在问题描述 |
+
+### order states
+
+[![订单状态转换图](../img/order-states.svg)](订单状态转换图)
+[![订单状态转换图](../img/order-states.png)](订单状态转换图)
 
 ## 数据库结构
 
