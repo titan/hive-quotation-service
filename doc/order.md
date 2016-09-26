@@ -541,6 +541,7 @@ See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
 
 | name              | type      | note             |
 | ----              | ----      | ----             |
+| uwid              | uuid      | 核保编号         |
 | real_place        | string    | 实际验车地点     |
 | operator          | operator  | 验车工作人员     |
 | certificate_state | int       | 用户证件上传情况 |
@@ -595,6 +596,7 @@ See 成功返回数据：[example](../data/underwrite/fillUnderwrite.json)
 
 | name               | type    | note                 |
 | ----               | ----    | ----                 |
+| uwid               | uuid      | 核保编号         |
 | underwrite_result  | string  | 核保结果             |
 | result_update_time | ISO8601 | 核保结果最后修改时间 |
 
@@ -633,6 +635,7 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 | name                 | type    | note                     |
 | ----                 | ----    | ----                     |
+| uwid                 | uuid      | 核保编号         |
 | validate_place       | string  | 预约验车地点             |
 | validate_update_time | ISO8601 | 预约验车地点最后修改时间 |
 
@@ -671,6 +674,7 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 | name               | type    | note                 |
 | ----               | ----    | ----                 |
+| uwid               | uuid      | 核保编号         | 
 | underwrite_result  | string  | 核保结果             |
 | result_update_time | ISO8601 | 核保结果最后修改时间 |
 
@@ -709,6 +713,7 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 | name             | type    | note                     |
 | ----             | ----    | ----                     |
+| uwid             | uuid      | 核保编号         |
 | real_place       | string  | 实际验车地点             |
 | real_update_time | ISO8601 | 实际验车地点最后修改时间 |
 
@@ -747,6 +752,7 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 | name             | type    | note             |
 | ----             | ----    | ----             |
+| uwid             | uuid      | 核保编号         |
 | note             | string  | 备注             |
 | note_update_time | ISO8601 | 备注最后修改时间 |
 
