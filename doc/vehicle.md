@@ -419,13 +419,14 @@ rpc.call("vehicle", "getVehicleInfo"， vid)
 
 See [example](../data/vehicle/getVehicleInfos.json)
 
-### 获取驾驶人信息 getDriverPids
+### 获取驾驶人信息 getDriverInfos
 ### 注：前端禁用
 
 ```javascript
 var vid = "00000000-0000-0000-0000-000000000000";
+var pid = "00000000-0000-0000-0000-000000000000";
 
-rpc.call("vehicle", "getDriverPids", vid)
+rpc.call("vehicle", "getDriverInfos", vid, pid)
   .then(function (result) {
 
   }, function (error) {
@@ -455,3 +456,37 @@ rpc.call("vehicle", "uploadDriverImages", vid, driving_frontal_view, driving_rea
 
   });
 ```
+
+### 查看用户上传证件情况  uploadStatus
+
+#### request
+
+| name                   | type      | note                     |
+| ----                   | ----      | ----                     |
+| vid                    | uuid      | 订单id                   |
+
+##### example
+
+```javascript
+
+rpc.call("vehicle", "uploadStatus", vid)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码  |
+| msg    | string | 结果内容  |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/vehicle/uploadStatus.json)
