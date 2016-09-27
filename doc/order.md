@@ -800,7 +800,7 @@ rpc.call("underwrite", "uploadPhotos", uwid, photo)
 
 See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
-### 根据订单号得到核保信息 getUnderwriteByOrder
+### 根据订单编号得到核保信息 getUnderwriteByOrderNumber
 
 #### request
 
@@ -814,7 +814,7 @@ See 成功返回数据：[example](../data/underwrite/sucessful.json)
 
 var oid = "";
 
-rpc.call("underwrite", "getUnderwriteByOrder", oid)
+rpc.call("underwrite", "getUnderwriteByOrderNumber", oid)
   .then(function (result) {
 
   }, function (error) {
@@ -836,3 +836,38 @@ rpc.call("underwrite", "getUnderwriteByOrder", oid)
 
 See 成功返回数据：[example](../data/underwrite/getUnderwriteByOrder.json)
 
+### 根据订单号得到核保信息 getUnderwriteByOrderId
+
+#### request
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| order_id  | string | 订单号 |
+
+##### example
+
+```javascript
+
+var oid = "";
+
+rpc.call("underwrite", "getUnderwriteByOrder", order_id)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/getUnderwriteByOrderId.json)
