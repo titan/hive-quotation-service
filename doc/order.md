@@ -530,7 +530,7 @@ See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
 | real_place        | string    | 实际验车地点     |
 | operator          | operator  | 验车工作人员     |
 | certificate_state | int       | 用户证件上传情况 |
-| problem_type      | string    | 车辆存在问题类型  |
+| problem_type      | [string]    | 车辆存在问题类型  |
 | problem_description | string    | 车辆存在问题描述  |
 | photos            | [photo]   | 照片             |
 
@@ -542,8 +542,16 @@ See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
 var real_place = "北京市东城区东直门东方银座";
 var operator = "张三";
 var certificate_state = 1;
-var problem_type = "剐蹭";
+var problem_type = ["剐蹭","调漆"];
 var problem_description = "追尾。。。。";
+var photos =[
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg"
+]
 
 rpc.call("underwrite", "fillUnderwrite", real_place, operator, certificate_state, problem_type, problem_description, photos)
   .then(function (result) {
@@ -850,7 +858,7 @@ See 成功返回数据：[example](../data/underwrite/getUnderwriteByOrder.json)
 
 var oid = "";
 
-rpc.call("underwrite", "getUnderwriteByOrder", order_id)
+rpc.call("underwrite", "getUnderwriteByOrderId", order_id)
   .then(function (result) {
 
   }, function (error) {
@@ -871,3 +879,40 @@ rpc.call("underwrite", "getUnderwriteByOrder", order_id)
 | other | 错误信息 | 失败    |
 
 See 成功返回数据：[example](../data/underwrite/getUnderwriteByOrderId.json)
+
+
+### 根据核保ID得到核保信息 getUnderwriteByUWId
+
+#### request
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| uwid  | string | 核保号 |
+
+##### example
+
+```javascript
+
+var oid = "";
+
+rpc.call("underwrite", "getUnderwriteByUWId", uwid)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/getUnderwriteByUWId.json)
