@@ -2,10 +2,10 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [bank-payment 模块](#bank-payment-%E6%A8%A1%E5%9D%97)
-  - [修改记录](#%E4%BF%AE%E6%94%B9%E8%AE%B0%E5%BD%95)
-  - [缓存结构](#%E7%BC%93%E5%AD%98%E7%BB%93%E6%9E%84)
-  - [接口](#%E6%8E%A5%E5%8F%A3)
+- [bank-payment](#bank-payment)
+  - [ChangeLog](#changelog)
+  - [Cache](#cache)
+  - [API](#api)
     - [生成开户链接 generateUserRegisterUrl](#%E7%94%9F%E6%88%90%E5%BC%80%E6%88%B7%E9%93%BE%E6%8E%A5-generateuserregisterurl)
       - [request](#request)
       - [response](#response)
@@ -39,9 +39,9 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# bank-payment 模块
+# bank-payment
 
-## 修改记录
+## ChangeLog
 
 1. 2016-09-28
   * 增加生成自动投标链接接口。
@@ -63,7 +63,7 @@
 1. 2016-09-24
   * 增加 getCustomerId 接口。
 
-## 缓存结构
+## Cache
 
 | key            | type | value            | note                        |
 | ----           | ---- | ----             | ----                        |
@@ -71,7 +71,7 @@
 
 注意：openid 只有 25 个字节长。
 
-## 接口
+## API
 
 ### 生成开户链接 generateUserRegisterUrl
 
