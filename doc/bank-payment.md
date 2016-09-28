@@ -1,6 +1,51 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [bank-payment 模块](#bank-payment-%E6%A8%A1%E5%9D%97)
+  - [修改记录](#%E4%BF%AE%E6%94%B9%E8%AE%B0%E5%BD%95)
+  - [缓存结构](#%E7%BC%93%E5%AD%98%E7%BB%93%E6%9E%84)
+  - [接口](#%E6%8E%A5%E5%8F%A3)
+    - [生成开户链接 generateUserRegisterUrl](#%E7%94%9F%E6%88%90%E5%BC%80%E6%88%B7%E9%93%BE%E6%8E%A5-generateuserregisterurl)
+      - [request](#request)
+      - [response](#response)
+    - [生成充值链接 generateNetSaveUrl](#%E7%94%9F%E6%88%90%E5%85%85%E5%80%BC%E9%93%BE%E6%8E%A5-generatenetsaveurl)
+      - [request](#request-1)
+      - [response](#response-1)
+    - [获得银行帐号 ID getCustomerId](#%E8%8E%B7%E5%BE%97%E9%93%B6%E8%A1%8C%E5%B8%90%E5%8F%B7-id-getcustomerid)
+      - [request](#request-2)
+      - [response](#response-2)
+    - [生成绑卡链接 generateUserBindCardUrl](#%E7%94%9F%E6%88%90%E7%BB%91%E5%8D%A1%E9%93%BE%E6%8E%A5-generateuserbindcardurl)
+      - [request](#request-3)
+      - [response](#response-3)
+    - [生成用户登录链接 generateUserLoginUrl](#%E7%94%9F%E6%88%90%E7%94%A8%E6%88%B7%E7%99%BB%E5%BD%95%E9%93%BE%E6%8E%A5-generateuserloginurl)
+      - [request](#request-4)
+      - [response](#response-4)
+    - [生成自动投标计划链接 generateAutoTenderPlanUrl](#%E7%94%9F%E6%88%90%E8%87%AA%E5%8A%A8%E6%8A%95%E6%A0%87%E8%AE%A1%E5%88%92%E9%93%BE%E6%8E%A5-generateautotenderplanurl)
+      - [request](#request-5)
+      - [response](#response-5)
+    - [生成余额查询链接(后台) generateQueryBalanceBgUrl](#%E7%94%9F%E6%88%90%E4%BD%99%E9%A2%9D%E6%9F%A5%E8%AF%A2%E9%93%BE%E6%8E%A5%E5%90%8E%E5%8F%B0-generatequerybalancebgurl)
+      - [request](#request-6)
+      - [response](#response-6)
+    - [生成子账户查询链接(后台) generateQueryAcctsUrl](#%E7%94%9F%E6%88%90%E5%AD%90%E8%B4%A6%E6%88%B7%E6%9F%A5%E8%AF%A2%E9%93%BE%E6%8E%A5%E5%90%8E%E5%8F%B0-generatequeryacctsurl)
+      - [request](#request-7)
+      - [response](#response-7)
+    - [生成交易状态查询链接 generateQueryTransStatUrl](#%E7%94%9F%E6%88%90%E4%BA%A4%E6%98%93%E7%8A%B6%E6%80%81%E6%9F%A5%E8%AF%A2%E9%93%BE%E6%8E%A5-generatequerytransstaturl)
+      - [request](#request-8)
+      - [response](#response-8)
+    - [生成充值对账链接 generateSaveReconciliationUrl](#%E7%94%9F%E6%88%90%E5%85%85%E5%80%BC%E5%AF%B9%E8%B4%A6%E9%93%BE%E6%8E%A5-generatesavereconciliationurl)
+      - [request](#request-9)
+      - [response](#response-9)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # bank-payment 模块
 
 ## 修改记录
+
+1. 2016-09-28
+  * 增加生成自动投标链接接口。
+  * 删除生成自动投标链接接口。
 
 1. 2016-09-26
   * 增加生成绑卡链接接口。
@@ -380,7 +425,7 @@ rpc.call("bank_payment", "generateUserLoginUrl", customer_id)
 
 See [example](../data/bank-payment/generateUserLoginUrl.json)
 
-### 生成自动投标链接 generateAutoTenderUrl
+### 生成自动投标计划链接 generateAutoTenderPlanUrl
 
 生成跳转到汇付天下的自动投标链接。
 
@@ -394,77 +439,35 @@ See [example](../data/bank-payment/generateUserLoginUrl.json)
 | name            | type     | note                    |
 | ----            | ----     | ----                    |
 | customer-id     | char(16) | 汇付天下生成的用户 ID   |
-| order-id        | char(30) | 订单编号                |
-| order-date      | char(8)  | 订单日期 YYYYMMDD       |
-| trans-amount    | char(14) | 交易金额 ###.##         |
-| max-tender-rate | char(6)  | 最大投资手续费率 ###.## |
-| borrowers       | json     | 多个借款人信息          |
 | test            | boolean  | 是否开启测试模式        |
-
-其中，borrowers 是如下 JSON 对象的数组：
-
-| name           | type     | note                |
-| ----           | ----     | ----                |
-| BorrowerCustId | char(16) | 借款人客户号        |
-| BorrowerAmt    | char(12) | 借款金额 ###.##     |
-| BorrowerRate   | char(6)  | 借款手续费率 ###.## |
-| ProId          | char(16) | 项目 ID             |
-
-生成链接时，borrowers 需要用 encodeURI 函数进行编码。
 
 默认 test == false，开启测试模式后，返回汇付天下提供的测试链接。
 
 在生成链接时，如下汇付天下接口参数不用调用者提供，但是在生成的 URL 必须出现：
 
-| name      | value            |
-| ----      | ----             |
-| Version   | 10               |
-| CmdId     | AutoTender       |
-| MerCustId | 6000060004492053 |
-| BgRetUrl  | 见下面           |
-| RetUrl    | 见下面           |
-| IsFreeze  | 'N'              |
-| PageType  | 2                |
-| ChkValue  | 签名             |
-
-BgRetUrl:
-
-| 场景 | 内容                                         |
-| ---- | ----                                         |
-| 正式 | http://m.fengchaohuzhu.com/bank/autotender   |
-| 测试 | http://dev.fengchaohuzhu.com/bank/autotender |
+| name           | value            |
+| ----           | ----             |
+| Version        | 10               |
+| CmdId          | AutoTenderPlan   |
+| MerCustId      | 6000060004492053 |
+| TenderPlanType | 'W'              |
+| RetUrl         | 见下面           |
+| PageType       | 2                |
+| ChkValue       | 签名             |
 
 RetUrl:
 
-| 场景 | 内容                                              |
-| ---- | ----                                              |
-| 正式 | http://m.fengchaohuzhu.com/bank/AutoTenderCallback   |
-| 测试 | http://dev.fengchaohuzhu.com/bank/AutoTenderCallback |
+| 场景 | 内容                                                     |
+| ---- | ----                                                     |
+| 正式 | http://m.fengchaohuzhu.com/bank/AutoTenderPlanCallback   |
+| 测试 | http://dev.fengchaohuzhu.com/bank/AutoTenderPlanCallback |
 
 url 作为参数传递时，需要调用 encodeURIComponent 进行编码。
 
 ```javascript
 let customer_id = "0000000000000000";
-let order_id = "000000000000000000000000000000";
-let order_date = "20161001";
-let trans_amount = "100.00";
-let max_tender_rate = "0.00";
-let borrowers = [
-  {
-    BorrowerCustId: "0000000000000001",
-    BorrowerAmt: "0.00",
-    BorrowerRate: "0.00",
-    ProId: "0000000000000001"
-  },
-  {
-    BorrowerCustId: "0000000000000002",
-    BorrowerAmt: "0.00",
-    BorrowerRate: "0.00",
-    ProId: "0000000000000002"
-  }
-];
 
-rpc.call("bank_payment", "generateAutoTenderUrl", customer_id, order_id, order_date, trans_amount, max_tender_rate, borrowers)
+rpc.call("bank_payment", "generateAutoTenderPlanUrl", customer_id)
   .then(function (result) {
 
   }, function (error) {
@@ -492,7 +495,7 @@ rpc.call("bank_payment", "generateAutoTenderUrl", customer_id, order_id, order_d
 | ---- | ----     |
 | 500  | 未知错误 |
 
-See [example](../data/bank-payment/generateAutoTenderUrl.json)
+See [example](../data/bank-payment/generateAutoTenderPlanUrl.json)
 
 ### 生成余额查询链接(后台) generateQueryBalanceBgUrl
 
