@@ -463,13 +463,13 @@ rpc.call("vehicle", "uploadDriverImages", vid, driving_frontal_view, driving_rea
 
 | name                   | type      | note                     |
 | ----                   | ----      | ----                     |
-| vid                    | uuid      | 订单id                   |
+| order_id                    | uuid      | 订单id                   |
 
 ##### example
 
 ```javascript
 
-rpc.call("vehicle", "uploadStatus", vid)
+rpc.call("vehicle", "uploadStatus", order_id)
   .then(function (result) {
 
   }, function (error) {

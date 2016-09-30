@@ -53,7 +53,7 @@
 
 | name    | type   | note    |
 | ----    | ----   | ----    |
-|operator\_id|uuid|操作员id|
+|opid|uuid|操作员id|
 
 ##### example
 
@@ -162,6 +162,6 @@ rpc.call("operator", "addOperatorInfo", oname, password, name, gender, phone, em
 | 200   | null     | 成功    |
 | other | 错误信息 | 失败    |
 
-See 成功返回数据: [example](../data/profile/sucessful.json)
+See 成功返回数据: [example](../data/operator/sucessful.json)
 
 
