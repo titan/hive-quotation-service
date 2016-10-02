@@ -40,6 +40,7 @@
 
 1. 2016-10-02
   * 增加获取当前用户所在互助组函数。
+  * 增加 vid-gid 缓存。
 
 1. 2016-09-24
   * group 加入分摊比例。
@@ -166,6 +167,7 @@ user 是收到申请的互助组成员。
 | key                    | type  | value                  | note             |
 | ----                   | ----  | ----                   | ----             |
 | group-entities         | hash  | Group ID => Group JSON | 所有互助组实体   |
+| vid-gid                | hash  | vid => gid             |                  |
 | global-balance-percent | float |                        | 剩余余额百分比   |
 | global-days-percent    | float |                        | 剩余互助期百分比 |
 
