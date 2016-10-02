@@ -8,6 +8,7 @@ TMPPROCESSOR=$(DISTDIR)/processor.js
 NPM=npm
 
 all: $(SERVER) $(PROCESSOR)
+	rm $(DISTDIR)/quotation-definations.js
 
 $(TMPSERVER) $(TMPPROCESSOR): $(SRCDIR)/server.ts $(SRCDIR)/processor.ts
 	tsc || rm $(TMPSERVER) $(TMPPROCESSOR)
