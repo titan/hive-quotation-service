@@ -528,10 +528,11 @@ See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
 | ----              | ----      | ----             |
 | uwid              | uuid      | 核保编号         |
 | real_place        | string    | 实际验车地点     |
-| operator          | operator  | 验车工作人员     |
+| opid              | uuid      | 操作员id        |
 | certificate_state | int       | 用户证件上传情况 |
 | problem_type      | [string]    | 车辆存在问题类型  |
 | problem_description | string    | 车辆存在问题描述  |
+| note              | string      |  备注           |
 | photos            | [photo]   | 照片             |
 
 
@@ -540,7 +541,7 @@ See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
 ```javascript
 
 var real_place = "北京市东城区东直门东方银座";
-var operator = "张三";
+var opid = "01994420-87b9-11e6-a929-134811bad5bf";
 var certificate_state = 1;
 var problem_type = ["剐蹭","调漆"];
 var problem_description = "追尾。。。。";
@@ -553,7 +554,7 @@ var photos =[
   "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg"
 ]
 
-rpc.call("underwrite", "fillUnderwrite", real_place, operator, certificate_state, problem_type, problem_description, photos)
+rpc.call("underwrite", "fillUnderwrite", real_place, opid, certificate_state, problem_type, problem_description, photos)
   .then(function (result) {
 
   }, function (error) {
