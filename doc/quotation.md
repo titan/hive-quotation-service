@@ -301,7 +301,7 @@ See [example](../data/quotation/deleteQuotationItem.json)
 | name   | type    | note        |
 | ----   | ----    | ----        |
 | qiid   | uuid    | 报价条目 ID |
-| number | float   | 数量        |
+| num    | float   | 数量        |
 | unit   | string  | 单位        |
 | sorted | integer | 排序顺序    |
 

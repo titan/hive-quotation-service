@@ -70,6 +70,35 @@
 | data        | json | JSON 格式的事件数据 |
 | occurred-at | date | 事件发生时间        |
 
+### underwrite
+
+| name                   | type      | note                     |
+| ---------------------  | --------  | --------------           |
+| order                  | order     | 订单                     |
+| quotation              | quotation | 报价                     |
+| operator               | operator  | 验车工作人员             |
+| plan\_time             | ISO8601   | 计划核保时间             |
+| real\_time             | ISO8601   | 实际核保完成时间         |
+| validate\_place        | string    | 预约验车地点             |
+| validate\_update\_time | ISO8601   | 预约验车地点最后修改时间 |
+| real\_place            | string    | 实际验车地点             |
+| real\_update\_time     | ISO8601   | 实际验车地点最后修改时间 |
+| certificate\_state     | int       | 用户证件上传情况         |
+| problem\_type          | string    | 车辆存在问题类型         |
+| problem\_description   | string    | 车辆存在问题描述         |
+| note                   | string    | 备注                     |
+| note\_update\_time     | ISO8601   | 备注最后修改时间         |
+| photos                 | [photo]   | 照片                     |
+| underwrite\_result     | string    | 核保结果                 |
+| result\_update\_time   | ISO8601   | 核保结果最后修改时间     |
+
+### photo
+
+| name         | type      | note         |
+| ----         | ----      | ----         |
+| photo        | string    | 照片         |
+
+
 ### order states
 
 [![订单状态转换图](../img/order-states.svg)](订单状态转换图)
@@ -97,7 +126,7 @@
 
 | field          | type      | null | default | index   | reference  |
 | ----           | ----      | ---- | ----    | ----    | ----       |
-| id             | uuid      |      |         | primary |            |
+| id             | serial    |      |         | primary |            |
 | oid            | uuid      |      |         |         | orders     |
 | pid            | uuid      |      |         |         | plans      |
 | qid            | uuid      |      |         |         | quotations |
@@ -150,6 +179,47 @@
 | data         | json      |      |         |         |           |
 | occurred\_at | timestamp |      | now     |         |           |
 
+### underwrite
+
+| field                  | type      | null | default | index   | reference |
+| ----                   | ----      | ---- | ----    | ----    | ----      |
+| id                     | uuid      |      |         | primary |           |
+| oid                    | uuid      |      |         |         | orders    |
+| opid                   | uuid      | ✓    |         |         | operators |
+| plan\_time             | timestamp |      |         |         |           |
+| real\_time             | timestamp | ✓    |         |         |           |
+| validate\_place        | char(256) |      |         |         |           |
+| validate\_update\_time | timestamp |      |         |         |           |
+| real\_place            | char(256) | ✓    |         |         |           |
+| real\_update\_time     | timestamp | ✓    |         |         |           |
+| certificate\_state     | int       | ✓    |         |         |           |
+| problem\_type          | char(64)  |      |         |         |           |
+| problem\_description   | text      |      |         |         |           |
+| note                   | text      | ✓    |         |         |           |
+| note\_update\_time     | timestamp | ✓    |         |         |           |
+| underwrite\_result     | char(10)  | ✓    |         |         |           |
+| result\_update\_time   | timestamp | ✓    |         |         |           |
+| created\_at            | timestamp |      | now     |         |           |
+| updated\_at            | timestamp |      | now     |         |           |
+| deleted                | boolean   |      | false   |         |           |
+
+| certificate\_state | meaning      |
+| ----               | ----         |
+| 0                  | 未上传证件   |
+| 1                  | 上传部分证件 |
+| 2                  | 证件全部上传 |
+
+### underwrite_photos
+
+| field                  | type       | null | default | index   | reference  |
+| ----                   | ----       | ---- | ----    | ----    | ----       |
+| id                     | uuid       |      |         | primary |            |
+| uwid                   | uuid       |      |         |         | underwrite |
+| photo                  | char(1024) |      |         |         |            |
+| created\_at            | timestamp  |      | now     |         |            |
+| updated\_at            | timestamp  |      | now     |         |            |
+| deleted                | boolean    |      | false   |         |            |
+
 ## 缓存结构
 
 ### driver-order
@@ -183,6 +253,24 @@
 | ----           | ---- | ----                | ----         |
 | order-entities | hash | 订单ID => 订单 JSON | 所有订单实体 |
 
+### order-driver-entities
+
+| key                    | type | value               | note             |
+| ----                   | ---- | ----                | ----             |
+| order-driver-entities  | hash | VID =>  驾驶人 JSON  | 所有车辆已生效驾驶人| 
+
+### underwrite
+
+| key           | type       | value                  | note     |
+| ----          | ----       | ----                   | ----     |
+| underwrite-id | sorted set | (核保更新时间, 核保ID) | 核保汇总 |
+
+### underwrite-entities
+
+| key            | type | value               | note         |
+| ----           | ---- | ----                | ----         |
+| underwrite-entities | hash | 核保ID => 核保 JSON | 所有核保实体 |
+
 ## 接口
 
 ### 下计划单 placeAnPlanOrder
@@ -194,11 +282,11 @@
 | vid           | uuid         | 车辆 ID      |
 | plans         | {pid: items} | 计划 ID 列表 |
 | qid           | uuid         | 报价 ID      |
-| pmid          | uuid         | 促销 ID      |
+| pm_price      | float        | 优惠价格      |
 | service-ratio | float        | 服务费率     |
 | summary       | float        | 总价         |
 | payment       | float        | 实付         |
-
+| v_value       | float        | 车辆实际价值  |
 其中, items 的结构为: `{piid: price}`。piid 是 plan-item 的 ID。
 
 ```javascript
@@ -214,10 +302,11 @@ let plans = {
     "00000000-0000-0000-0000-000000000003": 2000.00
   }
 };
-let pmid = null;
+let pm_price = 500;
 let service_ratio = 0;
 let summary = 6000;
 let payment = 6000;
+let v_value = 100000;
 let expect_at = "2016-08-01T00:00:00.000+800Z";
 
 rpc.call("order", "placeAnPlanOrder", vid, plans, qid, pmid, service_ratio, summary, payment, expect_at)
@@ -309,14 +398,36 @@ rpc.call("order", "placeAnSaleOrder", vid, qid, items, summary, payment)
 
 ```
 
+### 更新订单状态 updateOrderState
+
+#### request
+
+| name       | type          | note      |
+| ----       | ----          | ----      |
+| order_id   | uuid          | 订单 ID   |
+| state_code | int           |订单状态编码 |
+| state      | string        |订单状态    |
+
+```javascript
+let order_id = "00000000-0000-0000-0000-000000000000";
+let state_code = 2;
+let state = '已支付';
+
+rpc.call("order", "updateOrderState", order_id, state_code, state)
+  .then(function (result) {
+
+  }, function (error) {
+
+  });
+
+```
+
 #### response
 
 | name     | type   | note     |
 | ----     | ----   | ----     |
 | order-id | uuid   | Order ID |
-| order-no | string | Order No |
 
-See [example](../data/order/placeAnSaleOrder.json)
 
 ### 获取订单列表 getOrders
 
@@ -325,8 +436,8 @@ See [example](../data/order/placeAnSaleOrder.json)
 | name   | type | note           |
 | ----   | ---- | ----           |
 | uid    | uuid | User ID        |
-| offset | int  | 结果集起始地址 |
-| limit  | int  | 结果集大小     |
+| offset | int  | 结果集起始地址   | 
+| limit  | int  | 结果集大小      |
 
 #### response
 
@@ -340,9 +451,9 @@ See [example](../data/order/getOrders.json)
 
 #### request
 
-| name     | type | note     |
-| ----     | ---- | ----     |
-| oorder-id | uuid | Order ID |
+| name     | type | note      |
+| ----     | ---- | ----      |
+| order-id | uuid | Order ID |
 
 #### response
 
@@ -350,8 +461,458 @@ See [example](../data/order/getOrders.json)
 | ----  | ----  | ----       |
 | order | order | Order 详情 |
 
+### 获取驾驶人信息 getDriverOrders 
+
+#### request
+
+| name     | type | note      |
+| ----     | ---- | ----      |
+| vid      | uuid | vehicle ID  |
+
+#### response
+
+| name    | type   | note         |
+| ----    | ----   | ----         |
+| drivers | driver | 驾驶人详情详情 | 
+
+
 See [计划订单](../data/order/getPlanOrder.json)
 
 See [司机订单](../data/order/getDriverOrder.json)
 
 See [代售订单](../data/order/getSaleOrder.json)
+
+### 生成核保 createUnderwrite
+
+#### request
+
+| name                 | type      | note                     |
+| ----                 | ----      | ----                     |
+| oid                  | uuid      | 订单id                   |
+| plan_time            | timestamp | 计划核保时间             |
+| validate_place       | string    | 预约验车地点             |
+| validate_update_time | timestamp | 预约验车地点最后修改时间 |
+
+##### example
+
+```javascript
+
+rpc.call("underwrite", "createUnderwrite", oid, plan_time, validate_place, validate_update_time)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name   | type   | note     |
+| ----   | ----   | ----     |
+| code   | int    | 结果编码  |
+| msg    | string | 结果内容  |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/createUnderwrite.json)
+
+
+### 工作人员填充验车信息 fillUnderwrite
+
+#### request
+
+| name              | type      | note             |
+| ----              | ----      | ----             |
+| uwid              | uuid      | 核保编号         |
+| real_place        | string    | 实际验车地点     |
+| operator          | operator  | 验车工作人员     |
+| certificate_state | int       | 用户证件上传情况 |
+| problem_type      | [string]    | 车辆存在问题类型  |
+| problem_description | string    | 车辆存在问题描述  |
+| photos            | [photo]   | 照片             |
+
+
+##### example
+
+```javascript
+
+var real_place = "北京市东城区东直门东方银座";
+var operator = "张三";
+var certificate_state = 1;
+var problem_type = ["剐蹭","调漆"];
+var problem_description = "追尾。。。。";
+var photos =[
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg",
+  "http://pic.58pic.com/58pic/13/19/86/55m58PICf9t_1024.jpg"
+]
+
+rpc.call("underwrite", "fillUnderwrite", real_place, operator, certificate_state, problem_type, problem_description, photos)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/fillUnderwrite.json)
+
+### 提交审核结果 submitUnderwriteResult
+
+#### request
+
+| name               | type    | note                 |
+| ----               | ----    | ----                 |
+| uwid               | uuid    | 核保编号             |
+| underwrite_result  | string  | 核保结果             |
+| result_update_time | ISO8601 | 核保结果最后修改时间 |
+
+##### example
+
+```javascript
+
+var underwrite_result = "未通过";
+var result_update_time = "9999-12-31 23:59:59"
+
+rpc.call("underwrite", "submitUnderwriteResult", underwrite_result, result_update_time)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name  | type     | note     |
+| ----  | ----     | ----     |
+| code  | int      | 结果编码 |
+| msg   | string   | 结果内容 |
+
+| code  | msg      | meaning  |
+| ----  | ----     | ----     |
+| 200   | null     | 成功     |
+| other | 错误信息 | 失败     |
+
+See 成功返回数据：[example](../data/underwrite/sucessful.json)
+
+### 修改预约验车地点  alterValidatePlace
+
+#### request
+
+| name                 | type    | note                     |
+| ----                 | ----    | ----                     |
+| uwid                 | uuid    | 核保编号                 |
+| validate_place       | string  | 预约验车地点             |
+| validate_update_time | ISO8601 | 预约验车地点最后修改时间 |
+
+##### example
+
+```javascript
+
+var validate_place = "北京市东城区东直门东方银座";
+var validate_update_time = "9999-12-31 23:59:59"
+
+rpc.call("underwrite", "alterValidatePlace", validate_place, validate_update_time)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/sucessful.json)
+
+### 修改审核结果  alterUnderwriteResult
+
+#### request
+
+| name               | type    | note                 |
+| ----               | ----    | ----                 |
+| uwid               | uuid    | 核保编号             |
+| underwrite_result  | string  | 核保结果             |
+| result_update_time | ISO8601 | 核保结果最后修改时间 |
+
+##### example
+
+```javascript
+
+var underwrite_result = "通过";
+var validate_update_time = "9999-12-31 23:59:59"
+
+rpc.call("underwrite", "alterUnderwriteResult", underwrite_result, result_update_time)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/sucessful.json)
+
+### 修改实际验车地点 alterRealPlace
+
+#### request
+
+| name             | type    | note                     |
+| ----             | ----    | ----                     |
+| uwid             | uuid    | 核保编号                 |
+| real_place       | string  | 实际验车地点             |
+| real_update_time | ISO8601 | 实际验车地点最后修改时间 |
+
+##### example
+
+```javascript
+
+var real_place = "通过";
+var real_update_time = "9999-12-31 23:59:59"
+
+rpc.call("underwrite", "alterRealPlace", real_place, real_update_time)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/sucessful.json)
+
+### 修改备注 alterNote
+
+#### request
+
+| name             | type    | note             |
+| ----             | ----    | ----             |
+| uwid             | uuid    | 核保编号         |
+| note             | string  | 备注             |
+| note_update_time | ISO8601 | 备注最后修改时间 |
+
+##### example
+
+```javascript
+
+var note = "备注内容";
+var note_update_time = "9999-12-31 23:59:59"
+
+rpc.call("underwrite", "alterNote", note, note_update_time)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/sucessful.json)
+
+### 上传现场图片 uploadPhotos
+
+#### request
+
+| name  | type   | note     |
+| ----  | ----   | ----     |
+| uwid  | uuid   | 核保id   |
+| photo | string | 图片地址 |
+
+##### example
+
+```javascript
+
+var uwid = "0000000000-0000-0000-0000-000000000000";
+var photo = "http://www.baidu.com";
+
+rpc.call("underwrite", "uploadPhotos", uwid, photo)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/sucessful.json)
+
+### 根据订单编号得到核保信息 getUnderwriteByOrderNumber
+
+#### request
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| oid  | string | 订单编号 |
+
+##### example
+
+```javascript
+
+var oid = "";
+
+rpc.call("underwrite", "getUnderwriteByOrderNumber", oid)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/getUnderwriteByOrder.json)
+
+### 根据订单号得到核保信息 getUnderwriteByOrderId
+
+#### request
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| order_id  | string | 订单号 |
+
+##### example
+
+```javascript
+
+var oid = "";
+
+rpc.call("underwrite", "getUnderwriteByOrderId", order_id)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/getUnderwriteByOrderId.json)
+
+
+### 根据核保ID得到核保信息 getUnderwriteByUWId
+
+#### request
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| uwid  | string | 核保号 |
+
+##### example
+
+```javascript
+
+var oid = "";
+
+rpc.call("underwrite", "getUnderwriteByUWId", uwid)
+  .then(function (result) {
+
+  }, function (error) {
+        
+  });
+```
+
+#### response
+
+| name | type   | note     |
+| ---- | ----   | ----     |
+| code | int    | 结果编码 |
+| msg  | string | 结果内容 |
+
+| code  | msg      | meaning |
+| ----  | ----     | ----    |
+| 200   | null     | 成功    |
+| other | 错误信息 | 失败    |
+
+See 成功返回数据：[example](../data/underwrite/getUnderwriteByUWId.json)
