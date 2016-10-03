@@ -1,41 +1,46 @@
-import { Processor, Config, ModuleFunction, DoneFunction, rpc } from 'hive-processor';
-import { Client as PGClient, ResultSet } from 'pg';
-import { createClient, RedisClient} from 'redis';
-import { Quota, Price, Item, Group } from './quotation-definations';
-import * as bunyan from 'bunyan';
-import * as hostmap from './hostmap';
-import * as uuid from 'node-uuid';
+import { Processor, Config, ModuleFunction, DoneFunction, rpc, async_serial, async_serial_ignore } from "hive-processor";
+import { Client as PGClient, ResultSet } from "pg";
+import { createClient, RedisClient} from "redis";
+import { Quota, Price, Item, Group } from "./quotation-definations";
+import * as bunyan from "bunyan";
+import { servermap, triggermap } from "hive-hostmap";
+import * as uuid from "node-uuid";
+import * as msgpack from "msgpack-lite";
+import * as nanomsg from "nanomsg";
+import * as http from "http";
 
 let log = bunyan.createLogger({
-  name: 'quotation-processor',
+  name: "quotation-processor",
   streams: [
     {
-      level: 'info',
-      path: '/var/log/quotation-processor-info.log',  // log ERROR and above to a file
-      type: 'rotating-file',
-      period: '1d',   // daily rotation
+      level: "info",
+      path: "/var/log/quotation-processor-info.log",  // log ERROR and above to a file
+      type: "rotating-file",
+      period: "1d",   // daily rotation
       count: 7        // keep 7 back copies
     },
     {
-      level: 'error',
-      path: '/var/log/quotation-processor-error.log',  // log ERROR and above to a file
-      type: 'rotating-file',
-      period: '1w',   // daily rotation
+      level: "error",
+      path: "/var/log/quotation-processor-error.log",  // log ERROR and above to a file
+      type: "rotating-file",
+      period: "1w",   // daily rotation
       count: 3        // keep 7 back copies
     }
   ]
 });
 
 let config: Config = {
-  dbhost: process.env['DB_HOST'],
-  dbuser: process.env['DB_USER'],
-  dbport: process.env['DB_PORT'],
-  database: process.env['DB_NAME'],
-  dbpasswd: process.env['DB_PASSWORD'],
-  cachehost: process.env['CACHE_HOST'],
+  dbhost: process.env["DB_HOST"],
+  dbuser: process.env["DB_USER"],
+  dbport: process.env["DB_PORT"],
+  database: process.env["DB_NAME"],
+  dbpasswd: process.env["DB_PASSWORD"],
+  cachehost: process.env["CACHE_HOST"],
   addr: "ipc:///tmp/quotation.ipc"
 };
 
+let quotation_trigger = nanomsg.socket("pub");
+quotation_trigger.bind(triggermap.quotation);
 let processor = new Processor(config);
 
 interface InsertCtx {
@@ -44,33 +49,33 @@ interface InsertCtx {
   done: DoneFunction;
 };
 
-function insert_quotas_and_prices (ctx: InsertCtx, qiid: string, pairs: Object[], acc: Object[], cb) {
-  if (pairs.length == 0) {
+function insert_quotas_and_prices(ctx: InsertCtx, qiid: string, pairs: Object[], acc: Object[], cb) {
+  if (pairs.length === 0) {
     cb(acc);
   } else {
     let pair = pairs.shift();
     let quota = pair[0];
     let price = pair[1];
     let qqid = uuid.v1();
-    ctx.db.query('INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)', [qqid, qiid, quota.num, quota.unit], (err: Error) => {
+    ctx.db.query("INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)", [qqid, qiid, quota.num, quota.unit], (err: Error) => {
       if (err) {
-        log.error(err, 'query error');
-        ctx.db.query('ROLLBACK', [], (err: Error) => {
+        log.error(err, "query error");
+        ctx.db.query("ROLLBACK", [], (err: Error) => {
           ctx.done();
         });
       } else {
         let qpid = uuid.v1();
-        ctx.db.query('INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)', [qpid, qiid, price.price, price.real_price], (err: Error) => {
+        ctx.db.query("INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)", [qpid, qiid, price.price, price.real_price], (err: Error) => {
           if (err) {
-            log.error(err, 'query error');
-            ctx.db.query('ROLLBACK', [], (err: Error) => {
+            log.error(err, "query error");
+            ctx.db.query("ROLLBACK", [], (err: Error) => {
               ctx.done();
             });
           } else {
             quota["id"] = qqid;
             price["id"] = qpid;
             acc.push([quota, price]);
-            insert_quotas_and_prices (ctx, qiid, pairs, acc, cb);
+            insert_quotas_and_prices(ctx, qiid, pairs, acc, cb);
           }
         });
       }
@@ -78,8 +83,8 @@ function insert_quotas_and_prices (ctx: InsertCtx, qiid: string, pairs: Object[]
   }
 }
 
-function insert_items_recur (ctx: InsertCtx, qgid: string, items: Item[], acc: Object, cb) {
-  if (items.length == 0) {
+function insert_items_recur(ctx: InsertCtx, qgid: string, items: Item[], acc: Object, cb) {
+  if (items.length === 0) {
     cb(acc);
   } else {
     let item = items.shift();
@@ -87,21 +92,21 @@ function insert_items_recur (ctx: InsertCtx, qgid: string, items: Item[], acc: O
     let quotas = item["quotas"];
     let prices = item["prices"];
     let qiid = uuid.v1();
-    ctx.db.query('INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)', [qiid, qgid, piid], (err: Error) => {
+    ctx.db.query("INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)", [qiid, qgid, piid], (err: Error) => {
       if (err) {
-        log.error(err, 'query error quotation_items');
-        ctx.db.query('ROLLBACK', [], (err: Error) => {
+        log.error(err, "query error quotation_items");
+        ctx.db.query("ROLLBACK", [], (err: Error) => {
           ctx.done();
         });
       } else {
         let pairs = [];
-        for (let i = 0; i < Math.min(quotas.length, prices.length); i ++) {
+        for (let i = 0; i < Math.min(quotas.length, prices.length); i++) {
           pairs.push([quotas[i], prices[i]]);
         }
-        insert_quotas_and_prices (ctx, qiid, pairs, [], (qps) => {
+        insert_quotas_and_prices(ctx, qiid, pairs, [], (qps) => {
           let qs = [];
           let ps = [];
-          for (let [ q, p ] of qps) {
+          for (let [q, p] of qps) {
             qs.push(q);
             ps.push(p);
           }
@@ -111,7 +116,7 @@ function insert_items_recur (ctx: InsertCtx, qgid: string, items: Item[], acc: O
             piid,
             quotas: qs,
             prices: ps
-          }
+          };
           acc["items"].push(item);
 
           insert_items_recur(ctx, qgid, items, acc, cb);
@@ -122,11 +127,11 @@ function insert_items_recur (ctx: InsertCtx, qgid: string, items: Item[], acc: O
 }
 
 function insert_groups_recur(ctx: InsertCtx, qid: string, groups: Group[], acc: Object[], cb) {
-  if (groups.length == 0) {
-    ctx.db.query('COMMIT', [], (err: Error) => {
+  if (groups.length === 0) {
+    ctx.db.query("COMMIT", [], (err: Error) => {
       if (err) {
-        log.error(err, 'query error COMMIT');
-        ctx.db.query('ROLLBACK', [], (err: Error) => {
+        log.error(err, "query error COMMIT");
+        ctx.db.query("ROLLBACK", [], (err: Error) => {
           ctx.done();
         });
       } else {
@@ -138,33 +143,33 @@ function insert_groups_recur(ctx: InsertCtx, qid: string, groups: Group[], acc: 
     let pid = group["pid"];
     let items = group["items"];
     let qgid = uuid.v1();
-    ctx.db.query('INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)', [qgid, qid, pid], (err: Error) => {
-        if (err) {
-          ctx.db.query('ROLLBACK', [], (err: Error) => {
-            ctx.done();
-          });
-          log.error(err, 'query error quotation_groups');
-        } else {
-          insert_items_recur(ctx, qgid, items, { qgid, pid, items: [] }, (group) => {
-            acc.push(group);
-            insert_groups_recur(ctx, qid, groups, acc, cb);
-          });
-        }
+    ctx.db.query("INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)", [qgid, qid, pid], (err: Error) => {
+      if (err) {
+        ctx.db.query("ROLLBACK", [], (err: Error) => {
+          ctx.done();
+        });
+        log.error(err, "query error quotation_groups");
+      } else {
+        insert_items_recur(ctx, qgid, items, { qgid, pid, items: [] }, (group) => {
+          acc.push(group);
+          insert_groups_recur(ctx, qid, groups, acc, cb);
+        });
+      }
     });
   }
 }
 
-processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
-  log.info({args: args}, 'addQuotationGroups');
-  db.query('BEGIN', [], (err: Error) => {
+processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info({ args: args }, "addQuotationGroups");
+  db.query("BEGIN", [], (err: Error) => {
     if (err) {
       done();
-      log.error(err, 'query error begin');
+      log.error(err, "query error begin");
     } else {
-      db.query('UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ',[args.promotion, args.state, args.qid], (err:Error) =>{
+      db.query("UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ", [args.promotion, args.state, args.qid], (err: Error) => {
         if (err) {
           done();
-          log.error(err, 'query error quotations');
+          log.error(err, "query error quotations");
         } else {
           let ctx = {
             db,
@@ -178,14 +183,14 @@ processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: Do
               state: args.state,
               quotation_groups: groups,
               vid: args.vid,
-              promotion:args.promotion,
+              promotion: args.promotion,
               created_at: date,
             };
             let multi = cache.multi();
             multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
             multi.sadd("quotations", args.qid);
-            multi.zrem("unquotated-quotations", args.qid); 
-            multi.zadd("quotated-quotations", date.getTime(), args.qid )
+            multi.zrem("unquotated-quotations", args.qid);
+            multi.zadd("quotated-quotations", date.getTime(), args.qid);
             multi.exec((err, replies) => {
               if (err) {
                 log.error(err);
@@ -201,7 +206,7 @@ processor.call('addQuotationGroups', (db: PGClient, cache: RedisClient, done: Do
 });
 
 function recur(prices) {
-  if (prices.length == 0) {
+  if (prices.length === 0) {
   } else {
     let price = prices.shift();
     // price sql
@@ -209,23 +214,23 @@ function recur(prices) {
   }
 }
 
-processor.call('createQuotation', (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
-  log.info('createQuotation');
-  db.query('INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)',[args.qid, args.vid, args.state], (err: Error) => {
+processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+  log.info("createQuotation");
+  db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [args.qid, args.vid, args.state], (err: Error) => {
     if (err) {
-      log.error(err, ' createQuotation query error');
+      log.error(err, " createQuotation query error");
       done();
-    }else{
+    } else {
       let now = new Date();
-      let quotation = {id:args.qid, vid:args.vid, state:args.state, created_at:now};
+      let quotation = { id: args.qid, vid: args.vid, state: args.state, created_at: now };
       let multi = cache.multi();
       multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
       multi.zadd("unquotated-quotations", now.getTime(), args.qid);
       multi.exec((err, replies) => {
         if (err) {
-          log.error('createQuotation err' +err);
+          log.error("createQuotation err" + err);
         }
-          done();       
+        done();
       });
     }
   });
@@ -246,7 +251,7 @@ interface QuotationCtx {
 //   } else {
 //     let row = rows.shift();
 //     log.info("222222222222222222222222")
-//     ctx.db.query('SELECT id, number, unit, created_at, updated_at FROM quotation_item_quotas WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err: Error, result: ResultSet) => {
+//     ctx.db.query("SELECT id, number, unit, created_at, updated_at FROM quotation_item_quotas WHERE qiid = $1 ORDER BY sorted", [row["id"]], (err: Error, result: ResultSet) => {
 //       log.info("33333333333333333333")
 //       if (err) {
 //         log.info("444444444444444444444444444444")
@@ -264,7 +269,7 @@ interface QuotationCtx {
 //           });
 //         }
 //         log.info("66666666666666666666666666666666666666666666")
-//         ctx.db.query('SELECT id, price, real_price, created_at, updated_at FROM quotation_item_prices WHERE qiid = $1 ORDER BY sorted', [row["id"]], (err1: Error, result1: ResultSet) => {
+//         ctx.db.query("SELECT id, price, real_price, created_at, updated_at FROM quotation_item_prices WHERE qiid = $1 ORDER BY sorted", [row["id"]], (err1: Error, result1: ResultSet) => {
 //           if (err1) {
 //             log.info("7777777777777777777777777777777777777777")
 //             let item = {
@@ -315,7 +320,7 @@ interface QuotationCtx {
 //       log.info("ctx.domain" + ctx.domain);
 //     let p = rpc(ctx.domain, hostmap.default["plan"], ctx.uid, "getPlan", row["pid"]);
 //     p.then((plan) => {
-//       ctx.db.query('SELECT id, piid, is_must_have, created_at, updated_at FROM quotation_items WHERE qgid = $1', [row["id"]], (err: Error, result: ResultSet) => {
+//       ctx.db.query("SELECT id, piid, is_must_have, created_at, updated_at FROM quotation_items WHERE qgid = $1", [row["id"]], (err: Error, result: ResultSet) => {
 //         if (err) {
 //           fetch_quotation_groups_recur(ctx, rows, acc, cb);
 //         } else {
@@ -350,7 +355,7 @@ interface QuotationCtx {
 //       created_at: row["created_at"],
 //       updated_at: row["updated_at"]
 //     };
-//     db.query('SELECT id, pid, is_must_have, created_at, updated_at FROM quotation_groups WHERE qid = $1', [row["id"]], (err: Error, result: ResultSet) => {
+//     db.query("SELECT id, pid, is_must_have, created_at, updated_at FROM quotation_groups WHERE qid = $1", [row["id"]], (err: Error, result: ResultSet) => {
 //       if (err) {
 //         fetch_quotations_recur(ctx, rows, acc, cb);
 //       } else {
@@ -366,12 +371,12 @@ interface QuotationCtx {
 
 
 
-// processor.call('refresh', (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string, uid: string) => {
-//   log.info('refresh');
+// processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string, uid: string) => {
+//   log.info("refresh");
 
-//   db.query('SELECT id, state, vid, created_at, updated_at FROM quotations', [], (err: Error, result: ResultSet) => {
+//   db.query("SELECT id, state, vid, created_at, updated_at FROM quotations", [], (err: Error, result: ResultSet) => {
 //     if (err) {
-//       log.error(err, 'query error');
+//       log.error(err, "query error");
 //       done();
 //       return;
 //     } else {
@@ -394,14 +399,14 @@ interface QuotationCtx {
 //             log.info("replies" + replies);
 //           }
 //           done();
-          
+
 //         });
 //       });
 //     }
 //   });
 // });
 
-log.info('Start processor at %s', config.addr);
+log.info("Start processor at %s", config.addr);
 
 processor.run();
 
