@@ -35,7 +35,7 @@ let quotated_key = "quotated-quotations";
 let unquotated_key = "unquotated-quotations";
 
 let config: Config = {
-  svraddr: servermap.default["quotation"],
+  svraddr: servermap["quotation"],
   msgaddr: "ipc:///tmp/quotation.ipc"
 };
 
