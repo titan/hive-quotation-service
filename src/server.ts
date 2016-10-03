@@ -215,3 +215,4 @@ function ids2objects(key: string, ids: string[], rep: ResponseFunction) {
 log.info("Start server at %s and connect to %s", config.svraddr, config.msgaddr);
 
 svc.run();
+
