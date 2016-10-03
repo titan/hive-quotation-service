@@ -26,6 +26,7 @@
 | name        | char(64)   |      |         |         |           |
 | gender      | char(4)    | ✓    |         |         |           |
 | phone       | char(16)   |      |         |         |           |
+| email       | char(64)   | ✓    |         |         |           |
 | portrait    | char(1024) | ✓    |         |         |           |
 | created\_at | timestamp  |      | now     |         |           |
 | updated\_at | timestamp  |      | now     |         |           |
