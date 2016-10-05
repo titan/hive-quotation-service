@@ -54,8 +54,8 @@ svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction
   })) {
     return;
   } 
-  let state = 3;
-  let args = { qid, vid, state, groups, promotion };
+  let state: number = 3;
+  let args = [ qid, vid, state, groups, promotion ];
   log.info({ args: args }, "addQuotationGroups");
   ctx.msgqueue.send(msgpack.encode({ cmd: "addQuotationGroups", args: args }));
   rep("addQuotationGroups:" + qid);
@@ -72,8 +72,8 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
     return;
   } 
   let qid = uuid.v1();
-  let state = 1;
-  let args = { qid, vid, state };
+  let state: number = 1;
+  let args = [ qid, vid, state ];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
   rep(qid);
