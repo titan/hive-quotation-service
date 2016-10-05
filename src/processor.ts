@@ -159,14 +159,14 @@ function insert_groups_recur(ctx: InsertCtx, qid: string, groups: Group[], acc: 
   }
 }
 
-processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
-  log.info({ args: args }, "addQuotationGroups");
+processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, groups: any, promotion: number) => {
+  log.info("addQuotationGroups");
   db.query("BEGIN", [], (err: Error) => {
     if (err) {
       done();
       log.error(err, "query error begin");
     } else {
-      db.query("UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ", [args.promotion, args.state, args.qid], (err: Error) => {
+      db.query("UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ", [promotion, state, qid], (err: Error) => {
         if (err) {
           done();
           log.error(err, "query error quotations");
@@ -176,21 +176,21 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
             cache,
             done
           };
-          insert_groups_recur(ctx, args.qid, args.groups, [], (groups) => {
+          insert_groups_recur(ctx, qid, groups, [], (groups) => {
             let date = new Date();
             let quotation = {
-              id: args.qid,
-              state: args.state,
+              id: qid,
+              state: state,
               quotation_groups: groups,
-              vid: args.vid,
-              promotion: args.promotion,
+              vid: vid,
+              promotion: promotion,
               created_at: date,
             };
             let multi = cache.multi();
-            multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
-            multi.sadd("quotations", args.qid);
-            multi.zrem("unquotated-quotations", args.qid);
-            multi.zadd("quotated-quotations", date.getTime(), args.qid);
+            multi.hset("quotations-entities", qid, JSON.stringify(quotation));
+            multi.sadd("quotations", qid);
+            multi.zrem("unquotated-quotations", qid);
+            multi.zadd("quotated-quotations", date.getTime(), qid);
             multi.exec((err, replies) => {
               if (err) {
                 log.error(err);
@@ -214,18 +214,18 @@ function recur(prices) {
   }
 }
 
-processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, args) => {
+processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number) => {
   log.info("createQuotation");
-  db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [args.qid, args.vid, args.state], (err: Error) => {
+  db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state], (err: Error) => {
     if (err) {
       log.error(err, " createQuotation query error");
       done();
     } else {
       let now = new Date();
-      let quotation = { id: args.qid, vid: args.vid, state: args.state, created_at: now };
+      let quotation = { id: qid, vid: vid, state: state, created_at: now };
       let multi = cache.multi();
-      multi.hset("quotations-entities", args.qid, JSON.stringify(quotation));
-      multi.zadd("unquotated-quotations", now.getTime(), args.qid);
+      multi.hset("quotations-entities", qid, JSON.stringify(quotation));
+      multi.zadd("unquotated-quotations", now.getTime(), qid);
       multi.exec((err, replies) => {
         if (err) {
           log.error("createQuotation err" + err);

@@ -7,6 +7,7 @@ import * as http from "http";
 import * as bunyan from "bunyan";
 import * as uuid from "node-uuid";
 import { servermap, triggermap } from "hive-hostmap";
+import { verify, uuidVerifier, stringVerifier, arrayVerifier, numberVerifier } from "hive-verify";
 
 let log = bunyan.createLogger({
   name: "quotation-server",
@@ -45,9 +46,16 @@ let permissions: Permission[] = [["mobile", true], ["admin", true]];
 
 // 增加报价组
 svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion: number) => {
-
-  let state = 3;
-  let args = { qid, vid, state, groups, promotion };
+  if (!verify([uuidVerifier("qid", qid), uuidVerifier("vid", vid), arrayVerifier("groups", groups), numberVerifier("promotion", promotion)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  } 
+  let state: number = 3;
+  let args = [ qid, vid, state, groups, promotion ];
   log.info({ args: args }, "addQuotationGroups");
   ctx.msgqueue.send(msgpack.encode({ cmd: "addQuotationGroups", args: args }));
   rep("addQuotationGroups:" + qid);
@@ -55,9 +63,17 @@ svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction
 
 // 创建报价
 svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string) => {
+  if (!verify([uuidVerifier("vid", vid)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  } 
   let qid = uuid.v1();
-  let state = 1;
-  let args = { qid, vid, state };
+  let state: number = 1;
+  let args = [ qid, vid, state ];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
   rep(qid);
@@ -66,6 +82,14 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
 // 获取已报价
 svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
   log.info("getQuotatedQuotations");
+  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  } 
   redis.zrevrange(quotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
@@ -87,6 +111,14 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
 // 获取未报价
 svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
   log.info("getUnQuotatedQuotations");
+  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  } 
   redis.zrevrange(unquotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
@@ -131,6 +163,14 @@ svc.call("getAllQuotations", permissions, (ctx: Context, rep: ResponseFunction) 
 // 获取一个报价
 svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid: string) => {
   log.info("getQuotation, qid: %s", qid);
+  if (!verify([uuidVerifier("qid", qid)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  } 
   redis.hget(entity_key, qid, (err, quotation) => {
     if (err) {
       rep("error:" + err);
@@ -144,6 +184,14 @@ svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid:
 // 获取二维码
 svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid: string) => {
   log.info("getTicketInfo, openid is" + oid);
+  if (!verify([uuidVerifier("oid", oid)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  } 
   redis.hget("openid_ticket", oid, (err, result) => {
     if (err) {
       rep([]);
