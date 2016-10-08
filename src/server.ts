@@ -7,7 +7,7 @@ import * as http from "http";
 import * as bunyan from "bunyan";
 import * as uuid from "node-uuid";
 import { servermap, triggermap } from "hive-hostmap";
-import { verify, uuidVerifier, stringVerifier, arrayVerifier, numberVerifier } from "hive-verify";
+import { verify, uuidVerifier, stringVerifier, numberVerifier } from "hive-verify";
 
 let log = bunyan.createLogger({
   name: "quotation-server",
@@ -46,7 +46,7 @@ let permissions: Permission[] = [["mobile", true], ["admin", true]];
 
 // 增加报价组
 svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion: number) => {
-  if (!verify([uuidVerifier("qid", qid), uuidVerifier("vid", vid), arrayVerifier("groups", groups), numberVerifier("promotion", promotion)], (errors: string[]) => {
+  if (!verify([uuidVerifier("qid", qid), uuidVerifier("vid", vid), numberVerifier("promotion", promotion)], (errors: string[]) => {
     rep({
       code: 400,
       msg: errors.join("\n")
