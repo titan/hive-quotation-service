@@ -46,6 +46,7 @@ let permissions: Permission[] = [["mobile", true], ["admin", true]];
 
 // 增加报价组
 svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion: number) => {
+  log.info("addQuotationGroups qid: %s, vid: %s, promotion: %d, %s", qid, vid, promotion, typeof(promotion));
   if (!verify([uuidVerifier("qid", qid), uuidVerifier("vid", vid), numberVerifier("promotion", promotion)], (errors: string[]) => {
     rep({
       code: 400,
@@ -55,10 +56,10 @@ svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction
     return;
   }
   let state: number = 3;
-  let args = [qid, vid, state, groups, promotion];
-  log.info({ args: args }, "addQuotationGroups");
+  const callback = uuid.v1();
+  let args = [qid, vid, state, groups, promotion, callback];
   ctx.msgqueue.send(msgpack.encode({ cmd: "addQuotationGroups", args: args }));
-  rep("addQuotationGroups:" + qid);
+  wait_for_response(ctx.cache, callback, rep);
 });
 
 // 创建报价

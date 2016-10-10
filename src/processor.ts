@@ -43,164 +43,158 @@ let quotation_trigger = nanomsg.socket("pub");
 quotation_trigger.bind(triggermap.quotation);
 let processor = new Processor(config);
 
-interface InsertCtx {
-  cache: RedisClient;
-  db: PGClient;
-  done: DoneFunction;
-};
-
-function insert_quotas_and_prices(ctx: InsertCtx, qiid: string, pairs: Object[], acc: Object[], cb) {
-  if (pairs.length === 0) {
-    cb(acc);
-  } else {
-    let pair = pairs.shift();
-    let quota = pair[0];
-    let price = pair[1];
-    let qqid = uuid.v1();
-    ctx.db.query("INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)", [qqid, qiid, quota.num, quota.unit], (err: Error) => {
-      if (err) {
-        log.error(err, "query error");
-        ctx.db.query("ROLLBACK", [], (err: Error) => {
-          ctx.done();
-        });
-      } else {
-        let qpid = uuid.v1();
-        ctx.db.query("INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)", [qpid, qiid, price.price, price.real_price], (err: Error) => {
-          if (err) {
-            log.error(err, "query error");
-            ctx.db.query("ROLLBACK", [], (err: Error) => {
-              ctx.done();
-            });
-          } else {
-            quota["id"] = qqid;
-            price["id"] = qpid;
-            acc.push([quota, price]);
-            insert_quotas_and_prices(ctx, qiid, pairs, acc, cb);
-          }
-        });
-      }
-    });
-  }
-}
-
-function insert_items_recur(ctx: InsertCtx, qgid: string, items: Item[], acc: Object, cb) {
-  if (items.length === 0) {
-    cb(acc);
-  } else {
-    let item = items.shift();
-    let piid = item["piid"];
-    let quotas = item["quotas"];
-    let prices = item["prices"];
-    let qiid = uuid.v1();
-    ctx.db.query("INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)", [qiid, qgid, piid], (err: Error) => {
-      if (err) {
-        log.error(err, "query error quotation_items");
-        ctx.db.query("ROLLBACK", [], (err: Error) => {
-          ctx.done();
-        });
-      } else {
-        let pairs = [];
-        for (let i = 0; i < Math.min(quotas.length, prices.length); i++) {
-          pairs.push([quotas[i], prices[i]]);
-        }
-        insert_quotas_and_prices(ctx, qiid, pairs, [], (qps) => {
-          let qs = [];
-          let ps = [];
-          for (let [q, p] of qps) {
-            qs.push(q);
-            ps.push(p);
-          }
-
-          let item = {
-            qiid,
-            piid,
-            quotas: qs,
-            prices: ps
-          };
-          acc["items"].push(item);
-
-          insert_items_recur(ctx, qgid, items, acc, cb);
-        });
-      }
-    });
-  }
-}
-
-function insert_groups_recur(ctx: InsertCtx, qid: string, groups: Group[], acc: Object[], cb) {
-  if (groups.length === 0) {
-    ctx.db.query("COMMIT", [], (err: Error) => {
-      if (err) {
-        log.error(err, "query error COMMIT");
-        ctx.db.query("ROLLBACK", [], (err: Error) => {
-          ctx.done();
-        });
-      } else {
-        cb(acc);
-      }
-    });
-  } else {
-    let group = groups.shift();
-    let pid = group["pid"];
-    let items = group["items"];
-    let qgid = uuid.v1();
-    ctx.db.query("INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)", [qgid, qid, pid], (err: Error) => {
-      if (err) {
-        ctx.db.query("ROLLBACK", [], (err: Error) => {
-          ctx.done();
-        });
-        log.error(err, "query error quotation_groups");
-      } else {
-        insert_items_recur(ctx, qgid, items, { qgid, pid, items: [] }, (group) => {
-          acc.push(group);
-          insert_groups_recur(ctx, qid, groups, acc, cb);
-        });
-      }
-    });
-  }
-}
-
-processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, groups: any, promotion: number) => {
+processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, groups: any, promotion: number, callback: string) => {
   log.info("addQuotationGroups");
-  db.query("BEGIN", [], (err: Error) => {
-    if (err) {
-      done();
-      log.error(err, "query error begin");
-    } else {
-      db.query("UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ", [promotion, state, qid], (err: Error) => {
+  let pbegin = new Promise<void>((resolve, reject) => {
+    db.query("BEGIN", [], (err: Error) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+  let pcommit = new Promise<void>((resolve, reject) => {
+    db.query("COMMIT", [], (err: Error) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+  let pquotation = new Promise<void>((resolve, reject) => {
+    db.query("UPDATE quotations SET promotion = $1, state = $2 WHERE id = $3 ", [promotion, state, qid], (err: Error) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+
+  let ps = [pbegin, pquotation];
+  let gs = [];
+
+  for (const group of groups) {
+    const qgid = uuid.v1();
+    const pid = group["pid"];
+    const g = { qgid, pid, items: [] };
+
+    let pgroup = new Promise<void>((resolve, reject) => {
+      db.query("INSERT INTO quotation_groups (id, qid, pid) VALUES ($1, $2, $3)", [qgid, qid, pid], (err: Error) => {
         if (err) {
-          done();
-          log.error(err, "query error quotations");
+          reject(err);
         } else {
-          let ctx = {
-            db,
-            cache,
-            done
-          };
-          insert_groups_recur(ctx, qid, groups, [], (groups) => {
-            let date = new Date();
-            let quotation = {
-              id: qid,
-              state: state,
-              quotation_groups: groups,
-              vid: vid,
-              promotion: promotion,
-              created_at: date,
-            };
-            let multi = cache.multi();
-            multi.hset("quotations-entities", qid, JSON.stringify(quotation));
-            multi.sadd("quotations", qid);
-            multi.zrem("unquotated-quotations", qid);
-            multi.zadd("quotated-quotations", date.getTime(), qid);
-            multi.exec((err, replies) => {
-              if (err) {
-                log.error(err);
-              }
-              done();
-            });
-          });
+          resolve();
         }
       });
+    });
+    ps.push(pgroup);
+
+    for (const item of group["items"]) {
+      const piid = item["piid"];
+      const qiid = uuid.v1();
+
+      let pitem = new Promise<void>((resolve, reject) => {
+        db.query("INSERT INTO quotation_items (id, qgid, piid) VALUES ($1, $2, $3)", [qiid, qgid, piid], (err: Error) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+      ps.push(pitem);
+
+      let quotas = [];
+      let prices = [];
+
+      for (let i = 0; i < Math.min(item["quotas"].length, item["prices"].length); i++) {
+        const quota = item["quotas"][i];
+        const price = item["prices"][i];
+        const qqid = uuid.v1();
+        const qpid = uuid.v1();
+
+        quota["id"] = qqid;
+        price["id"] = qpid;
+
+        quotas.push(quota);
+        prices.push(price);
+
+        let pquota = new Promise<void>((resolve, reject) => {
+          db.query("INSERT INTO quotation_item_quotas (id, qiid, num, unit) VALUES ($1, $2, $3, $4)", [qqid, qiid, quota.num, quota.unit], (err: Error) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        ps.push(pquota);
+
+        let pprice = new Promise<void>((resolve, reject) => {
+          db.query("INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)", [qpid, qiid, price.price, price.real_price], (err: Error) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        ps.push(pprice);
+
+      }
+
+      g["items"].push({
+        qiid,
+        piid,
+        quotas,
+        prices
+      });
     }
+    gs.push(g);
+  }
+  ps.push(pcommit);
+
+  async_serial<void>(ps, [], () => {
+    let date = new Date();
+    let quotation = {
+      id: qid,
+      state: state,
+      quotation_groups: gs,
+      vid: vid,
+      promotion: promotion,
+      created_at: date,
+    };
+    let multi = cache.multi();
+    multi.hset("quotations-entities", qid, JSON.stringify(quotation));
+    multi.sadd("quotations", qid);
+    multi.zrem("unquotated-quotations", qid);
+    multi.zadd("quotated-quotations", date.getTime(), qid);
+    multi.exec((err, replies) => {
+      if (err) {
+        log.error(err);
+        cache.setex(callback, 30, JSON.stringify({
+          code: 500,
+          msg: err.message
+        }));
+      } else {
+        cache.setex(callback, 30, JSON.stringify({
+          code: 200,
+          qid: qid
+        }));
+      }
+      done();
+    });
+  }, (e: Error) => {
+    log.error(e, e.message);
+    db.query("ROLLBACK", [], (err: Error) => {
+      cache.setex(callback, 30, JSON.stringify({
+        code: 500,
+        msg: e.message
+      }));
+    });
   });
 });
 
