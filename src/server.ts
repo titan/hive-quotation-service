@@ -73,10 +73,10 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
   }
   let qid = uuid.v1();
   let state: number = 1;
-  let args = [qid, vid, state];
+  let args = [qid, vid, state, qid];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
-  rep(qid);
+  wait_for_response(ctx.cache, qid, rep);
 });
 
 // 获取已报价

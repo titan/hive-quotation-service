@@ -213,11 +213,15 @@ function recur(prices) {
   }
 }
 
-processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number) => {
+processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string) => {
   log.info("createQuotation");
   db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state], (err: Error) => {
     if (err) {
-      log.error(err, " createQuotation query error");
+      log.error(err, "createQuotation query error");
+      cache.setex(callback, 30, JSON.stringify({
+        code: 500,
+        msg: err.message
+      }));
       done();
     } else {
       let now = new Date();
@@ -227,7 +231,16 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
       multi.zadd("unquotated-quotations", now.getTime(), qid);
       multi.exec((err, replies) => {
         if (err) {
-          log.error("createQuotation err" + err);
+          log.error(err, "createQuotation error");
+          cache.setex(callback, 30, JSON.stringify({
+            code: 500,
+            msg: err.message
+          }));
+        } else {
+          cache.setex(callback, 30, JSON.stringify({
+            code: 200,
+            qid: qid
+          }));
         }
         done();
       });
