@@ -53,9 +53,9 @@ svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction
     });
   })) {
     return;
-  } 
+  }
   let state: number = 3;
-  let args = [ qid, vid, state, groups, promotion ];
+  let args = [qid, vid, state, groups, promotion];
   log.info({ args: args }, "addQuotationGroups");
   ctx.msgqueue.send(msgpack.encode({ cmd: "addQuotationGroups", args: args }));
   rep("addQuotationGroups:" + qid);
@@ -70,10 +70,10 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
     });
   })) {
     return;
-  } 
+  }
   let qid = uuid.v1();
   let state: number = 1;
-  let args = [ qid, vid, state ];
+  let args = [qid, vid, state];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
   rep(qid);
@@ -89,7 +89,7 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
     });
   })) {
     return;
-  } 
+  }
   redis.zrevrange(quotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
@@ -118,7 +118,7 @@ svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
     });
   })) {
     return;
-  } 
+  }
   redis.zrevrange(unquotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
@@ -170,7 +170,7 @@ svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid:
     });
   })) {
     return;
-  } 
+  }
   redis.hget(entity_key, qid, (err, quotation) => {
     if (err) {
       rep("error:" + err);
@@ -191,7 +191,7 @@ svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid
     });
   })) {
     return;
-  } 
+  }
   redis.hget("openid_ticket", oid, (err, result) => {
     if (err) {
       rep([]);

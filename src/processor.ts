@@ -194,9 +194,8 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
             multi.exec((err, replies) => {
               if (err) {
                 log.error(err);
-              } else {
-                done();
               }
+              done();
             });
           });
         }
