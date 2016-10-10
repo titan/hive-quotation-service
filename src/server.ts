@@ -1,6 +1,6 @@
 import { Server, Config, Context, ResponseFunction, Permission, rpc, wait_for_response } from "hive-server";
 import { Quota, Price, Item, Group } from "./quotation-definations";
-import * as Redis from "redis";
+import { RedisClient } from "redis";
 import * as nanomsg from "nanomsg";
 import * as msgpack from "msgpack-lite";
 import * as http from "http";
@@ -29,7 +29,6 @@ let log = bunyan.createLogger({
   ]
 });
 
-let redis = Redis.createClient(6379, "redis"); // port, host
 let list_key = "quotations";
 let entity_key = "quotations-entities";
 let quotated_key = "quotated-quotations";
@@ -37,7 +36,8 @@ let unquotated_key = "unquotated-quotations";
 
 let config: Config = {
   svraddr: servermap["quotation"],
-  msgaddr: "ipc:///tmp/quotation.ipc"
+  msgaddr: "ipc:///tmp/quotation.ipc",
+  cacheaddr: process.env["CACHE_HOST"]
 };
 
 let svc = new Server(config);
@@ -90,11 +90,11 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
   })) {
     return;
   }
-  redis.zrevrange(quotated_key, start, limit, function (err, result) {
+  ctx.cache.zrevrange(quotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
     } else {
-      let multi = redis.multi();
+      let multi = ctx.cache.multi();
       for (let id of result) {
         multi.hget(entity_key, id);
       }
@@ -119,11 +119,11 @@ svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
   })) {
     return;
   }
-  redis.zrevrange(unquotated_key, start, limit, function (err, result) {
+  ctx.cache.zrevrange(unquotated_key, start, limit, function (err, result) {
     if (err) {
       rep([]);
     } else {
-      let multi = redis.multi();
+      let multi = ctx.cache.multi();
       for (let id of result) {
         multi.hget(entity_key, id);
       }
@@ -141,11 +141,11 @@ svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
 // 获取所有报价
 svc.call("getAllQuotations", permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info("getAllQuotations");
-  redis.smembers(list_key, function (err, result) {
+  ctx.cache.smembers(list_key, function (err, result) {
     if (err) {
       rep([]);
     } else {
-      let multi = redis.multi();
+      let multi = ctx.cache.multi();
       for (let id of result) {
         multi.hget(entity_key, id);
       }
@@ -171,7 +171,7 @@ svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid:
   })) {
     return;
   }
-  redis.hget(entity_key, qid, (err, quotation) => {
+  ctx.cache.hget(entity_key, qid, (err, quotation) => {
     if (err) {
       rep("error:" + err);
       log.info("getQuotation" + err);
@@ -192,14 +192,14 @@ svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid
   })) {
     return;
   }
-  redis.hget("openid_ticket", oid, (err, result) => {
+  ctx.cache.hget("openid_ticket", oid, (err, result) => {
     if (err) {
       rep([]);
       log.info("getTicketInfo" + err);
     } else {
       if (result != null) {
         let json1 = JSON.parse(result);
-        redis.hget("wechat_code1", json1.ticket, (err2, result2) => {
+        ctx.cache.hget("wechat_code1", json1.ticket, (err2, result2) => {
           if (err2) {
             rep([]);
             log.info("getTicketInfo" + err);
@@ -227,8 +227,8 @@ svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid
 // });
 
 
-function ids2objects(key: string, ids: string[], rep: ResponseFunction) {
-  let multi = redis.multi();
+function ids2objects(cache: RedisClient, key: string, ids: string[], rep: ResponseFunction) {
+  let multi = cache.multi();
   for (let id of ids) {
     multi.hget(key, id);
   }
@@ -240,11 +240,11 @@ function ids2objects(key: string, ids: string[], rep: ResponseFunction) {
 // svc.call("searchQuotation", permissions, (ctx: Context, rep: ResponseFunction, svehicleid:string, sownername:string, phone:string, slicense_no:string, sbegintime:any, sendtime:any, sstate:number) => {
 //   let args = {svehicleid, sownername, phone, slicense_no, sbegintime, sendtime, sstate}
 //   log.info("searchQuotation" + args );
-//   redis.smembers(list_key, function (err, result) {
+//   ctx.cache.smembers(list_key, function (err, result) {
 //     if (err) {
 //       rep([]);
 //     } else {
-//       let multi = redis.multi();
+//       let multi = ctx.cache.multi();
 //       for (let id of result) {
 //         multi.hget(entity_key, id);
 //       }
