@@ -198,15 +198,6 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
   });
 });
 
-function recur(prices) {
-  if (prices.length === 0) {
-  } else {
-    let price = prices.shift();
-    // price sql
-    recur(prices);
-  }
-}
-
 processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string) => {
   log.info("createQuotation");
   db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state], (err: Error) => {
