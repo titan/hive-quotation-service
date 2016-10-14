@@ -176,8 +176,10 @@ svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid:
     if (err) {
       log.info("getQuotation" + err);
       rep({ code: 500, msg: err.message });
-    } else {
+    } else if (quotation) {
       rep({ code: 200, data: JSON.parse(quotation) });
+    } else {
+      rep({ code: 404, msg: "Quotation not found" });
     }
   });
 });
