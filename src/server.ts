@@ -93,25 +93,25 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
   }
   ctx.cache.zrevrange(quotated_key, start, limit, function (err, result) {
     if (err) {
-      rep([]);
+      rep({ code: 500, msg: err.message });
     } else {
       let multi = ctx.cache.multi();
       for (let id of result) {
         multi.hget(entity_key, id);
       }
-      multi.exec((err, result2) => {
+      multi.exec((err1, result2) => {
         if (err) {
-          rep([]);
+          rep({ code: 500, msg: err1.message });
         } else {
-          rep(result2.map(e => JSON.parse(e)));
+          rep({ code: 200, data: result2.map(e => JSON.parse(e)) });
         }
       });
     }
   });
 });
 // 获取未报价
-svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
-  log.info("getUnQuotatedQuotations");
+svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
+  log.info("getUnquotatedQuotations");
   if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
     rep({
       code: 400,
@@ -122,7 +122,7 @@ svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
   }
   ctx.cache.zrevrange(unquotated_key, start, limit, function (err, result) {
     if (err) {
-      rep([]);
+      rep({ code: 500, msg: err.message });
     } else {
       let multi = ctx.cache.multi();
       for (let id of result) {
@@ -130,9 +130,9 @@ svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
       }
       multi.exec((err, result2) => {
         if (err) {
-          rep([]);
+          rep({ code: 500, msg: err.message });
         } else {
-          rep(result2.map(e => JSON.parse(e)));
+          rep({ code: 200, data: result2.map(e => JSON.parse(e)) });
         }
       });
     }
@@ -140,21 +140,21 @@ svc.call("getUnQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
 });
 
 // 获取所有报价
-svc.call("getAllQuotations", permissions, (ctx: Context, rep: ResponseFunction) => {
-  log.info("getAllQuotations");
+svc.call("getQuotations", permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info("getQuotations");
   ctx.cache.smembers(list_key, function (err, result) {
     if (err) {
-      rep([]);
+      rep({ code: 500, msg: err.message });
     } else {
       let multi = ctx.cache.multi();
       for (let id of result) {
         multi.hget(entity_key, id);
       }
-      multi.exec((err, result2) => {
-        if (err) {
-          rep([]);
+      multi.exec((err1, result2) => {
+        if (err1) {
+          rep({ code: 500, msg: err1.message });
         } else {
-          rep(result2.map(e => JSON.parse(e)));
+          rep({ code: 200, data: result2.map(e => JSON.parse(e)) });
         }
       });
     }
@@ -174,17 +174,17 @@ svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid:
   }
   ctx.cache.hget(entity_key, qid, (err, quotation) => {
     if (err) {
-      rep("error:" + err);
       log.info("getQuotation" + err);
+      rep({ code: 500, msg: err.message });
     } else {
-      rep(JSON.parse(quotation));
+      rep({ code: 200, data: JSON.parse(quotation) });
     }
   });
 });
 
 // 获取二维码
-svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid: string) => {
-  log.info("getTicketInfo, openid is" + oid);
+svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: string) => {
+  log.info("getTicket, openid %s", oid);
   if (!verify([uuidVerifier("oid", oid)], (errors: string[]) => {
     rep({
       code: 400,
@@ -195,22 +195,19 @@ svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid
   }
   ctx.cache.hget("openid_ticket", oid, (err, result) => {
     if (err) {
-      rep([]);
-      log.info("getTicketInfo" + err);
+      rep({ code: 500, msg: err.message });
     } else {
       if (result != null) {
         let json1 = JSON.parse(result);
         ctx.cache.hget("wechat_code1", json1.ticket, (err2, result2) => {
           if (err2) {
-            rep([]);
-            log.info("getTicketInfo" + err);
+            rep({ code: 500, msg: err2.message });
           } else {
-            log.info("ticket info:" + result2);
-            rep(JSON.parse(result2));
+            rep({ code: 200, data: JSON.parse(result2) });
           }
         });
       } else {
-        rep([]);
+        rep({ code: 404, msg: "Ticket not found" });
       }
     }
   });
@@ -227,16 +224,6 @@ svc.call("getTicketInfo", permissions, (ctx: Context, rep: ResponseFunction, oid
 //   rep({status: "refresh okay"});
 // });
 
-
-function ids2objects(cache: RedisClient, key: string, ids: string[], rep: ResponseFunction) {
-  let multi = cache.multi();
-  for (let id of ids) {
-    multi.hget(key, id);
-  }
-  multi.exec(function (err, replies) {
-    rep(replies);
-  });
-}
 // 搜索报价
 // svc.call("searchQuotation", permissions, (ctx: Context, rep: ResponseFunction, svehicleid:string, sownername:string, phone:string, slicense_no:string, sbegintime:any, sendtime:any, sstate:number) => {
 //   let args = {svehicleid, sownername, phone, slicense_no, sbegintime, sendtime, sstate}

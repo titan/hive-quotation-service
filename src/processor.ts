@@ -182,7 +182,7 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
       } else {
         cache.setex(callback, 30, JSON.stringify({
           code: 200,
-          qid: qid
+          data: qid
         }));
       }
       done();
@@ -224,7 +224,7 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
         } else {
           cache.setex(callback, 30, JSON.stringify({
             code: 200,
-            qid: qid
+            data: qid
           }));
         }
         done();
