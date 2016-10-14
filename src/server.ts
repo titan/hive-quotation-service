@@ -187,7 +187,7 @@ svc.call("getQuotation", permissions, (ctx: Context, rep: ResponseFunction, qid:
 // 获取二维码
 svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: string) => {
   log.info("getTicket, openid %s", oid);
-  if (!verify([uuidVerifier("oid", oid)], (errors: string[]) => {
+  if (!verify([stringVerifier("oid", oid)], (errors: string[]) => {
     rep({
       code: 400,
       msg: errors.join("\n")
