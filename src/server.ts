@@ -215,16 +215,25 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
   });
 });
 
+svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info("refresh");
+  ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
+  rep({
+    code: 200,
+    msg: "Okay"
+  });
+});
+
 // refresh
-// svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
-//   log.info("refresh uid: %s", ctx.uid);
-//   let pid = "00000000-0000-0000-0000-000000000001";
-//   let domain = ctx.domain;
-//   let uid = ctx.uid;
-//   let args = {pid, domain, uid}
-//   ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: args}));
-//   rep({status: "refresh okay"});
-// });
+svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info("refresh uid: %s", ctx.uid);
+  let pid = "00000000-0000-0000-0000-000000000001";
+  let domain = ctx.domain;
+  let uid = ctx.uid;
+  let args = {pid, domain, uid}
+  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: args}));
+  rep({status: "refresh okay"});
+});
 
 // 搜索报价
 // svc.call("searchQuotation", permissions, (ctx: Context, rep: ResponseFunction, svehicleid:string, sownername:string, phone:string, slicense_no:string, sbegintime:any, sendtime:any, sstate:number) => {
