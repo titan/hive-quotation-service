@@ -74,7 +74,8 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
   }
   let qid = uuid.v1();
   let state: number = 1;
-  let args = [qid, vid, state, qid];
+  let domain = ctx.domain;
+  let args = [qid, vid, state, qid, domain];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
   wait_for_response(ctx.cache, qid, rep);

@@ -198,7 +198,7 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
   });
 });
 
-processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string) => {
+processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string, domain: any) => {
   log.info("createQuotation");
   db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state], (err: Error) => {
     if (err) {
@@ -211,23 +211,27 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
     } else {
       let now = new Date();
       let quotation = { id: qid, vid: vid, state: state, created_at: now };
-      let multi = cache.multi();
-      multi.hset("quotations-entities", qid, JSON.stringify(quotation));
-      multi.zadd("unquotated-quotations", now.getTime(), qid);
-      multi.exec((err, replies) => {
-        if (err) {
-          log.error(err, "createQuotation error");
-          cache.setex(callback, 30, JSON.stringify({
-            code: 500,
-            msg: err.message
-          }));
-        } else {
-          cache.setex(callback, 30, JSON.stringify({
-            code: 200,
-            data: qid
-          }));
-        }
-        done();
+      let v = rpc<Object>(domain, servermap["vehicle"], null, "getModelAndVehicle", vid);
+      v.then(vehicle => {
+        quotation["vehicle"] = vehicle["data"];
+        let multi = cache.multi();
+        multi.hset("quotations-entities", qid, JSON.stringify(quotation));
+        multi.zadd("unquotated-quotations", now.getTime(), qid);
+        multi.exec((err, replies) => {
+          if (err) {
+            log.error(err, "createQuotation error");
+            cache.setex(callback, 30, JSON.stringify({
+              code: 500,
+              msg: err.message
+            }));
+          } else {
+            cache.setex(callback, 30, JSON.stringify({
+              code: 200,
+              data: qid
+            }));
+          }
+          done();
+        });
       });
     }
   });
@@ -365,11 +369,6 @@ interface QuotationCtx {
 //     });
 //   }
 // }
-quotation_groups id, qid, pid, is_must_have, created_at, updated_at as g
-quotation_items id, piid, qgid, is_must_have, created_at, updated_at as qi
-quotation_item_quotas id, qiid, num, unit, sorted, created_at, updated_at as quotas
-quotation_item_prices id, qiid, price, real_price, sorted, created_at, updated_at as prices
-select q.id, q.vid, q.state, q.promotion, q.created_at, q.updated_at, from quotations as q
 
 processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string) => {
   log.info("quotation refresh begin");
@@ -467,18 +466,18 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
                 }
               }
             }
-            const multi  = cache.multi();
-            for(const qid of qids){
+            const multi = cache.multi();
+            for (const qid of qids) {
               const quotation = quotations[qid];
               const updated_at = quotation.updated_at.getTime();
               multi.zadd("quotations", updated_at, qid);
-              if (quotation["state"] === 1 ){
+              if (quotation["state"] === 1) {
                 multi.hset("unquotated-quotations", qid, quotation);
-              } else if(quotation["state"] === 3) {
+              } else if (quotation["state"] === 3) {
                 multi.hset("quotated_quotations", qid, quotation);
               }
               multi.exec((err: Error, _: any[]) => {
-                if (err){
+                if (err) {
                   reject(err);
                 } else {
                   resolve();
