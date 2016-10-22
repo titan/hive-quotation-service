@@ -44,24 +44,6 @@ let svc = new Server(config);
 
 let permissions: Permission[] = [["mobile", true], ["admin", true]];
 
-// 增加报价组
-svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion: number) => {
-  log.info("addQuotationGroups qid: %s, vid: %s, promotion: %d, %s", qid, vid, promotion, typeof(promotion));
-  if (!verify([uuidVerifier("qid", qid), uuidVerifier("vid", vid), numberVerifier("promotion", promotion)], (errors: string[]) => {
-    rep({
-      code: 400,
-      msg: errors.join("\n")
-    });
-  })) {
-    return;
-  }
-  let state: number = 3;
-  const callback = uuid.v1();
-  let args = [qid, vid, state, groups, promotion, callback];
-  ctx.msgqueue.send(msgpack.encode({ cmd: "addQuotationGroups", args: args }));
-  wait_for_response(ctx.cache, callback, rep);
-});
-
 // 创建报价
 svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string) => {
   if (!verify([uuidVerifier("vid", vid)], (errors: string[]) => {
@@ -81,6 +63,26 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
   wait_for_response(ctx.cache, qid, rep);
 });
 
+// 增加报价组
+svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction, qid: string, vid: string, groups: Group[], promotion: number) => {
+  log.info("addQuotationGroups qid: %s, vid: %s, promotion: %d, %s", qid, vid, promotion, typeof (promotion));
+  if (!verify([uuidVerifier("qid", qid), uuidVerifier("vid", vid), numberVerifier("promotion", promotion)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  }
+  let state: number = 3;
+  const callback = uuid.v1();
+  let domain = ctx.domain;
+  let args = [qid, vid, state, groups, promotion, callback, domain];
+  ctx.msgqueue.send(msgpack.encode({ cmd: "addQuotationGroups", args: args }));
+  wait_for_response(ctx.cache, callback, rep);
+});
+
+
 // 获取已报价
 svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
   log.info("getQuotatedQuotations");
@@ -92,22 +94,32 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
   })) {
     return;
   }
-  ctx.cache.zrevrange(quotated_key, start, limit, function (err, result) {
-    if (err) {
-      rep({ code: 500, msg: err.message });
-    } else {
-      let multi = ctx.cache.multi();
-      for (let id of result) {
-        multi.hget(entity_key, id);
+  new Promise((resolve, reject) => {
+    ctx.cache.zrange(quotated_key, 0, -1, function (err3, result3) {
+      if (err3) {
+        reject(err3)
+      } else {
+        resolve(result3.length);
       }
-      multi.exec((err1, result2) => {
-        if (err) {
-          rep({ code: 500, msg: err1.message });
-        } else {
-          rep({ code: 200, data: result2.map(e => JSON.parse(e)) });
+    });
+  }).then(len => {
+    ctx.cache.zrevrange(quotated_key, start, limit, function (err, result) {
+      if (err) {
+        rep({ code: 500, msg: err.message });
+      } else {
+        let multi = ctx.cache.multi();
+        for (let id of result) {
+          multi.hget(entity_key, id);
         }
-      });
-    }
+        multi.exec((err1, result2) => {
+          if (err) {
+            rep({ code: 500, msg: err1.message });
+          } else {
+            rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: len });
+          }
+        });
+      }
+    });
   });
 });
 // 获取未报价
@@ -121,23 +133,33 @@ svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
   })) {
     return;
   }
-  ctx.cache.zrevrange(unquotated_key, start, limit, function (err, result) {
-    if (err) {
-      rep({ code: 500, msg: err.message });
-    } else {
-      let multi = ctx.cache.multi();
-      for (let id of result) {
-        multi.hget(entity_key, id);
+  new Promise((resolve, reject) => {
+    ctx.cache.zrange(unquotated_key, 0, -1, function (err3, result3) {
+      if (err3) {
+        reject(err3)
+      } else {
+        resolve(result3.length);
       }
-      multi.exec((err, result2) => {
-        if (err) {
-          rep({ code: 500, msg: err.message });
-        } else {
-          rep({ code: 200, data: result2.map(e => JSON.parse(e)) });
+    });
+  }).then(len => {
+    ctx.cache.zrevrange(unquotated_key, start, limit, function (err, result) {
+      if (err) {
+        rep({ code: 500, msg: err.message });
+      } else {
+        let multi = ctx.cache.multi();
+        for (let id of result) {
+          multi.hget(entity_key, id);
         }
-      });
-    }
-  });
+        multi.exec((err2, result2) => {
+          if (err) {
+            rep({ code: 500, msg: err2.message });
+          } else {
+            rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: len });
+          }
+        });
+      }
+    });
+  })
 });
 
 // 获取所有报价
@@ -216,6 +238,7 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
   });
 });
 
+// refresh
 svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info("refresh");
   ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
@@ -225,40 +248,76 @@ svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
   });
 });
 
-// refresh
-svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
-  log.info("refresh uid: %s", ctx.uid);
-  let pid = "00000000-0000-0000-0000-000000000001";
-  let domain = ctx.domain;
-  let uid = ctx.uid;
-  let args = {pid, domain, uid}
-  ctx.msgqueue.send(msgpack.encode({cmd: "refresh", args: args}));
-  rep({status: "refresh okay"});
+// 新消息提醒 
+svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info("newMessageNotify");
+
+  let newQuotations = 0;
+  let newOrders = 0;
+  let newPays = 0;
+  function async_serial_ignore<T>(ps: Promise<T>[], acc: T[], errs: any, cb: (vals: T[], errs: any) => void) {
+    if (ps.length === 0) {
+      cb(acc, errs);
+    } else {
+      let p = ps.shift();
+      p.then(val => {
+        acc.push(val);
+        async_serial_ignore(ps, acc, errs, cb);
+      }).catch((e: Error) => {
+        errs.push(e);
+        async_serial_ignore(ps, acc, errs, cb);
+      });
+    }
+  }
+  let quotation = new Promise<Object[]>((resolve, reject) => {
+    ctx.cache.zrange(unquotated_key, 0, -1, function (err, quotationkeys) {
+      if (quotationkeys) {
+        log.info(quotationkeys + "------------------}");
+        let len = quotationkeys.length;
+        resolve(len);
+      } else if (err) {
+        log.info("quotation err " + err);
+        reject(err);
+      } else {
+        reject({});
+      }
+    });
+  });
+  let order = new Promise<Object[]>((resolve, reject) => {
+    ctx.cache.zrange("newOrders", 0, -1, function (err, orderkeys) {
+      if (orderkeys) {
+        log.info(orderkeys + "------------------}");
+        resolve(orderkeys.length);
+      } else if (err) {
+        log.info("order err " + err);
+        reject(err);
+      } else {
+        reject({});
+      }
+    });
+  });
+  let pay = new Promise<Object[]>((resolve, reject) => {
+    ctx.cache.zrange("newPays", 0, -1, function (err, paykeys) {
+      if (paykeys) {
+        log.info(paykeys + "------------------}");
+        resolve(paykeys.length);
+      } else if (err) {
+        log.info("pay err " + err);
+        reject(err);
+      } else {
+        reject({});
+      }
+    });
+  });
+  let promises = [quotation, order, pay];
+  async_serial_ignore<Object[]>(promises, [], [], (vreps, errs) => {
+    if (errs.length != 0) {
+      rep({ code: 500, msg: errs });
+    } else {
+      rep({ code: 200, data: { "quotations": vreps[0], "orders": vreps[1], "pays": vreps[2] } });
+    }
+  });
 });
-
-// 搜索报价
-// svc.call("searchQuotation", permissions, (ctx: Context, rep: ResponseFunction, svehicleid:string, sownername:string, phone:string, slicense_no:string, sbegintime:any, sendtime:any, sstate:number) => {
-//   let args = {svehicleid, sownername, phone, slicense_no, sbegintime, sendtime, sstate}
-//   log.info("searchQuotation" + args );
-//   ctx.cache.smembers(list_key, function (err, result) {
-//     if (err) {
-//       rep([]);
-//     } else {
-//       let multi = ctx.cache.multi();
-//       for (let id of result) {
-//         multi.hget(entity_key, id);
-//       }
-//       multi.exec((err,result2) => {
-//         if(err){
-//           rep([]);
-//         }else{
-
-//           rep(result2.map(e=>JSON.parse(e)));
-//         }
-//       });
-//     }
-//   });
-// });
 
 log.info("Start server at %s and connect to %s", config.svraddr, config.msgaddr);
 

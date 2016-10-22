@@ -43,7 +43,7 @@ let quotation_trigger = nanomsg.socket("pub");
 quotation_trigger.bind(triggermap.quotation);
 let processor = new Processor(config);
 
-processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, groups: any, promotion: number, callback: string) => {
+processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, groups: any, promotion: number, callback: string, domain: any) => {
   log.info("addQuotationGroups");
   let pbegin = new Promise<void>((resolve, reject) => {
     db.query("BEGIN", [], (err: Error) => {
@@ -167,25 +167,28 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
       promotion: promotion,
       created_at: date,
     };
-    let multi = cache.multi();
-    multi.hset("quotations-entities", qid, JSON.stringify(quotation));
-    multi.sadd("quotations", qid);
-    multi.zrem("unquotated-quotations", qid);
-    multi.zadd("quotated-quotations", date.getTime(), qid);
-    multi.exec((err, replies) => {
-      if (err) {
-        log.error(err);
-        cache.setex(callback, 30, JSON.stringify({
-          code: 500,
-          msg: err.message
-        }));
-      } else {
-        cache.setex(callback, 30, JSON.stringify({
-          code: 200,
-          data: qid
-        }));
-      }
-      done();
+    let v = rpc<Object>(domain, servermap["vehicle"], null, "getModelAndVehicle", vid);
+    v.then(vehicle => {
+      quotation["vehicle"] = vehicle["data"]; let multi = cache.multi();
+      multi.hset("quotations-entities", qid, JSON.stringify(quotation));
+      multi.sadd("quotations", qid);
+      multi.zrem("unquotated-quotations", qid);
+      multi.zadd("quotated-quotations", date.getTime(), qid);
+      multi.exec((err, replies) => {
+        if (err) {
+          log.error(err);
+          cache.setex(callback, 30, JSON.stringify({
+            code: 500,
+            msg: err.message
+          }));
+        } else {
+          cache.setex(callback, 30, JSON.stringify({
+            code: 200,
+            data: qid
+          }));
+        }
+        done();
+      });
     });
   }, (e: Error) => {
     log.error(e, e.message);
@@ -372,29 +375,68 @@ interface QuotationCtx {
 
 processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string) => {
   log.info("quotation refresh begin");
-  new Promise<void>((resolve, reject) => {
-    db.query("SELECT q.id AS qid, q.vid AS vid, q.state AS q_state, q.promotion AS q_promotion, q.created_at AS q_created_at, q.updated_at AS q_updated_at, g.id AS gid, g.pid AS pid, g.is_must_have AS g_is_must_have, g.created_at AS g_created_at, g.updated_at AS g_updated_at, qi.id AS qiid, qi.piid AS piid, qi.is_must_have AS qi_is_must_have, quotas.id AS quota_id, quotas.num AS quota_num, quotas.unit AS quota_unit, quotas.sorted AS quota_sorted, prices.id AS price_id, prices.price AS price_price, prices. real_price AS price_real_price, prices.sorted AS price_sorted FROM quotations AS q LEFT JOIN quotation_groups AS g ON g.id = g.qid LEFT JOIN quotation_items AS qi ON g.id = qi.qgid LEFT JOIN quotation_item_quotas AS quotas ON qi.id = quotas.qiid LEFT JOIN quotation_item_prices AS prices ON qi.id = prices.qiid WHERE q.deleted = FALSE AND g.deleted = FALSE AND qi.deleted = FALSE AND quotas.deleted = FALSE AND prices.deleted = FALSE", [], (err: Error, result: ResultSet) => {
+  let pquery = new Promise<any>((resolve, reject) => {
+    db.query("SELECT DISTINCT ON (prices.id) prices.id AS price_id, q.id AS qid, q.vid AS vid, q.state AS q_state, q.promotion AS q_promotion, q.created_at AS q_created_at, q.updated_at AS q_updated_at, g.id AS gid, g.pid AS pid, g.is_must_have AS g_is_must_have, g.created_at AS g_created_at, g.updated_at AS g_updated_at, qi.id AS qiid, qi.piid AS piid, qi.is_must_have AS qi_is_must_have, quotas.id AS quota_id, quotas.num AS quota_num, quotas.unit AS quota_unit, quotas.sorted AS quota_sorted, prices.price AS price_price, prices. real_price AS price_real_price, prices.sorted AS price_sorted FROM quotation_item_quotas AS quotas LEFT JOIN quotation_item_prices AS prices ON quotas.qiid = prices.qiid LEFT JOIN quotation_items AS qi ON qi.id = prices.qiid LEFT JOIN quotation_groups AS g ON g.id = qi.qgid LEFT JOIN quotations AS q ON q.id = g.qid WHERE q.deleted = FALSE AND g.deleted = FALSE AND qi.deleted = FALSE AND quotas.deleted = FALSE AND prices.deleted = FALSE", [], (err: Error, result: ResultSet) => {
       if (err) {
+        log.info(err);
         reject(err);
       } else {
-        const quotations = {};
-        for (const row of result.rows) {
-          if (quotations.hasOwnProperty(row.qid)) {
-            quotations[row.qid]["quotation_groups"].push({
-              id: row.gid,
-              pid: row.pid,
-              is_must_have: row.g_is_must_have,
-              created_at: row.g_created_at,
-              updated_at: row.g_updated_at,
-              items: null,
-            })
-          } else {
-            const quotation = {
-              id: row.qid,
-              vid: row.vid,
-              state: row.q_state,
-              promotion: row.q_promotion,
-              quotation_groups: [{
+        resolve(result.rows);
+      }
+    });
+  });
+  pquery.then(rows => {
+    return new Promise<Object>((reject, resolve) => {
+      const quotations = {};
+      const quotation_groups = [];
+      const quotation_items = [];
+      const quotation_quotas = [];
+      const quotation_prices = [];
+      for (const row of rows) {
+        if (quotations.hasOwnProperty(row.qid)) {
+          for (let group of quotations[row.qid]["quotation_groups"]) {
+            if (group["id"] === row.gid) {
+              for (let item of group["items"]) {
+                log.info("item" + item)
+                if (item["id"] === row.qiid) {
+                  log.info("aaaaaaaaaaaaaaaaa");
+                  for (let price of item["prices"]) {
+                    log.info("price" +price);
+                    if (price["id"] !== row.price_id) {
+                      item["prices"].push({
+                        id: row.quota_id,
+                        num: row.quota_num,
+                        unit: row.quota_unit
+                      });
+                      item["quotas"].push({
+                        id: row.quota_id,
+                        num: row.quota_num,
+                        unit: row.quota_unit
+                      });
+                      break;
+                    }
+                  }
+                } else {
+                  group["items"].push({
+                    id: row.qiid,
+                    piid: row.piid,
+                    is_must_have: row.qi_is_must_have,
+                    quotas: [{
+                      id: row.quota_id,
+                      num: row.quota_num,
+                      unit: row.quota_unit
+                    }],
+                    prices: [{
+                      id: row.price_id,
+                      price: row.price_id,
+                      real_price: row.real_price
+                    }]
+                  });
+                  
+                }
+              }
+            } else {
+              quotations[row.qid]["quotation_groups"].push({
                 id: row.gid,
                 pid: row.pid,
                 is_must_have: row.g_is_must_have,
@@ -415,14 +457,50 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
                 }],
                 created_at: row.g_created_at,
                 updated_at: row.g_updated_at
-              }],
-              created_at: row.p_created_at,
-              updated_at: row.p_updated_at
+              });
+              
             }
-            quotations[row.qid] = quotation;
           }
+        } else {
+          const quotation = {
+            id: row.qid,
+            vid: row.vid,
+            state: row.q_state,
+            promotion: row.q_promotion,
+            quotation_groups: [{
+              id: row.gid,
+              pid: row.pid,
+              is_must_have: row.g_is_must_have,
+              items: [{
+                id: row.qiid,
+                piid: row.piid,
+                is_must_have: row.qi_is_must_have,
+                quotas: [{
+                  id: row.quota_id,
+                  num: row.quota_num,
+                  unit: row.quota_unit
+                }],
+                prices: [{
+                  id: row.price_id,
+                  price: row.price_id,
+                  real_price: row.real_price
+                }]
+              }],
+              created_at: row.g_created_at,
+              updated_at: row.g_updated_at
+            }],
+            created_at: row.p_created_at,
+            updated_at: row.p_updated_at
+          }
+          quotations[row.qid] = quotation;
+          
         }
-
+      }
+      resolve(quotations);
+    });
+  })
+    .then(quotations => {
+      return new Promise<void>((resolve, reject) => {
         const qids = Object.keys(quotations);
         const vidstmp = [];
         const pidstmp = [];
@@ -439,56 +517,54 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
         const vids = [... new Set(vidstmp)];
         const pids = [... new Set(pidstmp)];
         const piids = [... new Set(piidstmp)];
-
-        let pvs = vids.map(vid => rpc<Object>(domain, servermap["vehicle"], null, "getVehicleModelsByMake", vid));
-        async_serial_ignore<Object>(pvs, [], (vreps) => {
-          const vehicles = vreps.filter(v => v["code"] === 200).map(v => v["data"]);
-          for (const vehicle of vehicles) {
-            for (const qid of qids) {
-              const quotation = quotations[qid];
-              if (vehicle["id"] === quotation["vid"]) {
-                quotation["vehicle"] = vehicle;
-                break;
-              }
-            }
+        // let pvs = vids.map(vid => rpc<Object>(domain, servermap["vehicle"], null, "getModelAndVehicle", vid));
+        // async_serial_ignore<Object>(pvs, [], (vreps) => {
+        //   const vehicles = vreps.filter(v => v["code"] === 200).map(v => v["data"]);
+        //   for (const vehicle of vehicles) {
+        //     for (const qid of qids) {
+        //       const quotation = quotations[qid];
+        //       if (vehicle["id"] === quotation["vid"]) {
+        //         quotation["vehicle"] = vehicle;
+        //         break;
+        //       }
+        //     }
+        //   }
+        // let pps = pids.map(pid => rpc<Object>(domain, servermap["plan"], null, "getPlan", pid));
+        // async_serial_ignore<Object>(pps, [], (preps) => {
+        //   const plans = preps.filter(p => p["code"] === 200).map(q => q["data"]);
+        //   for (const qid of qids) {
+        //     const quotation = quotations[qid];
+        //     for (const quotation_group of quotation["quotation_groups"]) {
+        //       for (const plan of plans) {
+        //         if (plan["id"] === quotation_group.pid) {
+        //           quotation_group["plan"] = plan;
+        //           break;
+        //         }
+        //       }
+        //     }
+        //   }
+        const multi = cache.multi();
+        for (const qid of qids) {
+          const quotation = quotations[qid];
+          log.info("quotatin==========" + quotation);
+          const updated_at = (new Date(quotation["updated_at"])).getTime();
+          multi.hset("quotation-entities", qid, JSON.stringify(quotation));
+          if (quotation["state"] === 1) {
+            multi.zadd("unquotated-quotations", updated_at, qid);
+          } else if (quotation["state"] === 3) {
+            multi.zadd("quotated-quotations", updated_at, qid);
           }
-          let pps = pids.map(pid => rpc<Object>(domain, servermap["plan"], null, "getPlan", pid));
-          async_serial_ignore<Object>(pps, [], (preps) => {
-            const plans = preps.filter(p => p["code"] === 200).map(q => q["data"]);
-            for (const qid of qids) {
-              const quotation = quotations[qid];
-              for (const quotation_group of quotation["quotation_groups"]) {
-                for (const plan of plans) {
-                  if (plan["id"] === quotation_group.pid) {
-                    quotation_group["plan"] = plan;
-                    break;
-                  }
-                }
-              }
-            }
-            const multi = cache.multi();
-            for (const qid of qids) {
-              const quotation = quotations[qid];
-              const updated_at = quotation.updated_at.getTime();
-              multi.zadd("quotations", updated_at, qid);
-              if (quotation["state"] === 1) {
-                multi.hset("unquotated-quotations", qid, quotation);
-              } else if (quotation["state"] === 3) {
-                multi.hset("quotated_quotations", qid, quotation);
-              }
-              multi.exec((err: Error, _: any[]) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve();
-                }
-              });
-            }
-          });
+        }
+        multi.exec((err, replies) => {
+          if (err) {
+            log.info(err);
+          } else {
+            log.info("refresh end[" + replies + "]" );
+          }
+          done();
         });
-      }
+      });
     });
-  });
 });
 
 // processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string, uid: string) => {
