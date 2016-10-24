@@ -167,7 +167,7 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
       promotion: promotion,
       created_at: date,
     };
-    let v = rpc<Object>(domain, servermap["vehicle"], null, "getModelAndVehicle", vid);
+    let v = rpc<Object>(domain, servermap["vehicle"], null, "getVehicle", vid);
     v.then(vehicle => {
       quotation["vehicle"] = vehicle["data"]; let multi = cache.multi();
       multi.hset("quotations-entities", qid, JSON.stringify(quotation));
@@ -201,8 +201,102 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
   });
 });
 
-processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string, domain: any) => {
+processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string, VIN: string, domain: any) => {
   log.info("createQuotation");
+  function async_serial_ignore<T>(ps: Promise<T>[], acc: T[], errs: any, cb: (vals: T[], errs: any) => void) {
+    if (ps.length === 0) {
+      cb(acc, errs);
+    } else {
+      let p = ps.shift();
+      p.then(val => {
+        acc.push(val);
+        async_serial_ignore(ps, acc, errs, cb);
+      }).catch((e: Error) => {
+        errs.push(e);
+        async_serial_ignore(ps, acc, errs, cb);
+      });
+    }
+  }
+  function validQuotation(keys, acc, errs){
+     let multi = cache.multi();
+        for (let key of keys) {
+          multi.hget("quotation-entities", key);
+        }
+        multi.exec((err2, result) => {
+          if (err2) {
+            log.info(err2);
+          } else if (result) {
+            let quotations = result.filter(q => q["vehicle"]["VIN"] === VIN).map(q => {
+              q["state"] = 4;
+            });
+            if (quotations.length > 0) {
+              let multi2 = cache.multi();
+              for (let quotation of quotations) {
+                multi2.hset("quotation-entities", quotation["id"], quotation);
+              }
+              multi2.exec((err3, replies) => {
+                if (err3) {
+                  log.info(err3);
+                } else {
+                  log.info(true);
+                }
+              });
+            }
+          } else {
+            log.info("unquotaion entities is null");
+          }
+        });
+  }
+  let punquotation = new Promise<boolean>((resolve, reject) => {
+    cache.zrange("unquotated-quotations", 0, -1, function (err, keys) {
+      if (err) {
+        reject(err);
+      } else if (keys) {
+        let multi = cache.multi();
+        for (let key of keys) {
+          multi.hget("quotation-entities", key);
+        }
+        multi.exec((err2, result) => {
+          if (err2) {
+            reject(err2);
+          } else if (result) {
+            // let VIN = result.filter(q => checkEffectiveTime(o["start_at"]) === true).reduce((acc, o)
+            let quotations = result.filter(q => q["vehicle"]["VIN"] === VIN).map(q => {
+              q["state"] = 4;
+            });
+            if (quotations.length > 0) {
+              let multi2 = cache.multi();
+              for (let quotation of quotations) {
+                multi2.hset("quotation-entities", quotation["id"], quotation);
+              }
+              multi2.exec((err3, replies) => {
+                if (err3) {
+                  reject(err3);
+                } else {
+                  resolve(true);
+                }
+              });
+            }
+          } else {
+            reject("unquotaion entities is null");
+          }
+        });
+      } else {
+        reject("unquoted quotations is null");
+      }
+    })
+  });
+  let pquotation = new Promise<boolean>((resolve, reject) => {
+    cache.zrange("quotated-quotations", 0, -1, function (err, keys) {
+      if (err) {
+        reject(err);
+      } else if (keys) {
+       
+      } else {
+        reject("unquoted quotations is null");
+      }
+    })
+  });
   db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state], (err: Error) => {
     if (err) {
       log.error(err, "createQuotation query error");
@@ -214,7 +308,7 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
     } else {
       let now = new Date();
       let quotation = { id: qid, vid: vid, state: state, created_at: now };
-      let v = rpc<Object>(domain, servermap["vehicle"], null, "getModelAndVehicle", vid);
+      let v = rpc<Object>(domain, servermap["vehicle"], null, "getVehicle", vid);
       v.then(vehicle => {
         quotation["vehicle"] = vehicle["data"];
         let multi = cache.multi();
@@ -397,26 +491,33 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
           for (let group of quotations[row.qid]["quotation_groups"]) {
             if (group["id"] === row.gid) {
               for (let item of group["items"]) {
-                log.info("item" + item)
+                log.info("item" + item["id"]);
+
                 if (item["id"] === row.qiid) {
                   log.info("aaaaaaaaaaaaaaaaa");
+                  let foundPrice : boolean = false;
                   for (let price of item["prices"]) {
-                    log.info("price" +price);
-                    if (price["id"] !== row.price_id) {
-                      item["prices"].push({
-                        id: row.quota_id,
-                        num: row.quota_num,
-                        unit: row.quota_unit
-                      });
-                      item["quotas"].push({
-                        id: row.quota_id,
-                        num: row.quota_num,
-                        unit: row.quota_unit
-                      });
+                    log.info("price" + price);
+                    if (price["id"] === row.price_id) {
+                      foundPrice = true;
                       break;
                     }
                   }
+                  if (!foundPrice) {
+                    item["prices"].push({
+                      id: row.quota_id,
+                      num: row.quota_num,
+                      unit: row.quota_unit
+                    });
+                    item["quotas"].push({
+                      id: row.quota_id,
+                      num: row.quota_num,
+                      unit: row.quota_unit
+                    });
+                  }
                 } else {
+                  log.info(row.qiid);
+                  log.info("items========" + group["items"]);
                   group["items"].push({
                     id: row.qiid,
                     piid: row.piid,
@@ -432,7 +533,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
                       real_price: row.real_price
                     }]
                   });
-                  
+
                 }
               }
             } else {
@@ -458,7 +559,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
                 created_at: row.g_created_at,
                 updated_at: row.g_updated_at
               });
-              
+
             }
           }
         } else {
@@ -493,7 +594,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
             updated_at: row.p_updated_at
           }
           quotations[row.qid] = quotation;
-          
+
         }
       }
       resolve(quotations);
@@ -517,7 +618,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
         const vids = [... new Set(vidstmp)];
         const pids = [... new Set(pidstmp)];
         const piids = [... new Set(piidstmp)];
-        // let pvs = vids.map(vid => rpc<Object>(domain, servermap["vehicle"], null, "getModelAndVehicle", vid));
+        // let pvs = vids.map(vid => rpc<Object>(domain, servermap["vehicle"], null, "getVehicle", vid));
         // async_serial_ignore<Object>(pvs, [], (vreps) => {
         //   const vehicles = vreps.filter(v => v["code"] === 200).map(v => v["data"]);
         //   for (const vehicle of vehicles) {
@@ -559,7 +660,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
           if (err) {
             log.info(err);
           } else {
-            log.info("refresh end[" + replies + "]" );
+            log.info("refresh end[" + replies + "]");
           }
           done();
         });
