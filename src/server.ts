@@ -45,8 +45,26 @@ let svc = new Server(config);
 let permissions: Permission[] = [["mobile", true], ["admin", true]];
 
 // 创建报价
-svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string, VIN: string) => {
-  if (!verify([uuidVerifier("vid", vid), stringVerifier("VIN", VIN)], (errors: string[]) => {
+// svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string, VIN: string) => {
+//   if (!verify([uuidVerifier("vid", vid), stringVerifier("VIN", VIN)], (errors: string[]) => {
+//     log.info("arg not match");
+//     rep({
+//       code: 400,
+//       msg: errors.join("\n")
+//     });
+//   })) {
+//     return;
+//   }
+//   let qid = uuid.v1();
+//   let state: number = 1;
+//   let domain = ctx.domain;
+//   let args = [qid, vid, state, qid, VIN, domain];
+//   log.info("createQuotation " + JSON.stringify(args));
+//   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
+//   wait_for_response(ctx.cache, qid, rep);
+// });
+svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string) => {
+  if (!verify([uuidVerifier("vid", vid)], (errors: string[]) => {
     log.info("arg not match");
     rep({
       code: 400,
@@ -58,7 +76,7 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
   let qid = uuid.v1();
   let state: number = 1;
   let domain = ctx.domain;
-  let args = [qid, vid, state, qid, VIN, domain];
+  let args = [qid, vid, state, qid, domain];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
   wait_for_response(ctx.cache, qid, rep);

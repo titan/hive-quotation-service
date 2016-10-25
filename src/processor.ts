@@ -201,102 +201,101 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
   });
 });
 
-processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string, VIN: string, domain: any) => {
+processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneFunction, qid: string, vid: string, state: number, callback: string, domain: any) => {
   log.info("createQuotation");
-  function async_serial_ignore<T>(ps: Promise<T>[], acc: T[], errs: any, cb: (vals: T[], errs: any) => void) {
-    if (ps.length === 0) {
-      cb(acc, errs);
-    } else {
-      let p = ps.shift();
-      p.then(val => {
-        acc.push(val);
-        async_serial_ignore(ps, acc, errs, cb);
-      }).catch((e: Error) => {
-        errs.push(e);
-        async_serial_ignore(ps, acc, errs, cb);
-      });
-    }
-  }
-  function validQuotation(keys, acc, errs){
-     let multi = cache.multi();
-        for (let key of keys) {
-          multi.hget("quotation-entities", key);
-        }
-        multi.exec((err2, result) => {
-          if (err2) {
-            log.info(err2);
-          } else if (result) {
-            let quotations = result.filter(q => q["vehicle"]["VIN"] === VIN).map(q => {
-              q["state"] = 4;
-            });
-            if (quotations.length > 0) {
-              let multi2 = cache.multi();
-              for (let quotation of quotations) {
-                multi2.hset("quotation-entities", quotation["id"], quotation);
-              }
-              multi2.exec((err3, replies) => {
-                if (err3) {
-                  log.info(err3);
-                } else {
-                  log.info(true);
-                }
-              });
-            }
-          } else {
-            log.info("unquotaion entities is null");
-          }
-        });
-  }
-  let punquotation = new Promise<boolean>((resolve, reject) => {
-    cache.zrange("unquotated-quotations", 0, -1, function (err, keys) {
-      if (err) {
-        reject(err);
-      } else if (keys) {
-        let multi = cache.multi();
-        for (let key of keys) {
-          multi.hget("quotation-entities", key);
-        }
-        multi.exec((err2, result) => {
-          if (err2) {
-            reject(err2);
-          } else if (result) {
-            // let VIN = result.filter(q => checkEffectiveTime(o["start_at"]) === true).reduce((acc, o)
-            let quotations = result.filter(q => q["vehicle"]["VIN"] === VIN).map(q => {
-              q["state"] = 4;
-            });
-            if (quotations.length > 0) {
-              let multi2 = cache.multi();
-              for (let quotation of quotations) {
-                multi2.hset("quotation-entities", quotation["id"], quotation);
-              }
-              multi2.exec((err3, replies) => {
-                if (err3) {
-                  reject(err3);
-                } else {
-                  resolve(true);
-                }
-              });
-            }
-          } else {
-            reject("unquotaion entities is null");
-          }
-        });
-      } else {
-        reject("unquoted quotations is null");
-      }
-    })
-  });
-  let pquotation = new Promise<boolean>((resolve, reject) => {
-    cache.zrange("quotated-quotations", 0, -1, function (err, keys) {
-      if (err) {
-        reject(err);
-      } else if (keys) {
+  // function async_serial_ignore<T>(ps: Promise<T>[], acc: T[], errs: any, cb: (vals: T[], errs: any) => void) {
+  //   if (ps.length === 0) {
+  //     cb(acc, errs);
+  //   } else {
+  //     let p = ps.shift();
+  //     p.then(val => {
+  //       acc.push(val);
+  //       async_serial_ignore(ps, acc, errs, cb);
+  //     }).catch((e: Error) => {
+  //       errs.push(e);
+  //       async_serial_ignore(ps, acc, errs, cb);
+  //     });
+  //   }
+  // }
+  // function validQuotation(keys, acc, errs){
+  //    let multi = cache.multi();
+  //       for (let key of keys) {
+  //         multi.hget("quotation-entities", key);
+  //       }
+  //       multi.exec((err2, result) => {
+  //         if (err2) {
+  //           log.info(err2);
+  //         } else if (result) {
+  //           let quotations = result.filter(q => q["vehicle"]["VIN"] === VIN).map(q => {
+  //             q["state"] = 4;
+  //           });
+  //           if (quotations.length > 0) {
+  //             let multi2 = cache.multi();
+  //             for (let quotation of quotations) {
+  //               multi2.hset("quotation-entities", quotation["id"], quotation);
+  //             }
+  //             multi2.exec((err3, replies) => {
+  //               if (err3) {
+  //                 log.info(err3);
+  //               } else {
+  //                 log.info(true);
+  //               }
+  //             });
+  //           }
+  //         } else {
+  //           log.info("unquotaion entities is null");
+  //         }
+  //       });
+  // }
+  // let punquotation = new Promise<boolean>((resolve, reject) => {
+  //   cache.zrange("unquotated-quotations", 0, -1, function (err, keys) {
+  //     if (err) {
+  //       reject(err);
+  //     } else if (keys) {
+  //       let multi = cache.multi();
+  //       for (let key of keys) {
+  //         multi.hget("quotation-entities", key);
+  //       }
+  //       multi.exec((err2, result) => {
+  //         if (err2) {
+  //           reject(err2);
+  //         } else if (result) {
+  //           let quotations = result.filter(q => q["vehicle"]["VIN"] === VIN).map(q => {
+  //             q["state"] = 4;
+  //           });
+  //           if (quotations.length > 0) {
+  //             let multi2 = cache.multi();
+  //             for (let quotation of quotations) {
+  //               multi2.hset("quotation-entities", quotation["id"], quotation);
+  //             }
+  //             multi2.exec((err3, replies) => {
+  //               if (err3) {
+  //                 reject(err3);
+  //               } else {
+  //                 resolve(true);
+  //               }
+  //             });
+  //           }
+  //         } else {
+  //           reject("unquotaion entities is null");
+  //         }
+  //       });
+  //     } else {
+  //       reject("unquoted quotations is null");
+  //     }
+  //   })
+  // });
+  // let pquotation = new Promise<boolean>((resolve, reject) => {
+  //   cache.zrange("quotated-quotations", 0, -1, function (err, keys) {
+  //     if (err) {
+  //       reject(err);
+  //     } else if (keys) {
        
-      } else {
-        reject("unquoted quotations is null");
-      }
-    })
-  });
+  //     } else {
+  //       reject("unquoted quotations is null");
+  //     }
+  //   })
+  // });
   db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state], (err: Error) => {
     if (err) {
       log.error(err, "createQuotation query error");
@@ -497,7 +496,6 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
                   log.info("aaaaaaaaaaaaaaaaa");
                   let foundPrice : boolean = false;
                   for (let price of item["prices"]) {
-                    log.info("price" + price);
                     if (price["id"] === row.price_id) {
                       foundPrice = true;
                       break;
