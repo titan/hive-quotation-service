@@ -30,7 +30,7 @@ let log = bunyan.createLogger({
 });
 
 let list_key = "quotations";
-let entity_key = "quotations-entities";
+let entity_key = "quotation-entities";
 let quotated_key = "quotated-quotations";
 let unquotated_key = "unquotated-quotations";
 
@@ -63,8 +63,8 @@ let permissions: Permission[] = [["mobile", true], ["admin", true]];
 //   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
 //   wait_for_response(ctx.cache, qid, rep);
 // });
-svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string) => {
-  if (!verify([uuidVerifier("vid", vid)], (errors: string[]) => {
+svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string, VIN: string) => {
+  if (!verify([uuidVerifier("vid", vid), stringVerifier("VIN", VIN)], (errors: string[]) => {
     log.info("arg not match");
     rep({
       code: 400,
@@ -76,7 +76,7 @@ svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, v
   let qid = uuid.v1();
   let state: number = 1;
   let domain = ctx.domain;
-  let args = [qid, vid, state, qid, domain];
+  let args = [qid, vid, state, qid, domain, VIN];
   log.info("createQuotation " + JSON.stringify(args));
   ctx.msgqueue.send(msgpack.encode({ cmd: "createQuotation", args: args }));
   wait_for_response(ctx.cache, qid, rep);
@@ -114,11 +114,11 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
     return;
   }
   new Promise((resolve, reject) => {
-    ctx.cache.zrange(quotated_key, 0, -1, function (err3, result3) {
+    ctx.cache.zcount(quotated_key, "-inf", "+inf", function (err3, result3) {
       if (err3) {
         reject(err3)
       } else {
-        resolve(result3.length);
+        resolve(result3);
       }
     });
   }).then(len => {
@@ -153,7 +153,7 @@ svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
     return;
   }
   new Promise((resolve, reject) => {
-    ctx.cache.zrange(unquotated_key, 0, -1, function (err3, result3) {
+    ctx.cache.zcount(unquotated_key, "-inf", "+inf", function (err3, result3) {
       if (err3) {
         reject(err3)
       } else {
@@ -258,14 +258,14 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
 });
 
 // refresh
-svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
-  log.info("refresh");
-  ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
-  rep({
-    code: 200,
-    msg: "Okay"
-  });
-});
+// svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
+//   log.info("refresh");
+//   ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
+//   rep({
+//     code: 200,
+//     msg: "Okay"
+//   });
+// });
 
 // 新消息提醒 
 svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) => {
