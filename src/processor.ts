@@ -212,7 +212,7 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
         msg: err
       }));
     } else if (result) {
-      cache.hget("quotaion-entities", result, function (err2, result2) {
+      cache.hget("quotation-entities", result, function (err2, result2) {
         if (err2) {
           log.info(err2);
           cache.setex(callback, 30, JSON.stringify({
@@ -222,7 +222,8 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
         } else if (result2) {
           let quotation = JSON.parse(result2);
           quotation["state"] = 4;
-          cache.hset("quotation-entities", qid, JSON.stringify(quotation), function (err3, result3) {
+          log.info(JSON.stringify(quotation) + "===========" + quotation["id"]);
+          cache.hset("quotation-entities", quotation["id"], JSON.stringify(quotation), function (err3, result3) {
             if (err3) {
               log.info(err3);
               cache.setex(callback, 30, JSON.stringify({
@@ -230,6 +231,7 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
                 msg: err3
               }));
             } else {
+              log.info("hset quotation " + result3);
               dbquery();
             }
           });
@@ -377,6 +379,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
         }
       } else {
         const quotation = {};
+        log.info("row.q_state " + row.q_state );
         if (row.q_state === 1) {
           quotation["id"] = row.qid;
           quotation["vid"] = row.vid;

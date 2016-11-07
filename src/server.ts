@@ -65,7 +65,7 @@ let permissions: Permission[] = [["mobile", true], ["admin", true]];
 // });
 svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string, VIN: string) => {
   if (!verify([uuidVerifier("vid", vid), stringVerifier("VIN", VIN)], (errors: string[]) => {
-    log.info("arg not match");
+    log.info("arg not match " + errors);
     rep({
       code: 400,
       msg: errors.join("\n")
@@ -258,14 +258,14 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
 });
 
 // refresh
-// svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
-//   log.info("refresh");
-//   ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
-//   rep({
-//     code: 200,
-//     msg: "Okay"
-//   });
-// });
+svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info("refresh");
+  ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
+  rep({
+    code: 200,
+    msg: "Okay"
+  });
+});
 
 // 新消息提醒 
 svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) => {
@@ -303,7 +303,7 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
     });
   });
   let order = new Promise<Object[]>((resolve, reject) => {
-    ctx.cache.zrange("newOrders", 0, -1, function (err, orderkeys) {
+    ctx.cache.zrange("new-orders-id", 0, -1, function (err, orderkeys) {
       if (orderkeys) {
         log.info(orderkeys + "------------------}");
         resolve(orderkeys.length);
@@ -316,7 +316,7 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
     });
   });
   let pay = new Promise<Object[]>((resolve, reject) => {
-    ctx.cache.zrange("newPays", 0, -1, function (err, paykeys) {
+    ctx.cache.zrange("new-pays-id", 0, -1, function (err, paykeys) {
       if (paykeys) {
         log.info(paykeys + "------------------}");
         resolve(paykeys.length);
