@@ -297,6 +297,7 @@ interface QuotationCtx {
 
 processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction, domain: string) => {
   log.info("quotation refresh begin");
+  // (ps: Promise<T>[], acc: T[], errs: any, cb: (vals: T[], errs: any) => void)
   function datas(rows) {
     log.info("data begin");
     const quotations = {};
@@ -306,54 +307,85 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
     const quotation_prices = [];
     for (const row of rows) {
       if (quotations.hasOwnProperty(row.qid)) {
-        for (let group of quotations[row.qid]["quotation_groups"]) {
-          if (group["id"] === row.gid) {
-            // log.info("groupitme=======" + group["items"]);
-            for (let item of group["items"]) {
-              // log.info("item" + item["id"] + "===========" + row.qiid);
-              if (item["id"] === row.qiid) {
-                let foundPrice: boolean = false;
-                for (let price of item["prices"]) {
-                  if (price["id"] === row.price_id) {
-                    foundPrice = true;
-                    break;
-                  }
-                }
-                if (!foundPrice) {
-                  item["prices"].push({
-                    id: row.quota_id,
-                    num: row.quota_num,
-                    unit: row.quota_unit
-                  });
-                  item["quotas"].push({
-                    id: row.quota_id,
-                    num: row.quota_num,
-                    unit: row.quota_unit
-                  });
-                }
-                break;
-              } else {
-                //log.info("items========" + group["items"]);
-                group["items"].push({
-                  id: row.qiid,
-                  piid: row.piid,
-                  is_must_have: row.qi_is_must_have,
-                  quotas: [{
-                    id: row.quota_id,
-                    num: row.quota_num,
-                    unit: row.quota_unit
-                  }],
-                  prices: [{
-                    id: row.price_id,
-                    price: row.price_id,
-                    real_price: row.real_price
-                  }]
-                });
-                break;
-              }
-            }
-          } else {
-            quotations[row.qid]["quotation_groups"].push({
+        // log.info("row.qid" + row.qid);
+        // for (let group of quotations[row.qid]["quotation_groups"]) {
+        //   if (group["id"] === row.gid) {
+        //     // log.info("groupitme=======" + group["items"]);
+        //     for (let item of group["items"]) {
+        //       // log.info("item" + item["id"] + "===========" + row.qiid);
+        //       if (item["id"] === row.qiid) {
+        //         let foundPrice: boolean = false;
+        //         for (let price of item["prices"]) {
+        //           if (price["id"] === row.price_id) {
+        //             foundPrice = true;
+        //             break;
+        //           }
+        //         }
+        //         if (!foundPrice) {
+        //           item["prices"].push({
+        //             id: row.quota_id,
+        //             num: row.quota_num,
+        //             unit: row.quota_unit
+        //           });
+        //           item["quotas"].push({
+        //             id: row.quota_id,
+        //             num: row.quota_num,
+        //             unit: row.quota_unit
+        //           });
+        //         }
+        //         break;
+        //       } else {
+        //         //log.info("items========" + group["items"]);
+        //         group["items"].push({
+        //           id: row.qiid,
+        //           piid: row.piid,
+        //           is_must_have: row.qi_is_must_have,
+        //           quotas: [{
+        //             id: row.quota_id,
+        //             num: row.quota_num,
+        //             unit: row.quota_unit
+        //           }],
+        //           prices: [{
+        //             id: row.price_id,
+        //             price: row.price_id,
+        //             real_price: row.real_price
+        //           }]
+        //         });
+        //         break;
+        //       }
+        //     }
+        //   } else {
+        //     quotations[row.qid]["quotation_groups"].push({
+        //       id: row.gid,
+        //       pid: row.pid,
+        //       is_must_have: row.g_is_must_have,
+        //       items: [{
+        //         id: row.qiid,
+        //         piid: row.piid,
+        //         is_must_have: row.qi_is_must_have,
+        //         quotas: [{
+        //           id: row.quota_id,
+        //           num: row.quota_num,
+        //           unit: row.quota_unit
+        //         }],
+        //         prices: [{
+        //           id: row.price_id,
+        //           price: row.price_id,
+        //           real_price: row.real_price
+        //         }]
+        //       }],
+        //       created_at: row.g_created_at,
+        //       updated_at: row.g_updated_at
+        //     });
+        //   }
+        // }
+      } else {
+        const quotation = {
+            id: row.qid,
+            vid: row.vid,
+            state: row.q_state,
+            promotion: row.q_promotion,
+            quotation_groups: [{
               id: row.gid,
               pid: row.pid,
               is_must_have: row.g_is_must_have,
@@ -374,48 +406,11 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
               }],
               created_at: row.g_created_at,
               updated_at: row.g_updated_at
-            });
-          }
-        }
-      } else {
-        const quotation = {};
-        log.info("row.q_state " + row.q_state );
-        if (row.q_state === 1) {
-          quotation["id"] = row.qid;
-          quotation["vid"] = row.vid;
-          quotation["state"] = row.q_state;
-          quotation["promotion"] = row.q_promotion;
-          quotation["created_at"] = row.q_created_at;
-          quotation["updated_at"] = row.q_updated_at;
-        } else {
-          quotation["id"] = row.qid;
-          quotation["vid"] = row.vid;
-          quotation["state"] = row.q_state;
-          quotation["promotion"] = row.q_promotion;
-          quotation["created_at"] = row.q_created_at;
-          quotation["updated_at"] = row.q_updated_at;
-          quotation["quotation_groups"] = [{
-            id: row.gid,
-            pid: row.pid,
-            is_must_have: row.g_is_must_have,
-            items: [{
-              id: row.qiid,
-              piid: row.piid,
-              is_must_have: row.qi_is_must_have,
-              quotas: [{
-                id: row.quota_id,
-                num: row.quota_num,
-                unit: row.quota_unit ? row.quota_unit.trim() : ""
-              }],
-              prices: [{
-                id: row.price_id,
-                price: row.price_id,
-                real_price: row.real_price
-              }]
             }],
-          }]
-        }
-        quotations[row.qid] = quotation;
+            created_at: row.q_created_at,
+            updated_at: row.q_updated_at
+          }
+          quotations[row.qid] = quotation;
       }
     }
     log.info("data end");

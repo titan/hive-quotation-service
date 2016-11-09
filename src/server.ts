@@ -103,9 +103,10 @@ svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction
 
 
 // 获取已报价
-svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
+svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number, maxScore: number, nowScore: number) => {
   log.info("getQuotatedQuotations");
-  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
+  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit), numberVerifier("maxScore", maxScore), numberVerifier("nowScore", nowScore)], (errors: string[]) => {
+    log.info(errors);
     rep({
       code: 400,
       msg: errors.join("\n")
@@ -113,38 +114,40 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
   })) {
     return;
   }
-  new Promise((resolve, reject) => {
-    ctx.cache.zcount(quotated_key, "-inf", "+inf", function (err3, result3) {
-      if (err3) {
-        reject(err3)
-      } else {
-        resolve(result3);
+  ctx.cache.zrevrangebyscore(quotated_key, maxScore, 0, function (err, result) {
+    if (err) {
+      rep({ code: 500, msg: err.message });
+    } else if (result) {
+      let ids: Array<string> = result.map(e => e);
+      let multi = ctx.cache.multi();
+      for (let i = start; i <= limit; i++) {
+        multi.hget(entity_key, ids[i]);
       }
-    });
-  }).then(len => {
-    ctx.cache.zrevrange(quotated_key, start, limit, function (err, result) {
-      if (err) {
-        rep({ code: 500, msg: err.message });
-      } else {
-        let multi = ctx.cache.multi();
-        for (let id of result) {
-          multi.hget(entity_key, id);
+      multi.exec((err1, result2) => {
+        if (err) {
+          rep({ code: 500, msg: err1.message });
+        } else {
+          ctx.cache.zrevrangebyscore(quotated_key, nowScore, maxScore, function (err2, result3) {
+            if (err2) {
+              rep({ code: 500, msg: err2.message });
+            } else if (result3) {
+              rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: result.length, newUnquotated: result3.length });
+            } else {
+              rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: result.length, newUnquotated: 0 });
+            }
+          });
         }
-        multi.exec((err1, result2) => {
-          if (err) {
-            rep({ code: 500, msg: err1.message });
-          } else {
-            rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: len });
-          }
-        });
-      }
-    });
+      });
+    } else {
+      rep({ code: 404, msg: "Not found quotated quotation" });
+    }
   });
 });
 // 获取未报价
-svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
+svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number, maxScore: number, nowScore: number) => {
   log.info("getUnquotatedQuotations");
-  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
+  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit), numberVerifier("maxScore", maxScore), numberVerifier("nowScore", nowScore)], (errors: string[]) => {
+    log.info(errors);
     rep({
       code: 400,
       msg: errors.join("\n")
@@ -152,33 +155,34 @@ svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
   })) {
     return;
   }
-  new Promise((resolve, reject) => {
-    ctx.cache.zcount(unquotated_key, "-inf", "+inf", function (err3, result3) {
-      if (err3) {
-        reject(err3)
-      } else {
-        resolve(result3.length);
+  ctx.cache.zrevrangebyscore(unquotated_key, maxScore, 0, function (err, result) {
+    if (err) {
+      rep({ code: 500, msg: err.message });
+    } else if (result) {
+      let ids: Array<string> = result.map(e => e);
+      let multi = ctx.cache.multi();
+      for (let i = start; i <= limit; i++) {
+        multi.hget(entity_key, ids[i]);
       }
-    });
-  }).then(len => {
-    ctx.cache.zrevrange(unquotated_key, start, limit, function (err, result) {
-      if (err) {
-        rep({ code: 500, msg: err.message });
-      } else {
-        let multi = ctx.cache.multi();
-        for (let id of result) {
-          multi.hget(entity_key, id);
+      multi.exec((err1, result2) => {
+        if (err) {
+          rep({ code: 500, msg: err1.message });
+        } else {
+          ctx.cache.zrevrangebyscore(unquotated_key, nowScore, maxScore, function (err2, result3) {
+            if (err2) {
+              rep({ code: 500, msg: err2.message });
+            } else if (result3) {
+              rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: result.length, newUnquotated: result3.length });
+            } else {
+              rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: result.length, newUnquotated: 0 });
+            }
+          });
         }
-        multi.exec((err2, result2) => {
-          if (err) {
-            rep({ code: 500, msg: err2.message });
-          } else {
-            rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: len });
-          }
-        });
-      }
-    });
-  })
+      });
+    } else {
+      rep({ code: 404, msg: "Not found quotated quotation" });
+    }
+  });
 });
 
 // 获取所有报价
