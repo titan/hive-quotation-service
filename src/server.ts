@@ -114,20 +114,54 @@ function checkArgs(arg, sarg) {
   }
 }
 
+function checkDate(datetime) {
+  if (datetime === null || datetime == undefined || datetime === '') {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function filterDate(created_at, begintime, endtime) {
+  let arg = (new Date(created_at)).getTime();
+  if (checkDate(begintime) && checkDate(endtime)) {
+    let sbegintime = begintime.getTime();
+    let sendtime = endtime.getTime();
+    if (arg>= sbegintime && arg<= sendtime) {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (checkDate(begintime)) {
+    let sbegintime = begintime.getTime();
+    if (arg >= sbegintime) {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (checkDate(endtime)) {
+    let sendtime = endtime.getTime();
+    if (arg <= sendtime) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return true;
+  }
+}
 function quotation_filter_recursive(cache, entity_key, key, keys, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, acc, cb) {
   cache.hget(entity_key, key, function (err, result) {
     let quotation = JSON.parse(result);
-    // log.info(result);
-    log.info(quotation["vehicle"])
-    if (quotation["vehicle"] != null && quotation["vehicle"] != undefined && quotation["vehicle"] != '' && checkArgs(quotation["vehicle"]["owner"]["name"], sownername) && checkArgs(quotation["vehicle"]["owner"]["phone"], sphone) && checkArgs(quotation["vehicle"]["license_no"], slicense_no) && checkArgs(quotation["state"], sstate)) {
-      if (checkArgs(quotation["vehicle"]["vin_code"], svehicleid)) {
-        acc.push(quotation);
+    if(quotation["vehicle"]){
+      if (checkArgs(quotation["vehicle"]["owner"]["name"], sownername) && checkArgs(quotation["vehicle"]["owner"]["phone"], sphone) && checkArgs(quotation["vehicle"]["license_no"], slicense_no) && checkArgs(quotation["state"], sstate)) {
+        if (checkArgs(quotation["vehicle"]["vin_code"], svehicleid) && filterDate(quotation["created_at"], sbegintime, sendtime)) {
+          acc.push(quotation);
+        }
       }
-    } 
-
-    log.info(acc.length + "======" + len);
-    if (acc.length === len) {
-      cb(acc);
+    }
+    if (acc.length === len || cursor === keys.length - 1) {
+      cb(acc, cursor);
     } else {
       cursor++;
       key = keys[cursor];
@@ -152,17 +186,17 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
     if (err) {
       rep({ code: 500, msg: err.message });
     } else if (result) {
-      let cursor = 0;
+      let cursor = start;
       let len = limit - start + 1;
       if (result.length - 1 < limit) {
         len = result.length;
       }
-      quotation_filter_recursive(ctx.cache, entity_key, result[0], result, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, [], (quotations) => {
+      quotation_filter_recursive(ctx.cache, entity_key, result[cursor], result, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, [], (quotations, cursor) => {
         ctx.cache.zrevrangebyscore(quotated_key, nowScore, maxScore, function (err2, result3) {
           if (err2) {
             rep({ code: 500, msg: err2.message });
           } else if (result3) {
-            rep({ code: 200, data: quotations, len: result.length, newQuotated: result3.length });
+            rep({ code: 200, data: quotations, len: result.length, newQuotated: result3.length, cursor: cursor });
           } else {
             rep({ code: 200, data: quotations, len: result.length, newQuotated: 0 });
           }
@@ -189,17 +223,17 @@ svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
     if (err) {
       rep({ code: 500, msg: err.message });
     } else if (result) {
-      let cursor = 0;
+      let cursor = start;
       let len = limit - start + 1;
       if (result.length - 1 < limit) {
         len = result.length;
       }
-      quotation_filter_recursive(ctx.cache, entity_key, result[0], result, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, [], (quotations) => {
+      quotation_filter_recursive(ctx.cache, entity_key, result[cursor], result, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, [], (quotations, cursor) => {
         ctx.cache.zrevrangebyscore(unquotated_key, nowScore, maxScore, function (err2, result3) {
           if (err2) {
             rep({ code: 500, msg: err2.message });
           } else if (result3) {
-            rep({ code: 200, data: quotations, len: result.length, newQuotated: result3.length });
+            rep({ code: 200, data: quotations, len: result.length, newQuotated: result3.length, cursor: cursor });
           } else {
             rep({ code: 200, data: quotations, len: result.length, newQuotated: 0 });
           }
