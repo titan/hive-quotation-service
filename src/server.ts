@@ -65,7 +65,7 @@ let permissions: Permission[] = [["mobile", true], ["admin", true]];
 // });
 svc.call("createQuotation", permissions, (ctx: Context, rep: ResponseFunction, vid: string, VIN: string) => {
   if (!verify([uuidVerifier("vid", vid), stringVerifier("VIN", VIN)], (errors: string[]) => {
-    log.info("arg not match");
+    log.info("arg not match " + errors);
     rep({
       code: 400,
       msg: errors.join("\n")
@@ -102,10 +102,79 @@ svc.call("addQuotationGroups", permissions, (ctx: Context, rep: ResponseFunction
 });
 
 
+function checkArgs(arg, sarg) {
+  if (sarg === null || sarg === undefined || sarg === '') {
+    return true;
+  } else {
+    if (arg === sarg) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+function checkDate(datetime) {
+  if (datetime === null || datetime == undefined || datetime === '') {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function filterDate(created_at, begintime, endtime) {
+  let arg = (new Date(created_at)).getTime();
+  if (checkDate(begintime) && checkDate(endtime)) {
+    let sbegintime = begintime.getTime();
+    let sendtime = endtime.getTime();
+    if (arg>= sbegintime && arg<= sendtime) {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (checkDate(begintime)) {
+    let sbegintime = begintime.getTime();
+    if (arg >= sbegintime) {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (checkDate(endtime)) {
+    let sendtime = endtime.getTime();
+    if (arg <= sendtime) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return true;
+  }
+}
+function quotation_filter_recursive(cache, entity_key, key, keys, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, acc, cb) {
+  cache.hget(entity_key, key, function (err, result) {
+    let quotation = JSON.parse(result);
+    if(quotation["vehicle"]){
+      if (checkArgs(quotation["vehicle"]["owner"]["name"], sownername) && checkArgs(quotation["vehicle"]["owner"]["phone"], sphone) && checkArgs(quotation["vehicle"]["license_no"], slicense_no) && checkArgs(quotation["state"], sstate)) {
+        if (checkArgs(quotation["vehicle"]["vin_code"], svehicleid) && filterDate(quotation["created_at"], sbegintime, sendtime)) {
+          acc.push(quotation);
+        }
+      }
+    }
+    if (acc.length === len || cursor === keys.length - 1) {
+      cb(acc, cursor);
+    } else {
+      cursor++;
+      key = keys[cursor];
+      quotation_filter_recursive(cache, entity_key, key, keys, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, acc, cb);
+    }
+  });
+}
+
 // 获取已报价
-svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
+svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number, maxScore: number, nowScore: number, svehicleid: string, sownername: string, sphone: string, slicense_no: string, sbegintime: string, sendtime: string, sstate: string) => {
   log.info("getQuotatedQuotations");
-  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
+  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit), numberVerifier("maxScore", maxScore), numberVerifier("nowScore", nowScore)], (errors: string[]) => {
+    log.error(errors);
     rep({
       code: 400,
       msg: errors.join("\n")
@@ -113,38 +182,36 @@ svc.call("getQuotatedQuotations", permissions, (ctx: Context, rep: ResponseFunct
   })) {
     return;
   }
-  new Promise((resolve, reject) => {
-    ctx.cache.zcount(quotated_key, "-inf", "+inf", function (err3, result3) {
-      if (err3) {
-        reject(err3)
-      } else {
-        resolve(result3);
+  ctx.cache.zrevrangebyscore(quotated_key, maxScore, 0, function (err, result) {
+    if (err) {
+      rep({ code: 500, msg: err.message });
+    } else if (result) {
+      let cursor = start;
+      let len = limit - start + 1;
+      if (result.length - 1 < limit) {
+        len = result.length;
       }
-    });
-  }).then(len => {
-    ctx.cache.zrevrange(quotated_key, start, limit, function (err, result) {
-      if (err) {
-        rep({ code: 500, msg: err.message });
-      } else {
-        let multi = ctx.cache.multi();
-        for (let id of result) {
-          multi.hget(entity_key, id);
-        }
-        multi.exec((err1, result2) => {
-          if (err) {
-            rep({ code: 500, msg: err1.message });
+      quotation_filter_recursive(ctx.cache, entity_key, result[cursor], result, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, [], (quotations, cursor) => {
+        ctx.cache.zrevrangebyscore(quotated_key, nowScore, maxScore, function (err2, result3) {
+          if (err2) {
+            rep({ code: 500, msg: err2.message });
+          } else if (result3) {
+            rep({ code: 200, data: quotations, len: result.length, newQuotated: result3.length, cursor: cursor });
           } else {
-            rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: len });
+            rep({ code: 200, data: quotations, len: result.length, newQuotated: 0 });
           }
         });
-      }
-    });
+      });
+    } else {
+      rep({ code: 404, msg: "Not found quotated quotation" });
+    }
   });
 });
 // 获取未报价
-svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number) => {
+svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFunction, start: number, limit: number, maxScore: number, nowScore: number, svehicleid: string, sownername: string, sphone: string, slicense_no: string, sbegintime: string, sendtime: string, sstate: string) => {
   log.info("getUnquotatedQuotations");
-  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit)], (errors: string[]) => {
+  if (!verify([numberVerifier("start", start), numberVerifier("limit", limit), numberVerifier("maxScore", maxScore), numberVerifier("nowScore", nowScore)], (errors: string[]) => {
+    log.error(errors);
     rep({
       code: 400,
       msg: errors.join("\n")
@@ -152,33 +219,30 @@ svc.call("getUnquotatedQuotations", permissions, (ctx: Context, rep: ResponseFun
   })) {
     return;
   }
-  new Promise((resolve, reject) => {
-    ctx.cache.zcount(unquotated_key, "-inf", "+inf", function (err3, result3) {
-      if (err3) {
-        reject(err3)
-      } else {
-        resolve(result3.length);
+  ctx.cache.zrevrangebyscore(unquotated_key, maxScore, 0, function (err, result) {
+    if (err) {
+      rep({ code: 500, msg: err.message });
+    } else if (result) {
+      let cursor = start;
+      let len = limit - start + 1;
+      if (result.length - 1 < limit) {
+        len = result.length;
       }
-    });
-  }).then(len => {
-    ctx.cache.zrevrange(unquotated_key, start, limit, function (err, result) {
-      if (err) {
-        rep({ code: 500, msg: err.message });
-      } else {
-        let multi = ctx.cache.multi();
-        for (let id of result) {
-          multi.hget(entity_key, id);
-        }
-        multi.exec((err2, result2) => {
-          if (err) {
+      quotation_filter_recursive(ctx.cache, entity_key, result[cursor], result, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, [], (quotations, cursor) => {
+        ctx.cache.zrevrangebyscore(unquotated_key, nowScore, maxScore, function (err2, result3) {
+          if (err2) {
             rep({ code: 500, msg: err2.message });
+          } else if (result3) {
+            rep({ code: 200, data: quotations, len: result.length, newQuotated: result3.length, cursor: cursor });
           } else {
-            rep({ code: 200, data: result2.map(e => JSON.parse(e)), len: len });
+            rep({ code: 200, data: quotations, len: result.length, newQuotated: 0 });
           }
         });
-      }
-    });
-  })
+      });
+    } else {
+      rep({ code: 404, msg: "Not found quotated quotation" });
+    }
+  });
 });
 
 // 获取所有报价
@@ -258,14 +322,14 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
 });
 
 // refresh
-// svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
-//   log.info("refresh");
-//   ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
-//   rep({
-//     code: 200,
-//     msg: "Okay"
-//   });
-// });
+svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
+  log.info("refresh");
+  // ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
+  rep({
+    code: 200,
+    msg: "Okay"
+  });
+});
 
 // 新消息提醒 
 svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) => {
@@ -303,7 +367,7 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
     });
   });
   let order = new Promise<Object[]>((resolve, reject) => {
-    ctx.cache.zrange("newOrders", 0, -1, function (err, orderkeys) {
+    ctx.cache.zrange("new-orders-id", 0, -1, function (err, orderkeys) {
       if (orderkeys) {
         log.info(orderkeys + "------------------}");
         resolve(orderkeys.length);
@@ -316,7 +380,7 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
     });
   });
   let pay = new Promise<Object[]>((resolve, reject) => {
-    ctx.cache.zrange("newPays", 0, -1, function (err, paykeys) {
+    ctx.cache.zrange("new-pays-id", 0, -1, function (err, paykeys) {
       if (paykeys) {
         log.info(paykeys + "------------------}");
         resolve(paykeys.length);
