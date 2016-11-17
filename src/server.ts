@@ -127,7 +127,7 @@ function filterDate(created_at, begintime, endtime) {
   if (checkDate(begintime) && checkDate(endtime)) {
     let sbegintime = begintime.getTime();
     let sendtime = endtime.getTime();
-    if (arg>= sbegintime && arg<= sendtime) {
+    if (arg >= sbegintime && arg <= sendtime) {
       return true;
     } else {
       return false;
@@ -153,7 +153,7 @@ function filterDate(created_at, begintime, endtime) {
 function quotation_filter_recursive(cache, entity_key, key, keys, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, acc, cb) {
   cache.hget(entity_key, key, function (err, result) {
     let quotation = JSON.parse(result);
-    if(quotation["vehicle"]){
+    if (quotation["vehicle"]) {
       if (checkArgs(quotation["vehicle"]["owner"]["name"], sownername) && checkArgs(quotation["vehicle"]["owner"]["phone"], sphone) && checkArgs(quotation["vehicle"]["license_no"], slicense_no) && checkArgs(quotation["state"], sstate)) {
         if (checkArgs(quotation["vehicle"]["vin_code"], svehicleid) && filterDate(quotation["created_at"], sbegintime, sendtime)) {
           acc.push(quotation);
@@ -324,7 +324,7 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
 // refresh
 svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info("refresh");
-  // ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
+  ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
   rep({
     code: 200,
     msg: "Okay"
@@ -352,12 +352,24 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
       });
     }
   }
-  let quotation = new Promise<Object[]>((resolve, reject) => {
+  let quotation = new Promise<number>((resolve, reject) => {
     ctx.cache.zrange(unquotated_key, 0, -1, function (err, quotationkeys) {
       if (quotationkeys) {
-        log.info(quotationkeys + "------------------}");
-        let len = quotationkeys.length;
-        resolve(len);
+        let multi = ctx.cache.multi();
+        for (let key of quotationkeys) {
+          multi.hget(entity_key, key);
+        }
+        multi.exec((err2, result2) => {
+          if (result2) {
+            let quotations = result2.filter(e => JSON.parse(e)["state"] !== 4).map(e => JSON.parse(e)["id"]);
+            let len = quotations.length;
+            resolve(len);
+          } else if (err2) {
+            reject(err2);
+          } else {
+            reject("quotation is null");
+          }
+        });
       } else if (err) {
         log.info("quotation err " + err);
         reject(err);
@@ -366,10 +378,9 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
       }
     });
   });
-  let order = new Promise<Object[]>((resolve, reject) => {
+  let order = new Promise<number>((resolve, reject) => {
     ctx.cache.zrange("new-orders-id", 0, -1, function (err, orderkeys) {
       if (orderkeys) {
-        log.info(orderkeys + "------------------}");
         resolve(orderkeys.length);
       } else if (err) {
         log.info("order err " + err);
@@ -379,10 +390,9 @@ svc.call("newMessageNotify", permissions, (ctx: Context, rep: ResponseFunction) 
       }
     });
   });
-  let pay = new Promise<Object[]>((resolve, reject) => {
+  let pay = new Promise<number>((resolve, reject) => {
     ctx.cache.zrange("new-pays-id", 0, -1, function (err, paykeys) {
       if (paykeys) {
-        log.info(paykeys + "------------------}");
         resolve(paykeys.length);
       } else if (err) {
         log.info("pay err " + err);
