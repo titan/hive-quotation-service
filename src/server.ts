@@ -324,11 +324,9 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
 // refresh
 svc.call("refresh", permissions, (ctx: Context, rep: ResponseFunction) => {
   log.info("refresh");
-  ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain] }));
-  rep({
-    code: 200,
-    msg: "Okay"
-  });
+  let cbflag = uuid.v1();
+  ctx.msgqueue.send(msgpack.encode({ cmd: "refresh", args: [ctx.domain, cbflag] }));
+  wait_for_response(ctx.cache, cbflag, rep)
 });
 
 // 新消息提醒 
