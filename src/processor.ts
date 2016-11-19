@@ -8,6 +8,7 @@ import * as uuid from "node-uuid";
 import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
 import * as http from "http";
+import { CustomerMessage } from "recommend-library";
 
 let log = bunyan.createLogger({
   name: "quotation-processor",
@@ -169,26 +170,42 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
     };
     let v = rpc<Object>(domain, servermap["vehicle"], null, "getVehicle", vid);
     v.then(vehicle => {
-      quotation["vehicle"] = vehicle["data"];
-      let multi = cache.multi();
-      multi.hset("quotation-entities", qid, JSON.stringify(quotation));
-      multi.sadd("quotations", qid);
-      multi.zrem("unquotated-quotations", qid);
-      multi.zadd("quotated-quotations", date.getTime(), qid);
-      multi.exec((err, replies) => {
-        if (err) {
-          log.error(err);
-          cache.setex(callback, 30, JSON.stringify({
-            code: 500,
-            msg: err.message
-          }));
-        } else {
-          cache.setex(callback, 30, JSON.stringify({
-            code: 200,
-            data: qid
-          }));
+      let p = rpc<Object>(domain, servermap["profile"], null, "getUserByUserId", vehicle["data"]["user_id"]);
+      p.then(profile => {
+        let multi = cache.multi();
+        if (profile["code"] === 200 && profile["data"]["ticket"]) {
+          let cm: CustomerMessage = {
+            type: 2,
+            ticket: profile["data"]["ticket"],
+            cid: vehicle["data"]["user_id"],
+            name: profile["data"]["nickname"],
+            qid: qid,
+            occurredAt: date
+          };
+          multi.lpush("agent-customer-msg-queue", JSON.stringify(cm));
         }
-        done();
+        quotation["vehicle"] = vehicle["data"];
+        multi.hset("quotation-entities", qid, JSON.stringify(quotation));
+        multi.sadd("quotations", qid);
+        multi.zrem("unquotated-quotations", qid);
+        multi.zadd("quotated-quotations", date.getTime(), qid);
+        multi.exec((err, replies) => {
+          if (err) {
+            log.error(err);
+            cache.setex(callback, 30, JSON.stringify({
+              code: 500,
+              msg: err.message
+            }));
+            done();
+          } else {
+            cache.setex(callback, 30, JSON.stringify({
+              code: 200,
+              data: qid
+            }));
+            done();
+          }
+          
+        });
       });
     });
   }, (e: Error) => {
@@ -260,25 +277,39 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
           let quotation = { id: qid, vid: vid, state: state, created_at: now };
           let v = rpc<Object>(domain, servermap["vehicle"], null, "getVehicle", vid);
           v.then(vehicle => {
-            quotation["vehicle"] = vehicle["data"];
-            let multi = cache.multi();
-            multi.hset("VIN-quotationID", VIN, qid);
-            multi.hset("quotation-entities", qid, JSON.stringify(quotation));
-            multi.zadd("unquotated-quotations", now.getTime(), qid);
-            multi.exec((err2, replies) => {
-              if (err2) {
-                log.error(err2, "createQuotation error");
-                cache.setex(callback, 30, JSON.stringify({
-                  code: 500,
-                  msg: err2.message
-                }));
-              } else {
-                cache.setex(callback, 30, JSON.stringify({
-                  code: 200,
-                  data: qid
-                }));
+            let p = rpc<Object>(domain, servermap["profile"], null, "getUserByUserId", vehicle["data"]["user_id"]);
+            p.then(profile => {
+              let multi = cache.multi();
+              if (profile["code"] === 200 && profile["data"]["ticket"]) {
+                let cm: CustomerMessage = {
+                  type: 1,
+                  ticket: profile["data"]["ticket"],
+                  cid: vehicle["data"]["user_id"],
+                  name: profile["data"]["nickname"],
+                  qid: qid,
+                  occurredAt: now
+                };
+                multi.lpush("agent-customer-msg-queue", JSON.stringify(cm));
               }
-              done();
+              quotation["vehicle"] = vehicle["data"];
+              multi.hset("VIN-quotationID", VIN, qid);
+              multi.hset("quotation-entities", qid, JSON.stringify(quotation));
+              multi.zadd("unquotated-quotations", now.getTime(), qid);
+              multi.exec((err2, replies) => {
+                if (err2) {
+                  log.error(err2, "createQuotation error");
+                  cache.setex(callback, 30, JSON.stringify({
+                    code: 500,
+                    msg: err2.message
+                  }));
+                } else {
+                  cache.setex(callback, 30, JSON.stringify({
+                    code: 200,
+                    data: qid
+                  }));
+                }
+                done();
+              });
             });
           });
         }

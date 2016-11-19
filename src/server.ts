@@ -305,13 +305,15 @@ svc.call("getTicket", permissions, (ctx: Context, rep: ResponseFunction, oid: st
     if (err) {
       rep({ code: 500, msg: err.message });
     } else {
-      if (result != null) {
+      if (result) {
         let json1 = JSON.parse(result);
         ctx.cache.hget("wechat_code1", json1.ticket, (err2, result2) => {
           if (err2) {
             rep({ code: 500, msg: err2.message });
-          } else {
+          } else if(result2 !== null && result2 != '' && result2 != undefined){
             rep({ code: 200, data: JSON.parse(result2) });
+          } else {
+            rep({ code: 404, msg: "Ticket not found" })
           }
         });
       } else {
