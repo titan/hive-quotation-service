@@ -133,7 +133,6 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
           });
         });
         ps.push(pquota);
-
         let pprice = new Promise<void>((resolve, reject) => {
           db.query("INSERT INTO quotation_item_prices (id, qiid, price, real_price) VALUES ($1, $2, $3, $4)", [qpid, qiid, price.price, price.real_price], (err: Error) => {
             if (err) {
@@ -144,9 +143,7 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
           });
         });
         ps.push(pprice);
-
       }
-
       g["items"].push({
         qiid,
         piid,
@@ -195,16 +192,17 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
             cache.setex(callback, 30, JSON.stringify({
               code: 500,
               msg: err.message
-            }));
-            done();
+            }), (err, result) => {
+              done();
+            });
           } else {
             cache.setex(callback, 30, JSON.stringify({
               code: 200,
               data: qid
-            }));
-            done();
+            }), (err, result) => {
+              done();
+            });
           }
-          
         });
       });
     });
@@ -214,7 +212,9 @@ processor.call("addQuotationGroups", (db: PGClient, cache: RedisClient, done: Do
       cache.setex(callback, 30, JSON.stringify({
         code: 500,
         msg: e.message
-      }));
+      }), (err, result) => {
+        done();
+      });
     });
   });
 });
@@ -227,7 +227,9 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
       cache.setex(callback, 30, JSON.stringify({
         code: 500,
         msg: err
-      }));
+      }), (err, result) => {
+        done();
+      });
     } else if (result) {
       cache.hget("quotation-entities", result, function (err2, result2) {
         if (err2) {
@@ -235,18 +237,21 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
           cache.setex(callback, 30, JSON.stringify({
             code: 500,
             msg: err2
-          }));
+          }), (err, result) => {
+            done();
+          });
         } else if (result2) {
           let quotation = JSON.parse(result2);
           quotation["state"] = 4;
-          log.info(JSON.stringify(quotation) + "===========" + quotation["id"]);
           cache.hset("quotation-entities", quotation["id"], JSON.stringify(quotation), function (err3, result3) {
             if (err3) {
               log.info(err3);
               cache.setex(callback, 30, JSON.stringify({
                 code: 500,
                 msg: err3
-              }));
+              }), (err, result) => {
+                done();
+              });
             } else {
               log.info("hset quotation " + result3);
               dbquery();
@@ -257,7 +262,9 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
           cache.setex(callback, 30, JSON.stringify({
             code: 404,
             msg: "not found quotation"
-          }));
+          }), (err, result) => {
+            done();
+          });
         }
       });
     } else {
@@ -270,8 +277,9 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
           cache.setex(callback, 30, JSON.stringify({
             code: 500,
             msg: err.message
-          }));
-          done();
+          }), (err, result) => {
+            done();
+          });
         } else {
           let now = new Date();
           let quotation = { id: qid, vid: vid, state: state, created_at: now };
@@ -301,14 +309,17 @@ processor.call("createQuotation", (db: PGClient, cache: RedisClient, done: DoneF
                   cache.setex(callback, 30, JSON.stringify({
                     code: 500,
                     msg: err2.message
-                  }));
+                  }), (err, result) => {
+                    done();
+                  });
                 } else {
                   cache.setex(callback, 30, JSON.stringify({
                     code: 200,
                     data: qid
-                  }));
+                  }), (err, result) => {
+                    done();
+                  });
                 }
-                done();
               });
             });
           });
@@ -542,14 +553,16 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
     cache.setex(cbflag, 30, JSON.stringify({
       code: 200,
       msg: "success"
-    }));
-    done()
+    }), (err, result) => {
+      done();
+    });
   }, (e: Error) => {
     cache.setex(cbflag, 30, JSON.stringify({
       code: 500,
       msg: e.message
-    }));
-    done();
+    }), (err, result) => {
+      done();
+    });
   });
 });
 
