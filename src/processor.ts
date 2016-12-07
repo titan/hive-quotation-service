@@ -1,5 +1,5 @@
 import { Processor, Config, ModuleFunction, DoneFunction, rpc, async_serial, async_serial_ignore } from "hive-processor";
-import { Client as PGClient, ResultSet } from "pg";
+import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient } from "redis";
 import { Quota, Price, Item, Group } from "./quotation-definations";
 import * as bunyan from "bunyan";
@@ -364,7 +364,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
     }
   }
   let unquota = new Promise<void>((resolve, reject) => {
-    db.query("SELECT id, vid, state, promotion, created_at, updated_at FROM quotations WHERE state = 1 AND deleted = false", [], (err: Error, result: ResultSet) => {
+    db.query("SELECT id, vid, state, promotion, created_at, updated_at FROM quotations WHERE state = 1 AND deleted = false", [], (err: Error, result: QueryResult) => {
       if (err) {
         log.info("Select unquota error " + err);
         reject(err);
@@ -411,7 +411,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
   }
   function quotated_quotas(rows, qiid, acc, cb) {
     if (rows.length === 0) {
-      db.query("SELECT id, price, real_price, sorted FROM quotation_item_prices where qiid = $1 AND deleted = false", [qiid], (err: Error, result: ResultSet) => {
+      db.query("SELECT id, price, real_price, sorted FROM quotation_item_prices where qiid = $1 AND deleted = false", [qiid], (err: Error, result: QueryResult) => {
         if (err) {
           log.info("Select quotation_item_prices error " + err);
         } else {
@@ -437,7 +437,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
       cb(acc);
     } else {
       let row = rows.shift();
-      db.query("SELECT id, num, unit, sorted, qiid FROM quotation_item_quotas where qiid = $1 AND deleted = false", [row.id], (err: Error, result: ResultSet) => {
+      db.query("SELECT id, num, unit, sorted, qiid FROM quotation_item_quotas where qiid = $1 AND deleted = false", [row.id], (err: Error, result: QueryResult) => {
         if (err) {
           log.info("Select quotation_item_quotas error " + err);
           quotated_items_recursive(rows, acc, cb);
@@ -462,7 +462,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
       cb(acc);
     } else {
       let row = rows.shift();
-      db.query("SELECT id, piid, is_must_have FROM quotation_items where qgid = $1 AND deleted = false", [row.id], (err: Error, result: ResultSet) => {
+      db.query("SELECT id, piid, is_must_have FROM quotation_items where qgid = $1 AND deleted = false", [row.id], (err: Error, result: QueryResult) => {
         if (err) {
           log.info("Select quotation_items error " + err);
           quotated_groups_recursive(rows, acc, cb);
@@ -488,7 +488,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
       cb(acc);
     } else {
       let row = rows.shift();
-      db.query("SELECT id, pid, is_must_have, created_at, updated_at FROM quotation_groups where qid = $1  AND deleted = false", [row.id], (err: Error, result: ResultSet) => {
+      db.query("SELECT id, pid, is_must_have, created_at, updated_at FROM quotation_groups where qid = $1  AND deleted = false", [row.id], (err: Error, result: QueryResult) => {
         if (err) {
           log.info("Select quotation_groups error " + err);
           quotated_recursive(rows, acc, cb);
@@ -518,7 +518,7 @@ processor.call("refresh", (db: PGClient, cache: RedisClient, done: DoneFunction,
     }
   }
   let quotated = new Promise<void>((resolve, reject) => {
-    db.query("SELECT id, vid, state, promotion, created_at, updated_at FROM quotations WHERE state = 3 AND deleted = false", [], (err: Error, result: ResultSet) => {
+    db.query("SELECT id, vid, state, promotion, created_at, updated_at FROM quotations WHERE state = 3 AND deleted = false", [], (err: Error, result: QueryResult) => {
       if (err) {
         log.info("Select quotated error " + err);
         reject(err);
