@@ -153,7 +153,7 @@ function filterDate(created_at, begintime, endtime) {
 function quotation_filter_recursive(cache, entity_key, key, keys, cursor, len, svehicleid, sownername, sphone, slicense_no, sbegintime, sendtime, sstate, acc, cb) {
   cache.hget(entity_key, key, function (err, result) {
     let quotation = JSON.parse(result);
-    if (quotation["vehicle"]) {
+    if (quotation && quotation["vehicle"] && quotation["vehicle"]["owner"]) {
       if (checkArgs(quotation["vehicle"]["owner"]["name"], sownername) && checkArgs(quotation["vehicle"]["owner"]["phone"], sphone) && checkArgs(quotation["vehicle"]["license_no"], slicense_no) && checkArgs(quotation["state"], sstate)) {
         if (checkArgs(quotation["vehicle"]["vin_code"], svehicleid) && filterDate(quotation["created_at"], sbegintime, sendtime)) {
           acc.push(quotation);
