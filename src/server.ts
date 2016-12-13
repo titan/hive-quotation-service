@@ -990,6 +990,13 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
             "insuredAmount": "Y",
             "insuredPremium": null,
             "flag": null
+          },
+          {
+            "coverageCode": "Z3",
+            "coverageName": "机动车损失保险无法找到第三方特约险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
           }];
 
         let acc_data = {
@@ -1045,14 +1052,66 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
             let acc_retData: Object = JSON.parse(acc_result);
             log.info(acc_result);
             if (acc_retData["state"] === "1") {
+              let modified_coverageList = acc_retData["data"][0]["coverageList"];
+              let A_free: number = Number(modified_coverageList[0]["insuredPremium"]) * 1.15 * 0.65;
+              let B_free: number = Number(modified_coverageList[1]["insuredPremium"]);
+              let F_free: number = Number(modified_coverageList[2]["insuredPremium"]) * 0.65;
+              let FORCEPREMIUM_free: number = Number(modified_coverageList[3]["insuredPremium"]);
+              let G1_free: number = Number(modified_coverageList[4]["insuredPremium"]) * 1.2 * 0.66;
+              let X1_free: number = Number(modified_coverageList[5]["insuredPremium"]) * 1.15 * 0.65;
+              let Z_free: number = Number(modified_coverageList[6]["insuredPremium"]) * 1.2 * 0.65;
+              let Z3_free: number = Number(modified_coverageList[7]["insuredPremium"]) * 0.65;
+
+              let B_insured_amount_list: string[] = ["5万", "10万", "15万", "20万", "30万"];
+
+              let D_of_Amount_seat: number[][] = [[394.55, 570.05, 649.35, 706.55, 796.90], 
+                                                  [365.30, 514.80, 581.75, 627.25, 702.65], 
+                                                  [365.30, 514.80, 581.75, 627.25, 702.65]]; 
+              let B: number = B_free / 796.9;
+
+              let seat = Number(vehicleInfo["modelList"]["data"][modelListOrder]["seat"]);
+
+              if (seat < 6) {
+                seat = 0;
+              } else if (seat >= 6 && seat <= 10) {
+                seat = 1;
+              } else {
+                seat = 2;
+              }
+
+              // let D_list = [];
+
+              let E_list = [];// : number[] = D_list;
+
+              let B_free_list = {};
+              for (let i = 0; i < 5; i++) {
+                E_list[i] = D_of_Amount_seat[seat][i] * B;
+                B_free_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
+              }
+
+
+              modified_coverageList[0]["insuredPremium"] = A_free.toFixed(2);
+              delete modified_coverageList[1]["insuredAmount"];
+              delete modified_coverageList[1]["insuredPremium"];
+              modified_coverageList[1]["amount_premium"] = B_free_list;
+              modified_coverageList[2]["insuredPremium"] = F_free.toFixed(2);
+              modified_coverageList[3]["insuredPremium"] = FORCEPREMIUM_free.toFixed(2);
+              modified_coverageList[4]["insuredPremium"] = G1_free.toFixed(2);
+              modified_coverageList[5]["insuredPremium"] = X1_free.toFixed(2);
+              modified_coverageList[6]["insuredPremium"] = Z_free.toFixed(2);
+              modified_coverageList[7]["insuredPremium"] = Z_free.toFixed(2);
+
+              acc_retData["data"][0]["coverageList"] = modified_coverageList;
+
               rep({
                 code: 200,
                 data: acc_retData["data"][0]
               });
+
             } else {
               rep({
                 code: 400,
-                msg: acc_retData["msg"]
+                msg: acc_retData["msg"] + ": " + acc_retData["data"][0]["msg"]
               });
             }
           });
