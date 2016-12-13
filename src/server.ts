@@ -917,6 +917,17 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
       log.info("Here is REF retData:");
       log.info(ref_result);
       if (ref_retData["state"] === "1") {
+        let biBeginDate_str: string = ref_retData["data"][0]["biBeginDate"];
+        let biBeginDate = new Date(biBeginDate_str);
+        let today = new Date();
+        let diff_ms: number = biBeginDate.valueOf() - today.valueOf();
+        if (Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) > 90) {
+          rep({
+            code: 400,
+            msg: "商业险起保日期距今超过90天"
+          });
+          return;
+        }
 
         let acc_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 
@@ -1064,9 +1075,9 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
 
               let B_insured_amount_list: string[] = ["5万", "10万", "15万", "20万", "30万"];
 
-              let D_of_Amount_seat: number[][] = [[394.55, 570.05, 649.35, 706.55, 796.90], 
-                                                  [365.30, 514.80, 581.75, 627.25, 702.65], 
-                                                  [365.30, 514.80, 581.75, 627.25, 702.65]]; 
+              let D_of_Amount_seat: number[][] = [[394.55, 570.05, 649.35, 706.55, 796.90],
+              [365.30, 514.80, 581.75, 627.25, 702.65],
+              [365.30, 514.80, 581.75, 627.25, 702.65]];
               let B: number = B_free / 796.9;
 
               let seat = Number(vehicleInfo["modelList"]["data"][modelListOrder]["seat"]);
