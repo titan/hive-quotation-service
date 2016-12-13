@@ -778,17 +778,6 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
 
   vehicleInfo: Object,
   modelListOrder: number,
-  // modelsInfo: Object,
-  // carInfo: Object,
-
-  isTrans: string,
-  transDate: string,
-  // insuredAmountForRiskB: string,
-
-  cityCode: string,
-  insurerCodeForRef: string,
-  insurerCodeForAcc: string
-
 ) => {
   // log.info("licenseNumber " + licenseNumber);
   // if (!verify([stringVerifier("licenseNumber", licenseNumber), stringVerifier("responseNumber", responseNumber)], (errors: string[]) => {
@@ -800,166 +789,150 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
   // })) {
   //   return;
   // }
-  // log.info("fuck!");
 
-  let sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+  let ref_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 
-  // let cityCode = "110100"; // Beijing
+  let ref_cityCode = "110100"; // Beijing
 
-  let carInfo = {
+  let ref_carInfo = {
     "licenseNo": vehicleInfo["licenseNo"],
-    "frameNo": vehicleInfo["frameNo"],
+    "frameNo": null, // vehicleInfo["frameNo"],
     "modelCode": vehicleInfo["modelList"]["data"][modelListOrder]["brandCode"],
-    "engineNo": vehicleInfo["engineNo"],
-    "isTrans": isTrans,
+    "engineNo": null,// vehicleInfo["engineNo"],
+    "isTrans": "0",
     "transDate": null,
     "registerDate": vehicleInfo["firstRegisterDate"]
   };
 
-  if (isTrans === "1") {
-    carInfo["transDate"] = transDate;
-  }
-
-  let persionInfo: Object = {
-    "ownerName": ownerName,         // N
-    "ownerID": ownerId,             // N
-    "ownerMobile": ownerCellPhone,  // N
+  let ref_persionInfo: Object = {
+    "ownerName": null,         // N
+    "ownerID": null,             // N
+    "ownerMobile": null,  // N
   };
 
   // "50000,100000,150000,200000,300000,500000,1000000,1500000,2000000,3000000,5000000"
-  let coverageList = [
+  let ref_coverageList = [
     {
       "coverageCode": "A",
       "coverageName": "机动车损失保险",
-      // "insuredAmount": "Y",
-      // "insuredPremium": "1323.7600",
-      // "insuredAmount": "75680.00",
-      // "flag": null
-      // }];
       "insuredAmount": "Y",
-      "insuredPremium": null,
-      "flag": null
-    },
-    {
-      "coverageCode": "B",
-      "coverageName": "商业第三者责任险",
-      "insuredAmount": "300000",
-      "insuredPremium": null,
-      "flag": null
-    },
-    {
-      "coverageCode": "G1",
-      "coverageName": "全车盗抢险",
-      "insuredAmount": "Y",
-      "insuredPremium": null,
-      "flag": null
-    },
-    {
-      "coverageCode": "Z",
-      "coverageName": "自燃损失险",
-      "insuredAmount": "Y",
-      "insuredPremium": null,
-      "flag": null
-    },
-    {
-      "coverageCode": "F",
-      "coverageName": "玻璃单独破碎险",
-      "insuredAmount": "Y",
-      "insuredPremium": null,
-      "flag": null
-    },
-    {
-      "coverageCode": "FORCEPREMIUM",
-      "coverageName": "交强险",
-      "insuredAmount": "Y",
-      "insuredPremium": null,
-      "flag": null
-    },
-    {
-      "coverageCode": "X1",
-      "coverageName": "发动机涉水损失险",
-      "insuredAmount": "Y",
-      "insuredPremium": null,
+      "insuredPremium": null, // "1323.7600",
       "flag": null
     }];
+  //   "insuredAmount": "Y",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // },
+  // {
+  //   "coverageCode": "B",
+  //   "coverageName": "商业第三者责任险",
+  //   "insuredAmount": "300000",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // },
+  // {
+  //   "coverageCode": "G1",
+  //   "coverageName": "全车盗抢险",
+  //   "insuredAmount": "Y",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // },
+  // {
+  //   "coverageCode": "Z",
+  //   "coverageName": "自燃损失险",
+  //   "insuredAmount": "Y",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // },
+  // {
+  //   "coverageCode": "F",
+  //   "coverageName": "玻璃单独破碎险",
+  //   "insuredAmount": "Y",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // },
+  // {
+  //   "coverageCode": "FORCEPREMIUM",
+  //   "coverageName": "交强险",
+  //   "insuredAmount": "Y",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // },
+  // {
+  //   "coverageCode": "X1",
+  //   "coverageName": "发动机涉水损失险",
+  //   "insuredAmount": "Y",
+  //   "insuredPremium": null,
+  //   "flag": null
+  // }];
 
-  let data = {
+  let ref_data = {
     applicationID: "FENGCHAOHUZHU_SERVICE", // "ZKYQ"
-    cityCode: cityCode,
+    cityCode: ref_cityCode,
     responseNo: vehicleInfo["responseNo"],
-    carInfo: carInfo,
-    personInfo: persionInfo,
+    carInfo: ref_carInfo,
+    personInfo: ref_persionInfo,
     insurerCode: "APIC",            // APIC 永诚 该载体暂不支持此保险公司报价 没有给你们配永城，现在测试环境值给你们配置太保人保和阳光
-    coverageList: coverageList
+    coverageList: ref_coverageList
   };
 
-  let requestData = {
+  let ref_requestData = {
     operType: "REF",
     msg: "参考报价",
-    sendTime: sendTimeString,
+    sendTime: ref_sendTimeString,
     sign: null,
-    data: data
+    data: ref_data
   };
 
-  let postData: string = JSON.stringify(requestData);
-  log.info("ref postData:");
-  log.info(postData);
+  let ref_postData: string = JSON.stringify(ref_requestData);
+  log.info("ref_postData:");
+  log.info(ref_postData);
 
-  let options = {
+  let ref_options = {
     hostname: "api.ztwltech.com",
     // port: 8081,
     method: "POST",
     path: "/zkyq-web/calculate/entrance",
     headers: {
       'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(postData)
+      'Content-Length': Buffer.byteLength(ref_postData)
     }
   };
 
-  let req = http.request(options, function (res) {
+  let ref_req = http.request(ref_options, function (res) {
     log.info("Status: " + res.statusCode);
     res.setEncoding("utf8");
 
-    let result: string = "";
+    let ref_result: string = "";
 
     res.on("data", function (body) {
-      result += body;
+      ref_result += body;
       // log.info(body);
     });
 
     res.on("end", function () {
       // log.info(result);
 
-      let retData: Object = JSON.parse(result);
+      let ref_retData: Object = JSON.parse(ref_result);
       log.info("Here is REF retData:");
-      log.info(result);
-      if (retData["state"] === "1") {
-        // rep({
-        //   code: 200,
-        //   data: {
-        //     biBeginDate: retData["data"][0]["biBeginDate"],
-        //     ciBeginDate: retData["data"][0]["ciBeginDate"]
-        //   }
-        // });
-        // let modelList
+      log.info(ref_result);
+      if (ref_retData["state"] === "1") {
 
-        let sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+        let acc_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 
-        let carInfo = {
+        let acc_cityCode = "110100"; // Beijing
+
+        let acc_carInfo = {
           "licenseNo": vehicleInfo["licenseNo"],
-          "frameNo": vehicleInfo["frameNo"],
-          "modelCode": vehicleInfo["modelList"]["data"][modelListOrder]["brandCode"],
+          "frameNo": vehicleInfo["frameNo"], // 如果有修改车架号,就一定要传,没有修改的话,就不传.为 null
+          "modelCode": vehicleInfo["modelList"]["data"][modelListOrder]["brandCode"], // ?
           "engineNo": vehicleInfo["engineNo"],
-          "isTrans": isTrans,
+          "isTrans": "0", // isTrans,
           "transDate": null,
           "registerDate": vehicleInfo["firstRegisterDate"]
         };
 
-        if (isTrans === "1") {
-          carInfo["transDate"] = transDate;
-        }
-
-        let persionInfo: Object = {
+        let acc_persionInfo: Object = {
           "insuredID": ownerId,
           "ownerName": ownerName,
           "ownerID": ownerId,
@@ -968,74 +941,124 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
           "insuredMobile": ownerCellPhone
         };
 
+        let acc_coverageList = [
+          {
+            "coverageCode": "A",
+            "coverageName": "机动车损失保险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
+          },
+          {
+            "coverageCode": "B",
+            "coverageName": "商业第三者责任险",
+            "insuredAmount": "300000",
+            "insuredPremium": null,
+            "flag": null
+          },
+          {
+            "coverageCode": "G1",
+            "coverageName": "全车盗抢险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
+          },
+          {
+            "coverageCode": "Z",
+            "coverageName": "自燃损失险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
+          },
+          {
+            "coverageCode": "F",
+            "coverageName": "玻璃单独破碎险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
+          },
+          {
+            "coverageCode": "FORCEPREMIUM",
+            "coverageName": "交强险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
+          },
+          {
+            "coverageCode": "X1",
+            "coverageName": "发动机涉水损失险",
+            "insuredAmount": "Y",
+            "insuredPremium": null,
+            "flag": null
+          }];
 
-
-        let data = {
+        let acc_data = {
           applicationID: "FENGCHAOHUZHU_SERVICE",
           insurerCode: "APIC",
-          biBeginDate: retData["data"][0]["biBeginDate"],
-          ciBeginDate: retData["data"][0]["ciBeginDate"],
-          cityCode: cityCode,
+          biBeginDate: ref_retData["data"][0]["biBeginDate"],
+          ciBeginDate: ref_retData["data"][0]["ciBeginDate"],
+          cityCode: acc_cityCode,
           responseNo: vehicleInfo["responseNo"],
           channelCode: null,
-          carInfo: carInfo,
-          thpBizID: "20161207fuyuhintest",
-          personInfo: persionInfo,
-          coverageList: coverageList
+          carInfo: acc_carInfo,
+          thpBizID: "20161213fuyuhintest",
+          personInfo: acc_persionInfo,
+          coverageList: acc_coverageList
         };
 
-        let requestData = {
+        let acc_requestData = {
           operType: "ACCPRICE",
           msg: "精准报价",
-          sendTime: sendTimeString,
+          sendTime: acc_sendTimeString,
           sign: "23ff92kas820ss92k9s933jf209daqc13fsd",
-          data: data
+          data: acc_data
         };
 
-        let postData: string = JSON.stringify(requestData);
-        log.info("acc postData:");
-        log.info(postData);
-        let options = {
+        let acc_postData: string = JSON.stringify(acc_requestData);
+        log.info("acc_postData:");
+        log.info(acc_postData);
+
+        let acc_options = {
           hostname: "api.ztwltech.com",
           // port: 8081,
           method: "POST",
           path: "/zkyq-web/pottingApi/CalculateApi",
           headers: {
             'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(postData)
+            'Content-Length': Buffer.byteLength(acc_postData)
           }
         };
 
-        let req = http.request(options, function (res) {
+        let acc_req = http.request(acc_options, function (res) {
           log.info("Status: " + res.statusCode);
           res.setEncoding("utf8");
 
-          let result: string = "";
+          let acc_result: string = "";
 
           res.on("data", function (body) {
-            result += body;
+            acc_result += body;
             // log.info(body);
           });
 
           res.on("end", function () {
-            // log.info(result);
-            let retData: Object = JSON.parse(result);
-            log.info(retData);
-            if (retData["state"] === "1") {
+            log.info("Here is acc_result");
+            let acc_retData: Object = JSON.parse(acc_result);
+            log.info(acc_result);
+            if (acc_retData["state"] === "1") {
               rep({
                 code: 200,
-                data: retData["data"]
+                data: acc_retData["data"][0]
               });
             } else {
               rep({
                 code: 400,
-                msg: retData["msg"]
+                msg: acc_retData["msg"]
               });
             }
           });
 
 
-          req.on('error', (e) => {
+          res.on('error', (e) => {
             log.info(`problem with request: ${e.message}`);
             rep({
               code: 500,
@@ -1044,18 +1067,18 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
           });
         });
 
-        req.end(postData);
+        acc_req.end(acc_postData);
 
       } else {
         rep({
           code: 400,
-          msg: retData["msg"]
+          msg: ref_retData["msg"]
         });
       }
     });
 
 
-    req.on('error', (e) => {
+    ref_req.on('error', (e) => {
       log.info(`problem with request: ${e.message}`);
       rep({
         code: 500,
@@ -1064,11 +1087,9 @@ svc.call("getAccurateQuotation", permissions, (ctx: Context, rep: ResponseFuncti
     });
   });
 
-  req.end(postData);
+  ref_req.end(ref_postData);
 });
-
 
 log.info("Start server at %s and connect to %s", config.svraddr, config.msgaddr);
 
 svc.run();
-
