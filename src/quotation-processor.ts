@@ -1,8 +1,8 @@
 import { Processor, ProcessorFunction, ProcessorContext, rpc, msgpack_encode, msgpack_decode } from "hive-service";
 import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient, Multi } from "redis";
-import * as bunyan from "bunyan";
 import * as bluebird from "bluebird";
+import * as bunyan from "bunyan";
 import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
 import * as zlib from "zlib";
