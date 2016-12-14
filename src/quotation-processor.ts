@@ -1,7 +1,8 @@
 import { Processor, ProcessorFunction, ProcessorContext, rpc, msgpack_encode, msgpack_decode } from "hive-service";
 import { Client as PGClient, QueryResult } from "pg";
-import { createClient, RedisClient } from "redis";
+import { createClient, RedisClient, Multi } from "redis";
 import * as bunyan from "bunyan";
+import * as bluebird from "bluebird";
 import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
 import * as zlib from "zlib";
@@ -67,7 +68,7 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
       await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
       await sync_quotation(db, cache, domain, qid);
 
-      const multi = cache.multi();
+      const multi = bluebird.promisifyAll(cache.multi()) as Multi;
       const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", vid);
       if (vrep["code"] === 200) {
         const vehicle = vrep["data"];
@@ -168,7 +169,7 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
 async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, qid?: string): Promise<any> {
   const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure", qid ? [ qid ] : []);
   const quotations = rows_to_quotations(result.rows, domain);
-  const multi = cache.multi();
+  const multi = bluebird.promisifyAll(cache.multi()) as Multi;
   for (const quotation of quotations) {
     const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", quotation.vid);
     if (vrep["code"] === 200) {
