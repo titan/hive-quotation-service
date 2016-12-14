@@ -1,4 +1,4 @@
-import { Processor, ProcessorFunction, ProcessorContext, rpc, encode, decode } from "hive-service";
+import { Processor, ProcessorFunction, ProcessorContext, rpc, msgpack_encode, msgpack_decode } from "hive-service";
 import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient } from "redis";
 import * as bunyan from "bunyan";
@@ -58,9 +58,9 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
       if (oldqid) {
         const old_quotation_pkt = await cache.hgetAsync("quotation-entities", oldqid);
         if (old_quotation_pkt) {
-          const old_quotation = await decode(old_quotation_pkt);
+          const old_quotation = await msgpack_decode(old_quotation_pkt);
           old_quotation["state"] = 4;
-          const pkt = await encode(old_quotation);
+          const pkt = await msgpack_encode(old_quotation);
           await cache.hsetAsync("quotation-entities", oldqid, pkt);
         }
       }
@@ -174,7 +174,7 @@ async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, 
     if (vrep["code"] === 200) {
       quotation["vehicle"] = vrep["data"];
     }
-    const buf = await encode(quotation);
+    const buf = await msgpack_encode(quotation);
     multi.hset("quotation-entities", quotation.id, buf);
   }
   return multi.execAsync();

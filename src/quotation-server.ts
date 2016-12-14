@@ -1,4 +1,4 @@
-import { Server, ServerContext, ServerFunction, CmdPacket, Permission, wait_for_response, decode } from "hive-service";
+import { Server, ServerContext, ServerFunction, CmdPacket, Permission, wait_for_response, msgpack_decode } from "hive-service";
 import * as msgpack from "msgpack-lite";
 import * as bunyan from "bunyan";
 import * as uuid from "node-uuid";
@@ -63,7 +63,7 @@ server.call("getQuotation", allowAll, "获取一个报价", "获取一个报价"
     if (err) {
       rep({ code: 500, msg: err.message });
     } else if (qpkt) {
-      const quotation = decode(qpkt);
+      const quotation = msgpack_decode(qpkt);
       rep({ code: 200, data: quotation });
     } else {
       rep({ code: 404, msg: "Quotation not found" });
