@@ -48,23 +48,13 @@ quotation_trigger.bind(process.env["QUOTATION-TRIGGER"]);
 
 export const processor = new Processor();
 
-processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: string, state: number, cbflag: string, domain: string, vin: string) => {
-  log.info(`createQuotation, qid: ${qid}, vid: ${vid}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}, vin: ${vin}`);
+processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: string, state: number, cbflag: string, domain: string) => {
+  log.info(`createQuotation, qid: ${qid}, vid: ${vid}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   const done = ctx.done;
   (async () => {
     try {
-      const oldqid = await cache.hgetAsync("vin-qid", vin);
-      if (oldqid) {
-        const old_quotation_pkt = await cache.hgetAsync("quotation-entities", oldqid);
-        if (old_quotation_pkt) {
-          const old_quotation = await msgpack_decode(old_quotation_pkt);
-          old_quotation["state"] = 4;
-          const pkt = await msgpack_encode(old_quotation);
-          await cache.hsetAsync("quotation-entities", oldqid, pkt);
-        }
-      }
       await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
       await sync_quotation(db, cache, domain, qid);
 
@@ -88,7 +78,6 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
           }
         }
       }
-      multi.hset("vid-qid", vin, qid);
       multi.setex(cbflag, 30, JSON.stringify({
         code: 200,
         data: qid
@@ -162,12 +151,12 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
     };
     i.quotas.push(quota);
     i.prices.push(price);
-    rows_to_quotations(rows, domain, quotations, q, g, i);
+    return rows_to_quotations(rows, domain, quotations, q, g, i);
   }
 }
 
 async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, qid?: string): Promise<any> {
-  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure", qid ? [ qid ] : []);
+  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure"), qid ? [ qid ] : []);
   const quotations = rows_to_quotations(result.rows, domain);
   const multi = bluebird.promisifyAll(cache.multi()) as Multi;
   for (const quotation of quotations) {

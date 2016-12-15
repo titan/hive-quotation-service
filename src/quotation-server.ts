@@ -31,9 +31,9 @@ const adminOnly: Permission[] = [["mobile", false], ["admin", true]];
 
 export const server = new Server();
 
-server.call("createQuotation", allowAll, "创建报价", "创建报价", (ctx: ServerContext, rep: ((result: any) => void), vid: string, vin: string) => {
-  log.info(`createQuotation, ${vid}, ${vin}`);
-  if (!verify([uuidVerifier("vid", vid), stringVerifier("vin", vin)], (errors: string[]) => {
+server.call("createQuotation", allowAll, "创建报价", "创建报价", (ctx: ServerContext, rep: ((result: any) => void), vid: string) => {
+  log.info(`createQuotation, ${vid}`);
+  if (!verify([uuidVerifier("vid", vid)], (errors: string[]) => {
     log.info("arg not match " + errors);
     rep({
       code: 400,
@@ -45,7 +45,7 @@ server.call("createQuotation", allowAll, "创建报价", "创建报价", (ctx: S
   const qid = uuid.v1();
   const state: number = 1;
   const domain = ctx.domain;
-  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, state, qid, domain, vin] };
+  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, state, qid, domain] };
   ctx.publish(pkt);
   wait_for_response(ctx.cache, qid, rep);
 });
@@ -64,8 +64,11 @@ server.call("getQuotation", allowAll, "获取一个报价", "获取一个报价"
     if (err) {
       rep({ code: 500, msg: err.message });
     } else if (qpkt) {
-      const quotation = msgpack_decode(qpkt);
-      rep({ code: 200, data: quotation });
+      msgpack_decode(qpkt).then(quotation => {
+        rep({ code: 200, data: quotation });
+      }).catch(e => {
+        rep({ code: 500, msg: err.message });
+      });
     } else {
       rep({ code: 404, msg: "Quotation not found" });
     }
@@ -75,7 +78,7 @@ server.call("getQuotation", allowAll, "获取一个报价", "获取一个报价"
 server.call("refresh", adminOnly, "refresh", "refresh", (ctx: ServerContext, rep: ((result: any) => void), qid?: string) => {
   log.info(qid ? `refresh, qid: ${qid}` : "refresh");
   const cbflag = uuid.v1();
-  const pkt: CmdPacket = { cmd: "refresh", args: qid ? [qid] : [] };
+  const pkt: CmdPacket = { cmd: "refresh", args: qid ? ["admin", cbflag, qid] : ["admin", cbflag] };
   ctx.publish(pkt);
   wait_for_response(ctx.cache, cbflag, rep)
 });
