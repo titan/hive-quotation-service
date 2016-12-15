@@ -194,7 +194,7 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
               });
             } else {
               log.info("state===1" + ref_retData["data"][0]["biBeginDate"]);
-              
+
               let two_dates: Object = {
                 "biBeginDate": ref_retData["data"][0]["biBeginDate"],
                 "ciBeginDate": ref_retData["data"][0]["ciBeginDate"]

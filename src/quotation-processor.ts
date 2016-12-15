@@ -62,14 +62,14 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
       const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", vid);
       if (vrep["code"] === 200) {
         const vehicle = vrep["data"];
-        const prep = await rpc<Object>(domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["user_id"]);
+        const prep = await rpc<Object>(domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
         if (prep["code"] === 200) {
           const profile = prep["data"];
           if (profile["ticket"]) {
             const cm: CustomerMessage = {
               type: 1,
               ticket: profile["ticket"],
-              cid: vehicle["user_id"],
+              cid: vehicle["uid"],
               name: profile["nickname"],
               qid: qid,
               occurredAt: new Date()
