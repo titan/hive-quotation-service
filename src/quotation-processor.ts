@@ -1,4 +1,4 @@
-import { Processor, ProcessorFunction, ProcessorContext, rpc, msgpack_encode, msgpack_decode } from "hive-service";
+import { Processor, ProcessorFunction, ProcessorContext, rpc, msgpack_encode, msgpack_decode, set_for_response } from "hive-service";
 import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient, Multi } from "redis";
 import * as bluebird from "bluebird";
@@ -74,21 +74,25 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
               qid: qid,
               occurredAt: new Date()
             };
-            multi.lpush("agent-customer-msg-queue", JSON.stringify(cm));
+            const pkt = await msgpack_encode(cm);
+            multi.lpush("agent-customer-msg-queue", pkt);
           }
         }
       }
-      multi.setex(cbflag, 30, JSON.stringify({
+      await multi.execAsync();
+      await set_for_response(cache, cbflag, {
         code: 200,
         data: qid
-      }));
-      await multi.execAsync();
+      });
       done();
     } catch (err) {
-      cache.setex(cbflag, 30, JSON.stringify({
+      set_for_response(cache, cbflag, {
         code: 500,
         msg: err.message
-      }), (err, result) => {
+      }).then(_ => {
+        done();
+      }).catch(e => {
+        log.error(e);
         done();
       });
     }
@@ -195,5 +199,63 @@ processor.call("refresh", (ctx: ProcessorContext, domain: string, cbflag: string
     }
   })();
 });
+
+// processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state: number, cbflag: string, domain: string) => {
+//   // log.info(`createQuotation, qid: ${qid}, vid: ${vid}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}`);
+//   const db: PGClient = ctx.db;
+//   const cache: RedisClient = ctx.cache;
+//   const done = ctx.done;
+//   (async () => {
+//     try {
+      // let
+
+
+
+
+
+
+
+
+
+
+//       await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
+//       await sync_quotation(db, cache, domain, qid);
+
+//       const multi = bluebird.promisifyAll(cache.multi()) as Multi;
+//       const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", vid);
+//       if (vrep["code"] === 200) {
+//         const vehicle = vrep["data"];
+//         const prep = await rpc<Object>(domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
+//         if (prep["code"] === 200) {
+//           const profile = prep["data"];
+//           if (profile["ticket"]) {
+//             const cm: CustomerMessage = {
+//               type: 1,
+//               ticket: profile["ticket"],
+//               cid: vehicle["uid"],
+//               name: profile["nickname"],
+//               qid: qid,
+//               occurredAt: new Date()
+//             };
+//             multi.lpush("agent-customer-msg-queue", JSON.stringify(cm));
+//           }
+//         }
+//       }
+//       multi.setex(cbflag, 30, JSON.stringify({
+//         code: 200,
+//         data: qid
+//       }));
+//       await multi.execAsync();
+//       done();
+//     } catch (err) {
+//       cache.setex(cbflag, 30, JSON.stringify({
+//         code: 500,
+//         msg: err.message
+//       }), (err, result) => {
+//         done();
+//       });
+//     }
+//   })();
+// });
 
 log.info("Start quotation processor");

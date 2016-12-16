@@ -4,6 +4,9 @@ import * as http from "http";
 import * as msgpack from "msgpack-lite";
 import * as uuid from "uuid";
 import { verify, uuidVerifier, stringVerifier, numberVerifier } from "hive-verify";
+import { servermap } from "hive-hostmap";
+import { rpc } from "hive-processor";
+
 
 const log = bunyan.createLogger({
   name: "quotation-server",
@@ -94,143 +97,176 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
   })) {
     return;
   }
-  ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_str) {
-    log.info("Try to get carInfo from redis:");
-    log.info(vehicleInfo_str);
+  if (modelListOrder === NaN) {
+    rep({
+      code: 400,
+      msg: "ModelListOrder is NOT a number!"
+    });
+    return;
+  }
 
+  if (modelListOrder < 0) {
+    rep({
+      code: 400,
+      msg: "ModelListOrder is a Negative number!"
+    });
+    return;
+  }
+
+  log.info("Try to get two_dates_str from redis:");
+  ctx.cache.hget("license-two-dates", licenseNumber, function (err, two_dates_str) {
     if (err) {
       rep({
         code: 400,
-        msg: "Error on getting carInfo from redis!"
+        msg: "Error on getting two_dates_str from redis!"
       });
-    } else if (vehicleInfo_str) {
+    } else if (!two_dates_str) {
+      log.info("Try to get carInfo from redis:");
+      ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_str) {
+        log.info(vehicleInfo_str);
 
-      let vehicleInfo = JSON.parse(vehicleInfo_str);
-      let ref_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+        if (err) {
+          rep({
+            code: 400,
+            msg: "Error on getting carInfo from redis!"
+          });
+        } else if (vehicleInfo_str) {
 
-      let ref_cityCode = "110100"; // Beijing
+          let vehicleInfo = JSON.parse(vehicleInfo_str);
+          let ref_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 
-      let ref_carInfo = {
-        "licenseNo": vehicleInfo["licenseNo"],
-        "frameNo": null, // vehicleInfo["frameNo"],
-        "modelCode": vehicleInfo["modelList"]["data"][modelListOrder]["brandCode"],
-        "engineNo": null,// vehicleInfo["engineNo"],
-        "isTrans": "0",
-        "transDate": null,
-        "registerDate": vehicleInfo["firstRegisterDate"]
-      };
+          let ref_cityCode = "110100"; // Beijing
 
-      let ref_persionInfo: Object = {
-        "ownerName": null,         // N
-        "ownerID": null,             // N
-        "ownerMobile": null,  // N
-      };
+          let ref_carInfo = {
+            "licenseNo": vehicleInfo["licenseNo"],
+            "frameNo": null, // vehicleInfo["frameNo"],
+            "modelCode": vehicleInfo["modelList"]["data"][modelListOrder]["brandCode"],
+            "engineNo": null,// vehicleInfo["engineNo"],
+            "isTrans": "0",
+            "transDate": null,
+            "registerDate": vehicleInfo["firstRegisterDate"]
+          };
 
-      let ref_coverageList = [
-        {
-          "coverageCode": "A",
-          "coverageName": "机动车损失保险",
-          "insuredAmount": "Y",
-          "insuredPremium": null, // "1323.7600",
-          "flag": null
-        }];
+          let ref_persionInfo: Object = {
+            "ownerName": null,         // N
+            "ownerID": null,             // N
+            "ownerMobile": null,  // N
+          };
+
+          let ref_coverageList = [
+            {
+              "coverageCode": "A",
+              "coverageName": "机动车损失保险",
+              "insuredAmount": "Y",
+              "insuredPremium": null, // "1323.7600",
+              "flag": null
+            }];
 
 
-      let ref_data = {
-        applicationID: "FENGCHAOHUZHU_SERVICE",
-        cityCode: ref_cityCode,
-        responseNo: vehicleInfo["responseNo"],
-        carInfo: ref_carInfo,
-        personInfo: ref_persionInfo,
-        insurerCode: "APIC",
-        coverageList: ref_coverageList
-      };
+          let ref_data = {
+            applicationID: "FENGCHAOHUZHU_SERVICE",
+            cityCode: ref_cityCode,
+            responseNo: vehicleInfo["responseNo"],
+            carInfo: ref_carInfo,
+            personInfo: ref_persionInfo,
+            insurerCode: "APIC",
+            coverageList: ref_coverageList
+          };
 
-      let ref_requestData = {
-        operType: "REF",
-        msg: "参考报价",
-        sendTime: ref_sendTimeString,
-        sign: null,
-        data: ref_data
-      };
+          let ref_requestData = {
+            operType: "REF",
+            msg: "参考报价",
+            sendTime: ref_sendTimeString,
+            sign: null,
+            data: ref_data
+          };
 
-      let ref_postData: string = JSON.stringify(ref_requestData);
-      log.info("ref_postData:");
-      log.info(ref_postData);
+          let ref_postData: string = JSON.stringify(ref_requestData);
+          log.info("ref_postData:");
+          log.info(ref_postData);
 
-      let ref_options = {
-        hostname: "api.ztwltech.com",
-        method: "POST",
-        path: "/zkyq-web/calculate/entrance",
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(ref_postData)
-        }
-      };
-
-      let ref_req = http.request(ref_options, function (res) {
-        log.info("Status: " + res.statusCode);
-        res.setEncoding("utf8");
-
-        let ref_result: string = "";
-
-        res.on("data", function (body) {
-          ref_result += body;
-        });
-
-        res.on("end", function () {
-          let ref_retData: Object = JSON.parse(ref_result);
-          log.info("Here is REF retData:");
-          log.info(ref_result);
-
-          if (ref_retData["state"] === "1") {
-            let ref_biBeginDate = new Date(ref_retData["data"][0]["biBeginDate"]);
-            let today = new Date();
-            let diff_ms: number = ref_biBeginDate.valueOf() - today.valueOf();
-            if (Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) > 90 || Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) < 2) {
-              rep({
-                code: 400,
-                msg: "商业险起保日期(" + ref_retData["data"][0]["biBeginDate"] + ")距今超过90天"
-              });
-            } else {
-              log.info("state===1" + ref_retData["data"][0]["biBeginDate"]);
-
-              let two_dates: Object = {
-                "biBeginDate": ref_retData["data"][0]["biBeginDate"],
-                "ciBeginDate": ref_retData["data"][0]["ciBeginDate"]
-              }
-
-              log.info(JSON.stringify(two_dates));
-              rep({
-                code: 200,
-                data: two_dates
-              });
-              ctx.cache.hset("license-two-dates", licenseNumber, JSON.stringify(two_dates));
+          let ref_options = {
+            hostname: "api.ztwltech.com",
+            method: "POST",
+            path: "/zkyq-web/calculate/entrance",
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(ref_postData)
             }
-          } else {
-            rep({
-              code: 400,
-              msg: ref_retData["msg"]
-            });
-          }
-        });
+          };
 
-        ref_req.on('error', (e) => {
-          log.info(`problem with request: ${e.message}`);
+          let ref_req = http.request(ref_options, function (res) {
+            log.info("Status: " + res.statusCode);
+            res.setEncoding("utf8");
+
+            let ref_result: string = "";
+
+            res.on("data", function (body) {
+              ref_result += body;
+            });
+
+            res.on("end", function () {
+              let ref_retData: Object = JSON.parse(ref_result);
+              log.info("Here is REF retData:");
+              log.info(ref_result);
+
+              if (ref_retData["state"] === "1") {
+                let ref_biBeginDate = new Date(ref_retData["data"][0]["biBeginDate"]);
+                let two_dates: Object = {
+                  "biBeginDate": ref_retData["data"][0]["biBeginDate"],
+                  "ciBeginDate": ref_retData["data"][0]["ciBeginDate"]
+                }
+
+                log.info(JSON.stringify(two_dates));
+                ctx.cache.hset("license-two-dates", licenseNumber, JSON.stringify(two_dates));
+                let today = new Date();
+                let diff_ms: number = ref_biBeginDate.valueOf() - today.valueOf();
+                if (Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) > 90 || Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) < 2) {
+                  rep({
+                    code: 400,
+                    msg: "商业险起保日期距今超过90天"
+                  });
+                } else {
+                  log.info(ref_retData["data"][0]["biBeginDate"]);
+                  rep({
+                    code: 200,
+                    data: two_dates
+                  });
+
+                }
+              } else {
+                rep({
+                  code: 400,
+                  msg: ref_retData["msg"]
+                });
+              }
+            });
+
+            ref_req.on('error', (e) => {
+              log.info(`problem with request: ${e.message}`);
+              rep({
+                code: 500,
+                msg: e.message
+              });
+            });
+
+          });
+
+          ref_req.end(ref_postData);
+
+        } else {
           rep({
             code: 500,
-            msg: e.message
+            msg: "Not found carInfo from redis!"
           });
-        });
-
+        }
       });
-
-      ref_req.end(ref_postData);
-
     } else {
+      let two_dates = JSON.parse(two_dates_str);
+      log.info(JSON.stringify(two_dates));
       rep({
-        code: 500,
-        msg: "Not found carInfo from redis!"
+        code: 200,
+        data: two_dates
       });
     }
   });
@@ -266,7 +302,6 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
     });
     return;
   }
-  // log.info("fuck!");
 
   ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_str) {
     log.info("Try to get carInfo from redis:");
@@ -422,12 +457,10 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
               log.info("Here is acc_result");
               let acc_retData: Object = JSON.parse(acc_result);
               log.info(acc_result);
-              log.info("Bitch!");
               if (acc_retData["state"] === "1") {
                 let coverageList = acc_retData["data"][0]["coverageList"];
                 let modified_coverageList = {};
-                log.info("Fuck!");
-                log.info(coverageList.toString());
+                // log.info(coverageList.toString());
                 for (let i = 0; i < coverageList.length; i++) {
                   modified_coverageList[(coverageList[i]["coverageCode"]).toString()] = coverageList[i];
                 }
@@ -542,10 +575,76 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                 acc_retData["data"][0]["coverageList"] = modified_coverageList;
                 acc_retData["data"][0]["purchasePrice"] = vehicleInfo["modelList"]["data"][modelListOrder]["purchasePrice"];
 
-                rep({
-                  code: 200,
-                  data: acc_retData["data"][0]
+                let age_price = (1 - (Math.ceil(acc_diff_ms / (1000 * 60 * 60 * 24 * 30)) * 0.006)) * Number(acc_retData["data"][0]["purchasePrice"]);
+                // log.info("Here: ");
+                // log.info(age_price);
+                let age_price_limit = Number(acc_retData["data"][0]["purchasePrice"]) * 0.2;
+                // log.info(age_price_limit);
+
+
+                // TODO: change args
+                let promise_for_vid = rpc<Object>("mobile",
+                  // servermap["vehicle"]
+                  process.env["VEHICLE"], ctx.uid, "setVehicleOnCard",
+                  ownerName,
+                  ownerId,
+                  ownerCellPhone,
+                  "", // null, // "recommend",
+                  acc_carInfo["modelCode"].split("-").join(""), // null, // "vehicle_code",
+                  acc_carInfo["licenseNo"],
+                  acc_carInfo["engineNo"],
+                  acc_carInfo["registerDate"],
+                  "", // null, // "Average annual mileage",
+                  false,
+                  "", // null, // "last insurer",
+                  acc_retData["data"][0]["biBeginDate"],
+                  "", // null, // "fuel",
+                  acc_carInfo["frameNo"]
+                );
+
+                log.info("Ready to get vid");
+
+                promise_for_vid.then(function (vid_result) {
+                  if (vid_result["code"] === 200) {
+                    log.info("!!! Got vid_result: " + vid_result["data"]);
+
+                    acc_retData["data"][0]["vid"] = vid_result["data"];
+
+                    let promise_for_qid = rpc<Object>("mobile", process.env["QUOTATION"], ctx.uid, "createQuotation", vid_result["data"]);
+
+                    promise_for_qid.then(function (qid_result) {
+                      if (qid_result["code"] === 200) {
+                        log.info("!!! Got qid_result: " + qid_result["data"]);
+                        acc_retData["data"][0]["thpBizID"] = qid_result["data"];
+                        if (age_price < age_price_limit) {
+                          acc_retData["data"][0]["realPrice"] = age_price_limit.toFixed(2);
+                        } else {
+                          acc_retData["data"][0]["realPrice"] = age_price.toFixed(2);
+                        }
+                        rep({
+                          code: 200,
+                          data: acc_retData["data"][0]
+                        });
+                      } else {
+                        rep({
+                          code: 400,
+                          msg: "Can't get qid from createQuotation by vid: " + vid_result["data"]
+                        });
+                      }
+                    });
+
+                  } else {
+                    rep({
+                      code: 400,
+                      msg: vid_result["msg"]
+                    });
+                  }
                 });
+
+                // rep({
+                //   code: 200,
+                //   data: acc_retData["data"][0]
+                // });
 
               } else {
                 rep({
@@ -831,21 +930,13 @@ server.call("getAccurateQuotationForTest", allowAll, "获得精准报价", "同�
                 log.info("Here is acc_result");
                 let acc_retData: Object = JSON.parse(acc_result);
                 log.info(acc_result);
-                log.info("Bitch!");
                 if (acc_retData["state"] === "1") {
                   let coverageList = acc_retData["data"][0]["coverageList"];
                   let modified_coverageList = {};
-                  log.info("Fuck!");
                   log.info(coverageList.toString());
                   for (let i = 0; i < coverageList.length; i++) {
                     modified_coverageList[(coverageList[i]["coverageCode"]).toString()] = coverageList[i];
                   }
-
-                  // let modified_List
-
-                  // for (let i = 0; i < modified_coverageList.length; i++) {
-                  //   modified_coverageList[i]["modifiedPremium"] = null;
-                  // }
 
                   let A_free: number = Number(modified_coverageList["A"]["insuredPremium"]) * 1.15 * 0.65;
                   let B_free: number = Number(modified_coverageList["B"]["insuredPremium"]);
