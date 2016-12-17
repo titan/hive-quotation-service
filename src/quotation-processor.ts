@@ -5,6 +5,7 @@ import * as bluebird from "bluebird";
 import * as bunyan from "bunyan";
 import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
+import * as uuid from "uuid";
 import * as zlib from "zlib";
 import { CustomerMessage } from "recommend-library";
 
@@ -28,21 +29,6 @@ const log = bunyan.createLogger({
   ]
 });
 
-declare module "redis" {
-  export interface RedisClient extends NodeJS.EventEmitter {
-    incrAsync(key: string): Promise<any>;
-    hgetAsync(key: string, field: string): Promise<any>;
-    hsetAsync(key: string, field: string, value: string | Buffer): Promise<any>;
-    hincrbyAsync(key: string, field: string, value: number): Promise<any>;
-    lpushAsync(key: string, value: string | number): Promise<any>;
-    setexAsync(key: string, ttl: number, value: string): Promise<any>;
-    zrevrangebyscoreAsync(key: string, start: number, stop: number): Promise<any>;
-  }
-  export interface Multi extends NodeJS.EventEmitter {
-    execAsync(): Promise<any>;
-  }
-}
-
 const quotation_trigger = nanomsg.socket("pub");
 quotation_trigger.bind(process.env["QUOTATION-TRIGGER"]);
 
@@ -53,6 +39,9 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   const done = ctx.done;
+
+  const now = new Date();
+
   (async () => {
     try {
       await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
@@ -72,7 +61,7 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
               cid: vehicle["uid"],
               name: profile["nickname"],
               qid: qid,
-              occurredAt: new Date()
+              occurredAt: now
             };
             const pkt = await msgpack_encode(cm);
             multi.lpush("agent-customer-msg-queue", pkt);
@@ -82,7 +71,7 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
       await multi.execAsync();
       await set_for_response(cache, cbflag, {
         code: 200,
-        data: qid
+        data: { qid, created_at: now }
       });
       done();
     } catch (err) {
@@ -101,6 +90,15 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
 
 function rows_to_quotations(rows, domain, quotations = [], quotation = null, group = null, item = null) {
   if (rows.length === 0) {
+    if (quotation) {
+      if (group) {
+        if (item) {
+          group.items.push(item);
+        }
+        quotation.group = group;
+      }
+      quotations.push(quotation);
+    }
     return quotations;
   } else {
     const row = rows.shift();
@@ -182,80 +180,87 @@ processor.call("refresh", (ctx: ProcessorContext, domain: string, cbflag: string
   (async () => {
     try {
       await sync_quotation(db, cache, domain, qid);
-      cache.setex(cbflag, 30, JSON.stringify({
+      await set_for_response(cache, cbflag, {
         code: 200,
         msg: "success"
-      }), (err, result) => {
-        done();
       });
+      done();
     } catch (e) {
       log.error(e);
-      cache.setex(cbflag, 30, JSON.stringify({
-        code: 500,
-        msg: e.message
-      }), (err, result) => {
-        done();
+      try {
+      await set_for_response(cache, cbflag, {
+        code: 200,
+        msg: "success"
       });
+        done();
+      } catch (e) {
+        done();
+      }
     }
   })();
 });
 
-// processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state: number, cbflag: string, domain: string) => {
-//   // log.info(`createQuotation, qid: ${qid}, vid: ${vid}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}`);
-//   const db: PGClient = ctx.db;
-//   const cache: RedisClient = ctx.cache;
-//   const done = ctx.done;
-//   (async () => {
-//     try {
-      // let
-
-
-
-
-
-
-
-
-
-
-//       await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
-//       await sync_quotation(db, cache, domain, qid);
-
-//       const multi = bluebird.promisifyAll(cache.multi()) as Multi;
-//       const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", vid);
-//       if (vrep["code"] === 200) {
-//         const vehicle = vrep["data"];
-//         const prep = await rpc<Object>(domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
-//         if (prep["code"] === 200) {
-//           const profile = prep["data"];
-//           if (profile["ticket"]) {
-//             const cm: CustomerMessage = {
-//               type: 1,
-//               ticket: profile["ticket"],
-//               cid: vehicle["uid"],
-//               name: profile["nickname"],
-//               qid: qid,
-//               occurredAt: new Date()
-//             };
-//             multi.lpush("agent-customer-msg-queue", JSON.stringify(cm));
-//           }
-//         }
-//       }
-//       multi.setex(cbflag, 30, JSON.stringify({
-//         code: 200,
-//         data: qid
-//       }));
-//       await multi.execAsync();
-//       done();
-//     } catch (err) {
-//       cache.setex(cbflag, 30, JSON.stringify({
-//         code: 500,
-//         msg: err.message
-//       }), (err, result) => {
-//         done();
-//       });
-//     }
-//   })();
-// });
+processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state: number, cbflag: string, domain: string) => {
+  log.info(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}`);
+  const db: PGClient = ctx.db;
+  const cache: RedisClient = ctx.cache;
+  const done = ctx.done;
+  let qid = acc_data["thpBizID"];
+  let c_list = acc_data["coverageList"];
+  let id = null;
+  const piid = {
+    "A": "00000000-0000-0000-0000-000000000005",
+    "B": "00000000-0000-0000-0000-000000000009",
+    "F": "00000000-0000-0000-0000-000000000004",
+    "FORCEPREMIUM": "00000000-0000-0000-0000-000000000008",
+    "G1": "00000000-0000-0000-0000-000000000006",
+    "X1": "00000000-0000-0000-0000-000000000002",
+    "Z": "00000000-0000-0000-0000-000000000001",
+    "Z3": "00000000-0000-0000-0000-000000000007",
+    "Scratch": "00000000-0000-0000-0000-000000000003"
+  };
+  const levelb = ["5万", "10万", "15万", "20万", "30万", "50万", "100万"];
+  const levels = ["3块漆", "6块漆"];
+  (async () => {
+    try {
+      await db.query("BEGIN");
+      await db.query("UPDATE quotations SET state = 3, insure = 3, auto = 1 WHERE id = $1", [qid]);
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, qid]);
+      for (let i = 0; i < levelb.length; i ++) {
+        id = uuid.v1();
+        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["B"], c_list["B"]["insuredPremium"][levelb[i]], 0, "元", c_list["B"]["modifiedPremium"][levelb[i]], i, qid]);
+      }
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, qid]);
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["FORCEPREMIUM"], c_list["FORCEPREMIUM"]["insuredPremium"], 0, "元", c_list["FORCEPREMIUM"]["modifiedPremium"], 0, qid]);
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["G1"], c_list["G1"]["insuredPremium"], 0, "元", c_list["G1"]["modifiedPremium"], 0, qid]);
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["X1"], c_list["X1"]["insuredPremium"], 0, "元", c_list["X1"]["modifiedPremium"], 0, qid]);
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Z"], c_list["Z"]["insuredPremium"], 0, "元", c_list["Z"]["modifiedPremium"], 0, qid]);
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, qid]);
+      for (let i = 0; i < levels.length; i ++) {
+        id = uuid.v1();
+        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], 0, "元", c_list["Scratch"]["modifiedPremium"][levels[i]], i, qid]);
+      }
+      await db.query("COMMIT");
+      await sync_quotation(db, cache, domain, qid);
+      await set_for_response(cache, cbflag, { code: 200, data: acc_data });
+      done();
+    } catch (err) {
+      try {
+        await db.query("ROLLBACK");
+        await set_for_response(cache, cbflag, { code: 500, msg: err.message });
+      } catch (e) {
+        log.error(e);
+      }
+      done();
+    }
+  })();
+});
 
 log.info("Start quotation processor");
