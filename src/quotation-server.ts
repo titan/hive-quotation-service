@@ -132,7 +132,18 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
         code: 500,
         msg: "Error on getting two_dates_str from redis!"
       });
-    } else if (!two_dates_str) {
+    } else {
+      if (!two_dates_str) {
+        const two_dates = JSON.parse(two_dates_str);
+        const begindate = new Date(two_dates["ciBeginDate"])
+        if (begindate.getTime() > new Date().getTime()) {
+          rep({
+            code: 200,
+            data: two_dates
+          });
+          return;
+        }
+      }
       log.info("Try to get vehicle-info from redis:");
       ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_pkt) {
         if (err) {
@@ -215,7 +226,7 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
                 });
 
                 res.on("end", function () {
-                  log.info(`ztwltech.com response: ${ref_result}`);
+                  log.info(`ztwltech.com REF response: ${ref_result}`);
                   const ref_retData: Object = JSON.parse(ref_result);
 
                   if (ref_retData["state"] === "1") {
@@ -266,13 +277,6 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
             msg: "Not found carInfo from redis!"
           });
         }
-      });
-    } else {
-      const two_dates = JSON.parse(two_dates_str);
-      log.info(JSON.stringify(two_dates));
-      rep({
-        code: 200,
-        data: two_dates
       });
     }
   });

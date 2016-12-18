@@ -182,7 +182,7 @@ async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, 
 }
 
 processor.call("refresh", (ctx: ProcessorContext, domain: string, cbflag: string, qid?: string) => {
-  log.info(`refresh, domain: ${domain}, cbflag: ${cbflag}`);
+  log.info(qid ? `refresh, domain: ${domain}, cbflag: ${cbflag}, qid: ${qid}` : `refresh, domain: ${domain}, cbflag: ${cbflag}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   const done = ctx.done;
@@ -197,10 +197,10 @@ processor.call("refresh", (ctx: ProcessorContext, domain: string, cbflag: string
     } catch (e) {
       log.error(e);
       try {
-      await set_for_response(cache, cbflag, {
-        code: 200,
-        msg: "success"
-      });
+        await set_for_response(cache, cbflag, {
+          code: 500,
+          msg: e.message
+        });
         done();
       } catch (e) {
         done();
