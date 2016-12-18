@@ -117,143 +117,137 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
   ctx.cache.hget("license-two-dates", licenseNumber, function (err, two_dates_str) {
     if (err) {
       rep({
-        code: 400,
+        code: 500,
         msg: "Error on getting two_dates_str from redis!"
       });
     } else if (!two_dates_str) {
-      log.info("Try to get carInfo from redis:");
-      ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_str) {
-        log.info(vehicleInfo_str);
-
+      log.info("Try to get vehicle-info from redis:");
+      ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_pkt) {
         if (err) {
           rep({
-            code: 400,
+            code: 500,
             msg: "Error on getting carInfo from redis!"
           });
-        } else if (vehicleInfo_str) {
+        } else if (vehicleInfo_pkt) {
 
-          const vehicleInfo = JSON.parse(vehicleInfo_str);
-          const ref_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+          msgpack_decode(vehicleInfo_pkt).then(vehicleInfo => {
 
-          const ref_cityCode = "110100"; // Beijing
+            const ref_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
 
-          const ref_carInfo = {
-            "licenseNo": vehicleInfo["licenseNo"],
-            "frameNo": null, // vehicleInfo["frameNo"],
-            "modelCode": vehicleInfo["model"][modelListOrder]["brandCode"],
-            "engineNo": null,// vehicleInfo["engineNo"],
-            "isTrans": "0",
-            "transDate": null,
-            "registerDate": vehicleInfo["firstRegisterDate"]
-          };
+            const ref_cityCode = "110100"; // Beijing
 
-          const ref_persionInfo: Object = {
-            "ownerName": null,         // N
-            "ownerID": null,             // N
-            "ownerMobile": null,  // N
-          };
+            const ref_carInfo = {
+              "licenseNo": vehicleInfo["licenseNo"],
+              "frameNo": null, // vehicleInfo["frameNo"],
+              "modelCode": vehicleInfo["models"][modelListOrder]["brandCode"],
+              "engineNo": null,// vehicleInfo["engineNo"],
+              "isTrans": "0",
+              "transDate": null,
+              "registerDate": vehicleInfo["firstRegisterDate"]
+            };
 
-          const ref_coverageList = [
-            {
-              "coverageCode": "A",
-              "coverageName": "机动车损失保险",
-              "insuredAmount": "Y",
-              "insuredPremium": null, // "1323.7600",
-              "flag": null
-            }];
+            const ref_persionInfo: Object = {
+              "ownerName": null,         // N
+              "ownerID": null,             // N
+              "ownerMobile": null,  // N
+            };
+
+            const ref_coverageList = [
+              {
+                "coverageCode": "A",
+                "coverageName": "机动车损失保险",
+                "insuredAmount": "Y",
+                "insuredPremium": null, // "1323.7600",
+                "flag": null
+              }];
 
 
-          const ref_data = {
-            applicationID: "FENGCHAOHUZHU_SERVICE",
-            cityCode: ref_cityCode,
-            responseNo: vehicleInfo["responseNo"],
-            carInfo: ref_carInfo,
-            personInfo: ref_persionInfo,
-            insurerCode: "APIC",
-            coverageList: ref_coverageList
-          };
+              const ref_data = {
+                applicationID: "FENGCHAOHUZHU_SERVICE",
+                cityCode: ref_cityCode,
+                responseNo: vehicleInfo["responseNo"],
+                carInfo: ref_carInfo,
+                personInfo: ref_persionInfo,
+                insurerCode: "APIC",
+                coverageList: ref_coverageList
+              };
 
-          const ref_requestData = {
-            operType: "REF",
-            msg: "参考报价",
-            sendTime: ref_sendTimeString,
-            sign: null,
-            data: ref_data
-          };
+              const ref_requestData = {
+                operType: "REF",
+                msg: "参考报价",
+                sendTime: ref_sendTimeString,
+                sign: null,
+                data: ref_data
+              };
 
-          const ref_postData: string = JSON.stringify(ref_requestData);
-          log.info("ref_postData:");
-          log.info(ref_postData);
+              const ref_postData: string = JSON.stringify(ref_requestData);
+              log.info(`ztwltech.com REF request: ${ref_postData}`);
 
-          const ref_options = {
-            hostname: "api.ztwltech.com",
-            method: "POST",
-            path: "/zkyq-web/calculate/entrance",
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(ref_postData)
-            }
-          };
-
-          const ref_req = http.request(ref_options, function (res) {
-            log.info("Status: " + res.statusCode);
-            res.setEncoding("utf8");
-
-            let ref_result: string = "";
-
-            res.on("data", function (body) {
-              ref_result += body;
-            });
-
-            res.on("end", function () {
-              const ref_retData: Object = JSON.parse(ref_result);
-              log.info("Here is REF retData:");
-              log.info(ref_result);
-
-              if (ref_retData["state"] === "1") {
-                const ref_biBeginDate = new Date(ref_retData["data"][0]["biBeginDate"]);
-                const two_dates: Object = {
-                  "biBeginDate": ref_retData["data"][0]["biBeginDate"],
-                  "ciBeginDate": ref_retData["data"][0]["ciBeginDate"]
+              const ref_options = {
+                hostname: "api.ztwltech.com",
+                method: "POST",
+                path: "/zkyq-web/calculate/entrance",
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Content-Length': Buffer.byteLength(ref_postData)
                 }
+              };
 
-                log.info(JSON.stringify(two_dates));
-                ctx.cache.hset("license-two-dates", licenseNumber, JSON.stringify(two_dates));
-                const today = new Date();
-                const diff_ms: number = ref_biBeginDate.valueOf() - today.valueOf();
-                if (Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) > 90 || Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) < 2) {
-                  rep({
-                    code: 400,
-                    msg: "商业险起保日期距今超过90天"
-                  });
-                } else {
-                  log.info(ref_retData["data"][0]["biBeginDate"]);
-                  rep({
-                    code: 200,
-                    data: two_dates
-                  });
+              const ref_req = http.request(ref_options, function (res) {
+                res.setEncoding("utf8");
 
-                }
-              } else {
-                rep({
-                  code: 400,
-                  msg: ref_retData["msg"]
+                let ref_result: string = "";
+
+                res.on("data", function (body) {
+                  ref_result += body;
                 });
-              }
-            });
 
-            ref_req.on('error', (e) => {
-              log.info(`problem with request: ${e.message}`);
-              rep({
-                code: 500,
-                msg: e.message
+                res.on("end", function () {
+                  log.info(`ztwltech.com response: ${ref_result}`);
+                  const ref_retData: Object = JSON.parse(ref_result);
+
+                  if (ref_retData["state"] === "1") {
+                    const ref_biBeginDate = new Date(ref_retData["data"][0]["biBeginDate"]);
+                    const two_dates: Object = {
+                      "biBeginDate": ref_retData["data"][0]["biBeginDate"],
+                      "ciBeginDate": ref_retData["data"][0]["ciBeginDate"]
+                    }
+
+                    ctx.cache.hset("license-two-dates", licenseNumber, JSON.stringify(two_dates));
+                    const today = new Date();
+                    const diff_ms: number = ref_biBeginDate.valueOf() - today.valueOf();
+                    if (Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) > 90 || Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) < 2) {
+                      rep({
+                        code: 500,
+                        msg: "商业险起保日期距今超过90天"
+                      });
+                    } else {
+                      log.info(ref_retData["data"][0]["biBeginDate"]);
+                      rep({
+                        code: 200,
+                        data: two_dates
+                      });
+                    }
+                  } else {
+                    rep({
+                      code: 500,
+                      msg: ref_retData["msg"]
+                    });
+                  }
+                });
+
+                ref_req.on('error', (e) => {
+                  log.error(e);
+                  rep({
+                    code: 500,
+                    msg: e.message
+                  });
+                });
+
               });
-            });
 
+              ref_req.end(ref_postData);
           });
-
-          ref_req.end(ref_postData);
-
         } else {
           rep({
             code: 500,
@@ -274,10 +268,7 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
 
 server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精准报价", (ctx: ServerContext, rep: ((result: any) => void), ownerId: string, ownerName: string, ownerCellPhone: string, licenseNumber: string, modelListOrder: number) => {
   log.info(`getAccurateQuotation, ownerId: ${ownerId}, ownerName: ${ownerName}, ownerCellPhone: ${ownerCellPhone}, licenseNumber: ${licenseNumber}, modelListOrder: ${modelListOrder}`);
-  if (!verify([stringVerifier("licenseNumber", licenseNumber),
-  stringVerifier("ownerId", ownerId),
-  stringVerifier("ownerName", ownerName),
-  stringVerifier("ownerCellPhone", ownerCellPhone)], (errors: string[]) => {
+  if (!verify([stringVerifier("licenseNumber", licenseNumber), stringVerifier("ownerId", ownerId), stringVerifier("ownerName", ownerName), stringVerifier("ownerCellPhone", ownerCellPhone)], (errors: string[]) => {
     log.info(errors);
     rep({
       code: 400,
@@ -316,7 +307,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
       ctx.cache.hget("license-two-dates", licenseNumber, function (err, two_dates_str) {
         // const sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
         if (err) {
-          log.info(`problem with request: ${err.message}`);
+          log.error(err);
           rep({
             code: 500,
             msg: err.message
@@ -452,7 +443,6 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                 });
 
                 res.on("end", function () {
-                  console.log(acc_result);
                   log.info(`api.ztwltech.com ACCPRICE response: ${acc_result}`);
                   const acc_retData: Object = JSON.parse(acc_result);
                   if (acc_retData["state"] === "1") {
@@ -591,7 +581,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                           wait_for_response(ctx.cache, cbflag, rep);
                         } else {
                           rep({
-                            code: 400,
+                            code: 500,
                             msg: "Can't get qid from createQuotation by vid: " + vrep["data"]
                           });
                         }
@@ -604,12 +594,11 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                     })();
                   } else {
                     rep({
-                      code: 400,
+                      code: 500,
                       msg: acc_retData["msg"] + ": " + acc_retData["data"][0]["msg"]
                     });
                   }
                 });
-
 
                 res.on('error', (e) => {
                   log.info(`problem with request: ${e.message}`);
