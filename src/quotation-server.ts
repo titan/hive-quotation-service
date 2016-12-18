@@ -80,6 +80,18 @@ server.call("getQuotation", allowAll, "获取一个报价", "获取一个报价"
 
 server.call("refresh", adminOnly, "refresh", "refresh", (ctx: ServerContext, rep: ((result: any) => void), qid?: string) => {
   log.info(qid ? `refresh, qid: ${qid}` : "refresh");
+  if (qid) {
+    if (!verify([uuidVerifier("qid", qid)], (errors: string[]) => {
+      log.info(errors);
+      rep({
+        code: 400,
+        msg: errors.join("\n")
+      });
+    })) {
+      return;
+    }
+  }
+
   const cbflag = uuid.v1();
   const pkt: CmdPacket = { cmd: "refresh", args: qid ? ["admin", cbflag, qid] : ["admin", cbflag] };
   ctx.publish(pkt);
@@ -265,6 +277,10 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
     }
   });
 });
+
+function requestAccurateQuotation(thpBizID: string, cityCode: string, responseNo: string, biBeginData: string, ciBeginData: string, carInfo: string, personInfo: string, insurerCode) {
+  const acc_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+}
 
 server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精准报价", (ctx: ServerContext, rep: ((result: any) => void), ownerId: string, ownerName: string, ownerCellPhone: string, licenseNumber: string, modelListOrder: number) => {
   log.info(`getAccurateQuotation, ownerId: ${ownerId}, ownerName: ${ownerName}, ownerCellPhone: ${ownerCellPhone}, licenseNumber: ${licenseNumber}, modelListOrder: ${modelListOrder}`);

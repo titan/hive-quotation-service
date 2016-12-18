@@ -95,7 +95,7 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
         if (item) {
           group.items.push(item);
         }
-        quotation.group = group;
+        quotation.groups.push(group);
       }
       quotations.push(quotation);
     }
@@ -107,6 +107,12 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
     let i = item;
     if (quotation && quotation.id !== row.id || !quotation) {
       if (quotation) {
+        if (group) {
+          if (item) {
+            group.items.push(item);
+          }
+          quotation.groups.push(group);
+        }
         quotations.push(quotation);
       }
       q = {
@@ -121,6 +127,9 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
     }
     if (g && g.id !== row.pid || !g) {
       if (g) {
+        if (item) {
+          g.items.push(item);
+        }
         q.groups.push(g);
       }
       g = {
