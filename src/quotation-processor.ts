@@ -220,7 +220,9 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
     "Scratch": "00000000-0000-0000-0000-000000000003"
   };
   const levelb = ["5万", "10万", "15万", "20万", "30万", "50万", "100万"];
+  const numb = [5, 10, 15, 20, 30, 50, 100];
   const levels = ["3块漆", "6块漆"];
+  const nums = [3, 6];
   (async () => {
     try {
       await db.query("BEGIN");
@@ -229,7 +231,7 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
       await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, qid]);
       for (let i = 0; i < levelb.length; i ++) {
         id = uuid.v1();
-        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["B"], c_list["B"]["insuredPremium"][levelb[i]], 0, "元", c_list["B"]["modifiedPremium"][levelb[i]], i, qid]);
+        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["B"], c_list["B"]["insuredPremium"][levelb[i]], numb[i], "万", c_list["B"]["modifiedPremium"][levelb[i]], i, qid]);
       }
       id = uuid.v1();
       await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, qid]);
@@ -245,7 +247,7 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
       await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, qid]);
       for (let i = 0; i < levels.length; i ++) {
         id = uuid.v1();
-        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], 0, "元", c_list["Scratch"]["modifiedPremium"][levels[i]], i, qid]);
+        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], nums[i], "块漆", c_list["Scratch"]["modifiedPremium"][levels[i]], i, qid]);
       }
       await db.query("COMMIT");
       await sync_quotation(db, cache, domain, qid);

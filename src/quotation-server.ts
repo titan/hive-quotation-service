@@ -552,7 +552,6 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                       }
                     };
 
-
                     acc_retData["data"][0]["coverageList"] = modified_coverageList;
                     acc_retData["data"][0]["purchasePrice"] = vehicleInfo["models"][modelListOrder]["purchasePrice"];
 
@@ -601,7 +600,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                 });
 
                 res.on('error', (e) => {
-                  log.info(`problem with request: ${e.message}`);
+                  log.error(e);
                   rep({
                     code: 500,
                     msg: e.message
