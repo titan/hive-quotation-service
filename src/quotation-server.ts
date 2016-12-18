@@ -278,8 +278,281 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
   });
 });
 
-function requestAccurateQuotation(thpBizID: string, cityCode: string, responseNo: string, biBeginData: string, ciBeginData: string, carInfo: string, personInfo: string, insurerCode) {
-  const acc_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+function requestAccurateQuotation(thpBizID: string, cityCode: string, responseNo: string, biBeginDate: string, ciBeginDate: string, car: Object, person: Object, insurerCode: string, callback: ((e: Error, o: any) => void)) {
+  const send_time: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+
+  const coverages = [
+    {
+      "coverageCode": "A",
+      "coverageName": "机动车损失保险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "B",
+      "coverageName": "商业第三者责任险",
+      "insuredAmount": "300000",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "F",
+      "coverageName": "玻璃单独破碎险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "FORCEPREMIUM",
+      "coverageName": "交强险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "G1",
+      "coverageName": "全车盗抢险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "X1",
+      "coverageName": "发动机涉水损失险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "Z",
+      "coverageName": "自燃损失险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    },
+    {
+      "coverageCode": "Z3",
+      "coverageName": "机动车损失保险无法找到第三方特约险",
+      "insuredAmount": "Y",
+      "insuredPremium": null,
+      "flag": null
+    }];
+
+    const parameters = {
+      operType: "ACCPRICE",
+      msg: "精准报价",
+      sendTime: send_time,
+      sign: null,
+      data: {
+        applicationID: "FENGCHAOHUZHU_SERVICE",
+        insurerCode: insurerCode,
+        biBeginDate: biBeginDate,
+        ciBeginDate: ciBeginDate,
+        cityCode: cityCode,
+        responseNo: responseNo,
+        channelCode: null,
+        carInfo: car,
+        thpBizID: thpBizID,
+        personInfo: person,
+        coverageList: coverages
+      }
+    };
+
+    const body: string = JSON.stringify(parameters);
+    log.info(`api.ztwltech.com ACCPRICE request: ${body}`);
+
+    const options = {
+      hostname: "api.ztwltech.com",
+      method: "POST",
+      path: "/zkyq-web/pottingApi/CalculateApi",
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+
+    const req = http.request(options, function (res) {
+      res.setEncoding("utf8");
+
+      let body: string = "";
+
+      res.on("data", function (buf) {
+        body += buf;
+      });
+
+      res.on("end", function () {
+        log.info(`api.ztwltech.com ACCPRICE response: ${body}`);
+        const response = JSON.parse(body);
+        if (response["state"] === "1") {
+          for (const data of response["data"]) {
+            if (data["coverageList"]) {
+              callback(null, data);
+              break;
+            }
+          }
+        } else {
+          const e: Error = new Error();
+          e.name = "500";
+          e.message = response["msg"] + ": " + response["data"][0]["msg"];
+          callback(e, null);
+        }
+      });
+    });
+
+    req.end(body);
+}
+
+function calculate_premium(vehicleInfo, modelListOrder, data) {
+  const origin_coverages = data["coverageList"];
+  const modified_coverages = origin_coverages.reduce((acc, coverage) => {
+    acc[coverage["coverageCode"]] = coverage;
+    return acc;
+  }, {});
+
+  const A_free: number = Number(modified_coverages["A"]["insuredPremium"]) * 1.15 * 0.65;
+  const B_free: number = Number(modified_coverages["B"]["insuredPremium"]);
+  const F_free: number = Number(modified_coverages["F"]["insuredPremium"]) * 0.65;
+  const FORCEPREMIUM_free: number = Number(modified_coverages["FORCEPREMIUM"]["insuredPremium"]);
+  const G1_free: number = Number(modified_coverages["G1"]["insuredPremium"]) * 1.2 * 0.66;
+  const X1_free: number = Number(modified_coverages["X1"]["insuredPremium"]) * 1.15 * 0.65;
+  const Z_free: number = Number(modified_coverages["Z"]["insuredPremium"]) * 1.2 * 0.65;
+  const Z3_free: number = Number(modified_coverages["Z3"]["insuredPremium"]) * 0.65;
+
+  const B_insured_amount_list: string[] = ["5万", "10万", "15万", "20万", "30万", "50万", "100万"];// , "150万", "200万", "300万", "500万"];
+
+  const D_of_Amount_seat: number[][] = [
+    [394.55, 570.05, 649.35, 706.55, 796.90, 956.80, 1246.05], // 1430.37, 1589.19, 1897.30, 2494.46],
+    [365.30, 514.80, 581.75, 627.25, 702.65, 836.55, 1089.40], // 1250.60, 1389.46, 1658.85, 2180.96],
+    [365.30, 514.80, 581.75, 627.25, 702.65, 836.55, 1089.40], // 1250.60, 1389.46, 1658.85, 2180.96]
+  ];
+
+  const B: number = B_free / 796.9;
+
+  let seat = Number(vehicleInfo["models"][modelListOrder]["seat"]);
+
+  if (seat < 6) {
+    seat = 0;
+  } else if (seat >= 6 && seat <= 10) {
+    seat = 1;
+  } else {
+    seat = 2;
+  }
+
+  const E_list = [];
+
+  const B_free_list = {};
+  for (let i = 0; i < D_of_Amount_seat[seat].length; i++) {
+    E_list[i] = D_of_Amount_seat[seat][i] * B;
+    B_free_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
+  }
+
+  modified_coverages["A"]["modifiedPremium"] = A_free.toFixed(2);
+  modified_coverages["B"]["insuredPremium"] = B_free_list;
+  modified_coverages["B"]["modifiedPremium"] = B_free_list;
+  modified_coverages["F"]["modifiedPremium"] = F_free.toFixed(2);
+  modified_coverages["FORCEPREMIUM"]["modifiedPremium"] = FORCEPREMIUM_free.toFixed(2);
+  modified_coverages["G1"]["modifiedPremium"] = G1_free.toFixed(2);
+  modified_coverages["X1"]["modifiedPremium"] = X1_free.toFixed(2);
+  modified_coverages["Z"]["modifiedPremium"] = Z_free.toFixed(2);
+  modified_coverages["Z3"]["modifiedPremium"] = Z3_free.toFixed(2);
+
+  const registerDate = new Date(vehicleInfo["firstRegisterDate"]);
+  const today = new Date();
+
+  const diff_ms: number = today.valueOf() - registerDate.valueOf();
+  const past_two_years: number = (Math.ceil(diff_ms / (1000 * 60 * 60 * 24)) > 365 * 2) ? 1 : 0;
+
+  const newCarPrice = Number(vehicleInfo["models"][modelListOrder]["newCarPrice"]);
+  let index_of_newCarPrice: number;
+  if (newCarPrice < 100000) {
+    index_of_newCarPrice = 0;
+  } else if (newCarPrice >= 100000 && newCarPrice <= 200000) {
+    index_of_newCarPrice = 1;
+  } else if (newCarPrice > 200000 && newCarPrice <= 300000) {
+    index_of_newCarPrice = 2;
+  } else if (newCarPrice > 300000 && newCarPrice <= 500000) {
+    index_of_newCarPrice = 3;
+  } else {
+    index_of_newCarPrice = 4;
+  }
+  // 10万以下	10（含）-20万（含）	20-30万（含）	30-50万（含）	50万以上
+
+  const three_parts_price_table = [
+    [202, 214, 249, 451, 742],
+    [308, 326, 380, 694, 960]
+  ];
+
+  const six_parts_price_table = [
+    [303, 320, 374, 632, 1186],
+    [446, 472, 551, 972, 1535]
+  ];
+
+  modified_coverages["Scratch"] = {
+    "coverageCode": "Scratch",
+    "coverageName": "车身划痕损失",
+    "insuredAmount": "",
+    "insuredPremium": {
+      "3块漆": three_parts_price_table[past_two_years][index_of_newCarPrice].toString(),
+      "6块漆": six_parts_price_table[past_two_years][index_of_newCarPrice].toString()
+    },
+    "flag": null,
+    "modifiedPremium": {
+      "3块漆": three_parts_price_table[past_two_years][index_of_newCarPrice].toString(),
+      "6块漆": six_parts_price_table[past_two_years][index_of_newCarPrice].toString()
+    }
+  };
+
+  data["coverageList"] = modified_coverages;
+  data["purchasePrice"] = vehicleInfo["models"][modelListOrder]["purchasePrice"];
+  return { data, diff_ms };
+}
+
+function handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicle, modelListOrder, _data) {
+  const {data, diff_ms} = calculate_premium(vehicle, modelListOrder, _data);
+
+  const age_price = (1 - (Math.ceil(diff_ms / (1000 * 60 * 60 * 24 * 30)) * 0.006)) * Number(data["purchasePrice"]);
+  const age_price_limit = Number(data["purchasePrice"]) * 0.2;
+
+  (async () => {
+    log.info("Ready to get vid");
+    try {
+      const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setVehicleOnCard", ownerName, ownerId, ownerCellPhone, "", vehicle["models"][modelListOrder]["brandCode"].split("-").join(""), vehicle["licenseNo"], vehicle["engineNo"], vehicle["registerDate"], "", false, "", data["biBeginDate"], "", vehicle["frameNo"]);
+      if (vrep["code"] === 200) {
+        log.info("!!! Got vid: " + vrep["data"]);
+        data["vid"] = vrep["data"];
+        const qrep = await rpc<Object>(ctx.domain, process.env["QUOTATION"], ctx.uid, "createQuotation", vrep["data"]);
+        if (qrep["code"] === 200) {
+          log.info("!!! Got qid: " + qrep["data"]["qid"]);
+          data["thpBizID"] = qrep["data"]["qid"];
+          if (age_price < age_price_limit) {
+            data["realPrice"] = age_price_limit.toFixed(2);
+          } else {
+            data["realPrice"] = age_price.toFixed(2);
+          }
+          const cbflag = uuid.v1();
+          const pkt: CmdPacket = { cmd: "saveQuotation", args: [data, 3, cbflag, ctx.domain] };
+          ctx.publish(pkt);
+          wait_for_response(ctx.cache, cbflag, rep);
+        } else {
+          rep({
+            code: 500,
+            msg: "Can't get qid from createQuotation by vid: " + vrep["data"]
+          });
+        }
+      } else {
+        rep({
+          code: vrep["code"],
+          msg: vrep["msg"]
+        });
+      }
+    } catch (e) {
+      rep({
+        code: 500,
+        msg: e.message
+      });
+    }
+  })();
 }
 
 server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精准报价", (ctx: ServerContext, rep: ((result: any) => void), ownerId: string, ownerName: string, ownerCellPhone: string, licenseNumber: string, modelListOrder: number) => {
@@ -333,11 +606,9 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
           const two_dates = JSON.parse(two_dates_str);
           msgpack_decode(vehicleInfo_pkt).then(vehicleInfo => {
 
-            const acc_sendTimeString: string = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+            const city_code = "110100"; // Beijing
 
-            const acc_cityCode = "110100"; // Beijing
-
-            const acc_carInfo = {
+            const car = {
               "licenseNo": vehicleInfo["licenseNo"],
               "frameNo": vehicleInfo["frameNo"], // 如果有修改车架号,就一定要传,没有修改的话,就不传.为 null
               "modelCode": vehicleInfo["models"][modelListOrder]["brandCode"],
@@ -347,7 +618,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
               "registerDate": vehicleInfo["firstRegisterDate"]
             };
 
-            const acc_persionInfo: Object = {
+            const person: Object = {
               "insuredID": ownerId,
               "ownerName": ownerName,
               "ownerID": ownerId,
@@ -356,276 +627,40 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
               "insuredMobile": ownerCellPhone
             };
 
-            const acc_coverageList = [
-              {
-                "coverageCode": "A",
-                "coverageName": "机动车损失保险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "B",
-                "coverageName": "商业第三者责任险",
-                "insuredAmount": "300000",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "F",
-                "coverageName": "玻璃单独破碎险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "FORCEPREMIUM",
-                "coverageName": "交强险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "G1",
-                "coverageName": "全车盗抢险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "X1",
-                "coverageName": "发动机涉水损失险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "Z",
-                "coverageName": "自燃损失险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              },
-              {
-                "coverageCode": "Z3",
-                "coverageName": "机动车损失保险无法找到第三方特约险",
-                "insuredAmount": "Y",
-                "insuredPremium": null,
-                "flag": null
-              }];
-
-              const acc_data = {
-                applicationID: "FENGCHAOHUZHU_SERVICE",
-                insurerCode: "APIC",
-                biBeginDate: two_dates["biBeginDate"],
-                ciBeginDate: two_dates["ciBeginDate"],
-                cityCode: acc_cityCode,
-                responseNo: vehicleInfo["responseNo"],
-                channelCode: null,
-                carInfo: acc_carInfo,
-                thpBizID: "20161213fuyuhintest",
-                personInfo: acc_persionInfo,
-                coverageList: acc_coverageList
-              };
-
-              const acc_requestData = {
-                operType: "ACCPRICE",
-                msg: "精准报价",
-                sendTime: acc_sendTimeString,
-                sign: null,
-                data: acc_data
-              };
-
-              const acc_postData: string = JSON.stringify(acc_requestData);
-              log.info(`api.ztwltech.com ACCPRICE request: ${acc_postData}`);
-
-              const acc_options = {
-                hostname: "api.ztwltech.com",
-                method: "POST",
-                path: "/zkyq-web/pottingApi/CalculateApi",
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Content-Length': Buffer.byteLength(acc_postData)
-                }
-              };
-
-              const acc_req = http.request(acc_options, function (res) {
-                res.setEncoding("utf8");
-
-                let acc_result: string = "";
-
-                res.on("data", function (body) {
-                  acc_result += body;
-                });
-
-                res.on("end", function () {
-                  log.info(`api.ztwltech.com ACCPRICE response: ${acc_result}`);
-                  const acc_retData: Object = JSON.parse(acc_result);
-                  if (acc_retData["state"] === "1") {
-                    const coverageList = acc_retData["data"][0]["coverageList"];
-                    const modified_coverageList = {};
-                    // log.info(coverageList.toString());
-                    for (let i = 0; i < coverageList.length; i++) {
-                      modified_coverageList[(coverageList[i]["coverageCode"]).toString()] = coverageList[i];
-                    }
-
-                    // const modified_List
-
-                    // for (const i = 0; i < modified_coverageList.length; i++) {
-                    //   modified_coverageList[i]["modifiedPremium"] = null;
-                    // }
-
-                    const A_free: number = Number(modified_coverageList["A"]["insuredPremium"]) * 1.15 * 0.65;
-                    const B_free: number = Number(modified_coverageList["B"]["insuredPremium"]);
-                    const F_free: number = Number(modified_coverageList["F"]["insuredPremium"]) * 0.65;
-                    const FORCEPREMIUM_free: number = Number(modified_coverageList["FORCEPREMIUM"]["insuredPremium"]);
-                    const G1_free: number = Number(modified_coverageList["G1"]["insuredPremium"]) * 1.2 * 0.66;
-                    const X1_free: number = Number(modified_coverageList["X1"]["insuredPremium"]) * 1.15 * 0.65;
-                    const Z_free: number = Number(modified_coverageList["Z"]["insuredPremium"]) * 1.2 * 0.65;
-                    const Z3_free: number = Number(modified_coverageList["Z3"]["insuredPremium"]) * 0.65;
-
-                    const B_insured_amount_list: string[] = ["5万", "10万", "15万", "20万", "30万", "50万", "100万"];// , "150万", "200万", "300万", "500万"];
-
-                    const D_of_Amount_seat: number[][] = [
-                      [394.55, 570.05, 649.35, 706.55, 796.90, 956.80, 1246.05], // 1430.37, 1589.19, 1897.30, 2494.46],
-                      [365.30, 514.80, 581.75, 627.25, 702.65, 836.55, 1089.40], // 1250.60, 1389.46, 1658.85, 2180.96],
-                      [365.30, 514.80, 581.75, 627.25, 702.65, 836.55, 1089.40], // 1250.60, 1389.46, 1658.85, 2180.96]
-                    ];
-
-                    const B: number = B_free / 796.9;
-
-                    let seat = Number(vehicleInfo["models"][modelListOrder]["seat"]);
-
-                    if (seat < 6) {
-                      seat = 0;
-                    } else if (seat >= 6 && seat <= 10) {
-                      seat = 1;
+            requestAccurateQuotation("20161213fuyuhintest", city_code, vehicleInfo["responseNo"], two_dates["biBeginDate"], two_dates["ciBeginDate"], car, person, "APIC", (e: Error, data: Object) => {
+              if (e) {
+                log.error(e);
+                const regex = /^.*\[\d{0,8}-(\d{0,8})\].*$/g
+                const regarr = regex.exec(e.message);
+                if (regarr && regarr.length === 2) {
+                  const datestr = regarr[1];
+                  const year = datestr.substring(0, 4)
+                  const month = datestr.substring(4, 6)
+                  const day = datestr.substring(6, 8)
+                  const newdate = new Date(new Date(`${year}-${month}-${day}`).getTime() + 86400000);
+                  const newdatestr = newdate.toISOString().substring(0, 10);
+                  requestAccurateQuotation("20161213fuyuhintest", city_code, vehicleInfo["responseNo"], newdatestr, newdatestr, car, person, "APIC", (e1: Error, data1: Object) => {
+                    if (e1) {
+                      log.error(e1);
+                      rep({
+                        code: 500,
+                        msg: e1.message
+                      });
+                      return;
                     } else {
-                      seat = 2;
+                      handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data1);
                     }
-
-                    const E_list = [];
-
-                    const B_free_list = {};
-                    for (let i = 0; i < D_of_Amount_seat[seat].length; i++) {
-                      E_list[i] = D_of_Amount_seat[seat][i] * B;
-                      B_free_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
-                    }
-
-                    modified_coverageList["A"]["modifiedPremium"] = A_free.toFixed(2);
-                    modified_coverageList["B"]["insuredPremium"] = B_free_list;
-                    modified_coverageList["B"]["modifiedPremium"] = B_free_list;
-                    modified_coverageList["F"]["modifiedPremium"] = F_free.toFixed(2);
-                    modified_coverageList["FORCEPREMIUM"]["modifiedPremium"] = FORCEPREMIUM_free.toFixed(2);
-                    modified_coverageList["G1"]["modifiedPremium"] = G1_free.toFixed(2);
-                    modified_coverageList["X1"]["modifiedPremium"] = X1_free.toFixed(2);
-                    modified_coverageList["Z"]["modifiedPremium"] = Z_free.toFixed(2);
-                    modified_coverageList["Z3"]["modifiedPremium"] = Z3_free.toFixed(2);
-
-                    const registerDate = new Date(vehicleInfo["firstRegisterDate"]);
-                    const acc_today = new Date();
-
-                    const acc_diff_ms: number = acc_today.valueOf() - registerDate.valueOf();
-                    const past_two_years: number = (Math.ceil(acc_diff_ms / (1000 * 60 * 60 * 24)) > 365 * 2) ? 1 : 0;
-
-                    const newCarPrice = Number(vehicleInfo["models"][modelListOrder]["newCarPrice"]);
-                    let index_of_newCarPrice: number;
-                    if (newCarPrice < 100000) {
-                      index_of_newCarPrice = 0;
-                    } else if (newCarPrice >= 100000 && newCarPrice <= 200000) {
-                      index_of_newCarPrice = 1;
-                    } else if (newCarPrice > 200000 && newCarPrice <= 300000) {
-                      index_of_newCarPrice = 2;
-                    } else if (newCarPrice > 300000 && newCarPrice <= 500000) {
-                      index_of_newCarPrice = 3;
-                    } else {
-                      index_of_newCarPrice = 4;
-                    }
-                    // 10万以下	10（含）-20万（含）	20-30万（含）	30-50万（含）	50万以上
-
-                    const three_parts_price_table = [
-                      [202, 214, 249, 451, 742],
-                      [308, 326, 380, 694, 960]
-                    ];
-
-                    const six_parts_price_table = [
-                      [303, 320, 374, 632, 1186],
-                      [446, 472, 551, 972, 1535]
-                    ];
-
-                    modified_coverageList["Scratch"] = {
-                      "coverageCode": "Scratch",
-                      "coverageName": "车身划痕损失",
-                      "insuredAmount": "",
-                      "insuredPremium": {
-                        "3块漆": three_parts_price_table[past_two_years][index_of_newCarPrice].toString(),
-                        "6块漆": six_parts_price_table[past_two_years][index_of_newCarPrice].toString()
-                      },
-                      "flag": null,
-                      "modifiedPremium": {
-                        "3块漆": three_parts_price_table[past_two_years][index_of_newCarPrice].toString(),
-                        "6块漆": six_parts_price_table[past_two_years][index_of_newCarPrice].toString()
-                      }
-                    };
-
-                    acc_retData["data"][0]["coverageList"] = modified_coverageList;
-                    acc_retData["data"][0]["purchasePrice"] = vehicleInfo["models"][modelListOrder]["purchasePrice"];
-
-                    const age_price = (1 - (Math.ceil(acc_diff_ms / (1000 * 60 * 60 * 24 * 30)) * 0.006)) * Number(acc_retData["data"][0]["purchasePrice"]);
-                    const age_price_limit = Number(acc_retData["data"][0]["purchasePrice"]) * 0.2;
-
-                    log.info("Ready to get vid");
-                    (async () => {
-                      const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setVehicleOnCard", ownerName, ownerId, ownerCellPhone, "", acc_carInfo["modelCode"].split("-").join(""), acc_carInfo["licenseNo"], acc_carInfo["engineNo"], acc_carInfo["registerDate"], "", false, "", acc_retData["data"][0]["biBeginDate"], "", acc_carInfo["frameNo"]);
-                      if (vrep["code"] === 200) {
-                        log.info("!!! Got vid: " + vrep["data"]);
-                        acc_retData["data"][0]["vid"] = vrep["data"];
-                        const qrep = await rpc<Object>("mobile", process.env["QUOTATION"], ctx.uid, "createQuotation", vrep["data"]);
-                        if (qrep["code"] === 200) {
-                          log.info("!!! Got qid: " + qrep["data"]["qid"]);
-                          acc_retData["data"][0]["thpBizID"] = qrep["data"]["qid"];
-                          if (age_price < age_price_limit) {
-                            acc_retData["data"][0]["realPrice"] = age_price_limit.toFixed(2);
-                          } else {
-                            acc_retData["data"][0]["realPrice"] = age_price.toFixed(2);
-                          }
-                          const domain = ctx.domain;
-                          const cbflag = uuid.v1();
-                          const pkt: CmdPacket = { cmd: "saveQuotation", args: [acc_retData["data"][0], 3, cbflag, domain] };
-                          ctx.publish(pkt);
-                          wait_for_response(ctx.cache, cbflag, rep);
-                        } else {
-                          rep({
-                            code: 500,
-                            msg: "Can't get qid from createQuotation by vid: " + vrep["data"]
-                          });
-                        }
-                      } else {
-                        rep({
-                          code: vrep["code"],
-                          msg: vrep["msg"]
-                        });
-                      }
-                    })();
-                  } else {
-                    rep({
-                      code: 500,
-                      msg: acc_retData["msg"] + ": " + acc_retData["data"][0]["msg"]
-                    });
-                  }
-                });
-
-                res.on('error', (e) => {
-                  log.error(e);
+                  });
+                } else {
                   rep({
                     code: 500,
                     msg: e.message
                   });
-                });
-              });
-
-              acc_req.end(acc_postData);
-
+                }
+                return;
+              }
+              handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data);
+            });
           });
         } else {
           rep({
