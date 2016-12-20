@@ -594,7 +594,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
     return;
   }
 
-  if (accident_status < 0 || accident_status > 3) {
+  if (accident_status !== 1 && accident_status !== 2 && accident_status !== 3) {
     rep({
       code: 400,
       msg: "accident_status is wrong!"
