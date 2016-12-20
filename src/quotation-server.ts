@@ -133,7 +133,7 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
         msg: "Error on getting two_dates_str from redis!"
       });
     } else {
-      if (!two_dates_str) {
+      if (two_dates_str) {
         const two_dates = JSON.parse(two_dates_str);
         const begindate = new Date(two_dates["ciBeginDate"])
         if (begindate.getTime() > new Date().getTime()) {
