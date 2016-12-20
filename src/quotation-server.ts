@@ -1,12 +1,9 @@
-import { Server, ServerContext, ServerFunction, CmdPacket, Permission, wait_for_response, msgpack_decode } from "hive-service";
+import { Server, ServerContext, ServerFunction, CmdPacket, Permission, wait_for_response, msgpack_decode, rpc } from "hive-service";
 import * as bunyan from "bunyan";
 import * as http from "http";
 import * as msgpack from "msgpack-lite";
 import * as uuid from "uuid";
 import { verify, uuidVerifier, stringVerifier, numberVerifier } from "hive-verify";
-import { servermap } from "hive-hostmap";
-import { rpc } from "hive-processor";
-
 
 const log = bunyan.createLogger({
   name: "quotation-server",
@@ -512,7 +509,7 @@ function calculate_premium(vehicleInfo, modelListOrder, data) {
   return { data, diff_ms };
 }
 
-function handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicle, modelListOrder, _data) {
+function handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicle, modelListOrder, _data, accident_status) {
   const {data, diff_ms} = calculate_premium(vehicle, modelListOrder, _data);
 
   const age_price = (1 - (Math.ceil(diff_ms / (1000 * 60 * 60 * 24 * 30)) * 0.006)) * Number(data["purchasePrice"]);
@@ -521,7 +518,7 @@ function handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, v
   (async () => {
     log.info("Ready to get vid");
     try {
-      const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setVehicleOnCard", ownerName, ownerId, ownerCellPhone, "", vehicle["models"][modelListOrder]["brandCode"].split("-").join(""), vehicle["licenseNo"], vehicle["engineNo"], vehicle["registerDate"], "", false, "", data["biBeginDate"], "", vehicle["frameNo"]);
+      const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setVehicleOnCard", ownerName, ownerId, ownerCellPhone, "", vehicle["models"][modelListOrder]["brandCode"].split("-").join(""), vehicle["licenseNo"], vehicle["engineNo"], vehicle["registerDate"], "", false, "", data["biBeginDate"], "", vehicle["frameNo"], accident_status);
       if (vrep["code"] === 200) {
         log.info("!!! Got vid: " + vrep["data"]);
         data["vid"] = vrep["data"];
@@ -559,7 +556,7 @@ function handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, v
   })();
 }
 
-server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精准报价", (ctx: ServerContext, rep: ((result: any) => void), ownerId: string, ownerName: string, ownerCellPhone: string, licenseNumber: string, modelListOrder: number) => {
+server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精准报价", (ctx: ServerContext, rep: ((result: any) => void), ownerId: string, ownerName: string, ownerCellPhone: string, licenseNumber: string, modelListOrder: number, accident_status: number) => {
   log.info(`getAccurateQuotation, ownerId: ${ownerId}, ownerName: ${ownerName}, ownerCellPhone: ${ownerCellPhone}, licenseNumber: ${licenseNumber}, modelListOrder: ${modelListOrder}`);
   if (!verify([stringVerifier("licenseNumber", licenseNumber), stringVerifier("ownerId", ownerId), stringVerifier("ownerName", ownerName), stringVerifier("ownerCellPhone", ownerCellPhone)], (errors: string[]) => {
     log.info(errors);
@@ -586,6 +583,26 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
     });
     return;
   }
+
+
+
+  if (accident_status === NaN) {
+    rep({
+      code: 400,
+      msg: "accident_status is NOT a number!"
+    });
+    return;
+  }
+
+  if (accident_status < 0 || accident_status > 3) {
+    rep({
+      code: 400,
+      msg: "accident_status is wrong!"
+    });
+    return;
+  }
+
+  log.info("accident_status: " + accident_status);
 
   ctx.cache.hget("vehicle-info", licenseNumber, function (err, vehicleInfo_pkt) {
     log.info("Try to get vehicle-info from redis");
@@ -652,7 +669,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                       });
                       return;
                     } else {
-                      handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data1);
+                      handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data1, accident_status);
                     }
                   });
                 } else {
@@ -663,7 +680,7 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                 }
                 return;
               }
-              handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data);
+              handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data, accident_status);
             });
           });
         } else {
