@@ -941,7 +941,7 @@ server.call("getAccurateQuotationForTest", allowAll, "获得精准报价", "同�
                       const B_free: number = Number(modified_coverageList["B"]["insuredPremium"]);
                       const F_free: number = Number(modified_coverageList["F"]["insuredPremium"]) * 0.65;
                       const FORCEPREMIUM_free: number = Number(modified_coverageList["FORCEPREMIUM"]["insuredPremium"]);
-                      const G1_free: number = Number(modified_coverageList["G1"]["insuredPremium"]) * 1.2 * 0.66;
+                      const G1_free: number = Number(modified_coverageList["G1"]["insuredPremium"]) * 1.2 * 0.65;
                       const X1_free: number = Number(modified_coverageList["X1"]["insuredPremium"]) * 1.15 * 0.65;
                       const Z_free: number = Number(modified_coverageList["Z"]["insuredPremium"]) * 1.2 * 0.65;
                       const Z3_free: number = Number(modified_coverageList["Z3"]["insuredPremium"]) * 0.65;
