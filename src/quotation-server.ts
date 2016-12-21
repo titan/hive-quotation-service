@@ -415,7 +415,7 @@ function calculate_premium(vehicleInfo, modelListOrder, data) {
   const B_fee: number = Number(modified_coverages["B"]["insuredPremium"]);
   const F_fee: number = Number(modified_coverages["F"]["insuredPremium"]) * 0.65;
   const FORCEPREMIUM_fee: number = Number(modified_coverages["FORCEPREMIUM"]["insuredPremium"]);
-  const G1_fee: number = Number(modified_coverages["G1"]["insuredPremium"]) * 1.2 * 0.66;
+  const G1_fee: number = Number(modified_coverages["G1"]["insuredPremium"]) * 1.2 * 0.65;
   const X1_fee: number = Number(modified_coverages["X1"]["insuredPremium"]) * 1.15 * 0.65;
   const Z_fee: number = Number(modified_coverages["Z"]["insuredPremium"]) * 1.2 * 0.65;
   const Z3_fee: number = Number(modified_coverages["Z3"]["insuredPremium"]) * 0.65;
