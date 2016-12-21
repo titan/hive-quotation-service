@@ -411,14 +411,14 @@ function calculate_premium(vehicleInfo, modelListOrder, data) {
     return acc;
   }, {});
 
-  const A_free: number = Number(modified_coverages["A"]["insuredPremium"]) * 1.15 * 0.65;
-  const B_free: number = Number(modified_coverages["B"]["insuredPremium"]);
-  const F_free: number = Number(modified_coverages["F"]["insuredPremium"]) * 0.65;
-  const FORCEPREMIUM_free: number = Number(modified_coverages["FORCEPREMIUM"]["insuredPremium"]);
-  const G1_free: number = Number(modified_coverages["G1"]["insuredPremium"]) * 1.2 * 0.66;
-  const X1_free: number = Number(modified_coverages["X1"]["insuredPremium"]) * 1.15 * 0.65;
-  const Z_free: number = Number(modified_coverages["Z"]["insuredPremium"]) * 1.2 * 0.65;
-  const Z3_free: number = Number(modified_coverages["Z3"]["insuredPremium"]) * 0.65;
+  const A_fee: number = Number(modified_coverages["A"]["insuredPremium"]) * 1.15 * 0.65;
+  const B_fee: number = Number(modified_coverages["B"]["insuredPremium"]);
+  const F_fee: number = Number(modified_coverages["F"]["insuredPremium"]) * 0.65;
+  const FORCEPREMIUM_fee: number = Number(modified_coverages["FORCEPREMIUM"]["insuredPremium"]);
+  const G1_fee: number = Number(modified_coverages["G1"]["insuredPremium"]) * 1.2 * 0.66;
+  const X1_fee: number = Number(modified_coverages["X1"]["insuredPremium"]) * 1.15 * 0.65;
+  const Z_fee: number = Number(modified_coverages["Z"]["insuredPremium"]) * 1.2 * 0.65;
+  const Z3_fee: number = Number(modified_coverages["Z3"]["insuredPremium"]) * 0.65;
 
   const B_insured_amount_list: string[] = ["5万", "10万", "15万", "20万", "30万", "50万", "100万"];// , "150万", "200万", "300万", "500万"];
 
@@ -428,7 +428,7 @@ function calculate_premium(vehicleInfo, modelListOrder, data) {
     [365.30, 514.80, 581.75, 627.25, 702.65, 836.55, 1089.40], // 1250.60, 1389.46, 1658.85, 2180.96]
   ];
 
-  const B: number = B_free / 796.9;
+  const B: number = B_fee / 796.9;
 
   let seat = Number(vehicleInfo["models"][modelListOrder]["seat"]);
 
@@ -442,21 +442,25 @@ function calculate_premium(vehicleInfo, modelListOrder, data) {
 
   const E_list = [];
 
-  const B_free_list = {};
+  const B_fee_list = {};
   for (let i = 0; i < D_of_Amount_seat[seat].length; i++) {
     E_list[i] = D_of_Amount_seat[seat][i] * B;
-    B_free_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
+    B_fee_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
   }
 
-  modified_coverages["A"]["modifiedPremium"] = A_free.toFixed(2);
-  modified_coverages["B"]["insuredPremium"] = B_free_list;
-  modified_coverages["B"]["modifiedPremium"] = B_free_list;
-  modified_coverages["F"]["modifiedPremium"] = F_free.toFixed(2);
-  modified_coverages["FORCEPREMIUM"]["modifiedPremium"] = FORCEPREMIUM_free.toFixed(2);
-  modified_coverages["G1"]["modifiedPremium"] = G1_free.toFixed(2);
-  modified_coverages["X1"]["modifiedPremium"] = X1_free.toFixed(2);
-  modified_coverages["Z"]["modifiedPremium"] = Z_free.toFixed(2);
-  modified_coverages["Z3"]["modifiedPremium"] = Z3_free.toFixed(2);
+  modified_coverages["A"]["modifiedPremium"] = A_fee.toFixed(2);
+  modified_coverages["A"]["insuredPremium"] = (Number(modified_coverages["A"]["insuredPremium"]) * 1.15).toFixed(2);
+  modified_coverages["B"]["insuredPremium"] = B_fee_list;
+  modified_coverages["B"]["modifiedPremium"] = B_fee_list;
+  modified_coverages["F"]["modifiedPremium"] = F_fee.toFixed(2);
+  modified_coverages["FORCEPREMIUM"]["modifiedPremium"] = FORCEPREMIUM_fee.toFixed(2);
+  modified_coverages["G1"]["modifiedPremium"] = G1_fee.toFixed(2);
+  modified_coverages["G1"]["insuredPremium"] = (Number(modified_coverages["G1"]["insuredPremium"]) * 1.2).toFixed(2);
+  modified_coverages["X1"]["modifiedPremium"] = X1_fee.toFixed(2);
+  modified_coverages["X1"]["insuredPremium"] = (Number(modified_coverages["X1"]["insuredPremium"]) * 1.15).toFixed(2);
+  modified_coverages["Z"]["modifiedPremium"] = Z_fee.toFixed(2);
+  modified_coverages["Z"]["insuredPremium"] = (Number(modified_coverages["Z"]["insuredPremium"]) * 1.2).toFixed(2);
+  modified_coverages["Z3"]["modifiedPremium"] = Z3_fee.toFixed(2);
 
   const registerDate = new Date(vehicleInfo["firstRegisterDate"]);
   const today = new Date();
@@ -954,14 +958,14 @@ server.call("getAccurateQuotationForTest", allowAll, "获得精准报价", "同�
                         modified_coverageList[(coverageList[i]["coverageCode"]).toString()] = coverageList[i];
                       }
 
-                      const A_free: number = Number(modified_coverageList["A"]["insuredPremium"]) * 1.15 * 0.65;
-                      const B_free: number = Number(modified_coverageList["B"]["insuredPremium"]);
-                      const F_free: number = Number(modified_coverageList["F"]["insuredPremium"]) * 0.65;
-                      const FORCEPREMIUM_free: number = Number(modified_coverageList["FORCEPREMIUM"]["insuredPremium"]);
-                      const G1_free: number = Number(modified_coverageList["G1"]["insuredPremium"]) * 1.2 * 0.66;
-                      const X1_free: number = Number(modified_coverageList["X1"]["insuredPremium"]) * 1.15 * 0.65;
-                      const Z_free: number = Number(modified_coverageList["Z"]["insuredPremium"]) * 1.2 * 0.65;
-                      const Z3_free: number = Number(modified_coverageList["Z3"]["insuredPremium"]) * 0.65;
+                      const A_fee: number = Number(modified_coverageList["A"]["insuredPremium"]) * 1.15 * 0.65;
+                      const B_fee: number = Number(modified_coverageList["B"]["insuredPremium"]);
+                      const F_fee: number = Number(modified_coverageList["F"]["insuredPremium"]) * 0.65;
+                      const FORCEPREMIUM_fee: number = Number(modified_coverageList["FORCEPREMIUM"]["insuredPremium"]);
+                      const G1_fee: number = Number(modified_coverageList["G1"]["insuredPremium"]) * 1.2 * 0.66;
+                      const X1_fee: number = Number(modified_coverageList["X1"]["insuredPremium"]) * 1.15 * 0.65;
+                      const Z_fee: number = Number(modified_coverageList["Z"]["insuredPremium"]) * 1.2 * 0.65;
+                      const Z3_fee: number = Number(modified_coverageList["Z3"]["insuredPremium"]) * 0.65;
 
                       const B_insured_amount_list: string[] = ["5万", "10万", "15万", "20万", "30万", "50万", "100万"];// , "150万", "200万", "300万", "500万"];
 
@@ -971,7 +975,7 @@ server.call("getAccurateQuotationForTest", allowAll, "获得精准报价", "同�
                         [365.30, 514.80, 581.75, 627.25, 702.65, 836.55, 1089.40], // 1250.60, 1389.46, 1658.85, 2180.96]
                       ];
 
-                      const B: number = B_free / 796.9;
+                      const B: number = B_fee / 796.9;
 
                       let seat = Number(vehicleInfo["model"][modelListOrder]["seat"]);
 
@@ -985,20 +989,20 @@ server.call("getAccurateQuotationForTest", allowAll, "获得精准报价", "同�
 
                       const E_list = [];
 
-                      const B_free_list = {};
+                      const B_fee_list = {};
                       for (let i = 0; i < D_of_Amount_seat[seat].length; i++) {
                         E_list[i] = D_of_Amount_seat[seat][i] * B;
-                        B_free_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
+                        B_fee_list[B_insured_amount_list[i]] = E_list[i].toFixed(2);
                       }
 
-                      modified_coverageList["A"]["modifiedPremium"] = A_free.toFixed(2);
-                      modified_coverageList["B"]["modifiedPremium"] = B_free_list;
-                      modified_coverageList["F"]["modifiedPremium"] = F_free.toFixed(2);
-                      modified_coverageList["FORCEPREMIUM"]["modifiedPremium"] = FORCEPREMIUM_free.toFixed(2);
-                      modified_coverageList["G1"]["modifiedPremium"] = G1_free.toFixed(2);
-                      modified_coverageList["X1"]["modifiedPremium"] = X1_free.toFixed(2);
-                      modified_coverageList["Z"]["modifiedPremium"] = Z_free.toFixed(2);
-                      modified_coverageList["Z3"]["modifiedPremium"] = Z3_free.toFixed(2);
+                      modified_coverageList["A"]["modifiedPremium"] = A_fee.toFixed(2);
+                      modified_coverageList["B"]["modifiedPremium"] = B_fee_list;
+                      modified_coverageList["F"]["modifiedPremium"] = F_fee.toFixed(2);
+                      modified_coverageList["FORCEPREMIUM"]["modifiedPremium"] = FORCEPREMIUM_fee.toFixed(2);
+                      modified_coverageList["G1"]["modifiedPremium"] = G1_fee.toFixed(2);
+                      modified_coverageList["X1"]["modifiedPremium"] = X1_fee.toFixed(2);
+                      modified_coverageList["Z"]["modifiedPremium"] = Z_fee.toFixed(2);
+                      modified_coverageList["Z3"]["modifiedPremium"] = Z3_fee.toFixed(2);
 
                       const registerDate = new Date(vehicleInfo["firstRegisterDate"]);
                       const acc_today = new Date();
