@@ -235,7 +235,7 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
   (async () => {
     try {
       await db.query("BEGIN");
-      await db.query("UPDATE quotations SET state = 3, insure = 3, auto = 1 WHERE id = $1", [qid]);
+      await db.query("UPDATE quotations SET state = 3, insure = 3, auto = 2 WHERE id = $1", [qid]);
       id = uuid.v1();
       await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, qid]);
       for (let i = 0; i < levelb.length; i ++) {
