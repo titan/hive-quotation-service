@@ -522,7 +522,7 @@ function handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, v
   (async () => {
     log.info("Ready to get vid");
     try {
-      const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setVehicleOnCard", ownerName, ownerId, ownerCellPhone, "", vehicle["models"][modelListOrder]["brandCode"].split("-").join(""), vehicle["licenseNo"], vehicle["engineNo"], vehicle["registerDate"], "", false, "", data["biBeginDate"], "", vehicle["frameNo"], accident_status);
+      const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setVehicleOnCard", ownerName, ownerId, ownerCellPhone, "", vehicle["models"][modelListOrder]["brandCode"].split("-").join(""), vehicle["licenseNo"], vehicle["engineNo"], new Date(vehicle["registerDate"]), "", false, "", data["biBeginDate"], "", vehicle["frameNo"], accident_status);
       if (vrep["code"] === 200) {
         log.info("!!! Got vid: " + vrep["data"]);
         data["vid"] = vrep["data"];
