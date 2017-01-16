@@ -88,23 +88,13 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
   })();
 });
 
-function rows_to_quotations(rows, domain, quotations = [], quotation = null, group = null, item = null) {
-  if (rows.length === 0) {
-    if (quotation) {
-      if (group) {
-        if (item) {
-          group.items.push(item);
-        }
-        quotation.groups.push(group);
-      }
-      quotations.push(quotation);
-    }
-    return quotations;
-  } else {
-    const row = rows.shift();
-    let q = quotation;
-    let g = group;
-    let i = item;
+async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, qid?: string): Promise<any> {
+  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure"), qid ? [ qid ] : []);
+  const quotations = [];
+  let quotation = null;
+  let group = null;
+  let item = null;
+  for (const row of result.rows) {
     if (quotation && quotation.id !== row.id || !quotation) {
       if (quotation) {
         if (group) {
@@ -115,35 +105,35 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
         }
         quotations.push(quotation);
       }
-      q = {
+      quotation = {
         id: row.id,
         vid: row.vid,
         state: row.state,
         promotion: row.promotion,
         groups: []
       };
-      g = null;
-      i = null;
+      group = null;
+      item = null;
     }
-    if (g && g.id !== row.pid || !g) {
-      if (g) {
+    if (group && group.id !== row.pid || !group) {
+      if (group) {
         if (item) {
-          g.items.push(item);
+          group.items.push(item);
         }
-        q.groups.push(g);
+        quotation.groups.push(group);
       }
-      g = {
+      group = {
         id: row.pid,
         pid: row.pid,
         items: []
       };
-      i = null;
+      item = null;
     }
-    if (i && i.id !== row.piid || !i) {
-      if (i) {
-        g.items.push(i);
+    if (item && item.id !== row.piid || !item) {
+      if (item) {
+        group.items.push(item);
       }
-      i = {
+      item = {
         id: row.piid,
         piid: row.piid,
         quotas: [],
@@ -160,15 +150,18 @@ function rows_to_quotations(rows, domain, quotations = [], quotation = null, gro
       price: row.price,
       real_price: row.real_price
     };
-    i.quotas.push(quota);
-    i.prices.push(price);
-    return rows_to_quotations(rows, domain, quotations, q, g, i);
+    item.quotas.push(quota);
+    item.prices.push(price);
   }
-}
-
-async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, qid?: string): Promise<any> {
-  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure"), qid ? [ qid ] : []);
-  const quotations = rows_to_quotations(result.rows, domain);
+  if (quotation) {
+    if (group) {
+      if (item) {
+        group.items.push(item);
+      }
+      quotation.groups.push(group);
+    }
+    quotations.push(quotation);
+  }
   const multi = bluebird.promisifyAll(cache.multi()) as Multi;
   for (const quotation of quotations) {
     const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", quotation.vid);
@@ -188,6 +181,9 @@ processor.call("refresh", (ctx: ProcessorContext, domain: string, cbflag: string
   const done = ctx.done;
   (async () => {
     try {
+      if (!qid) {
+        await cache.delAsync("quotation-entities");
+      }
       await sync_quotation(db, cache, domain, qid);
       await set_for_response(cache, cbflag, {
         code: 200,
