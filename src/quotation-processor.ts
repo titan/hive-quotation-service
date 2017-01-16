@@ -89,7 +89,7 @@ processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: stri
 });
 
 async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, qid?: string): Promise<any> {
-  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure"), qid ? [ qid ] : []);
+  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, q.created_at, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure"), qid ? [ qid ] : []);
   const quotations = [];
   let quotation = null;
   let group = null;
@@ -110,6 +110,7 @@ async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, 
         vid: row.vid,
         state: row.state,
         promotion: row.promotion,
+        created_at: row.created_at,
         groups: []
       };
       group = null;
@@ -162,14 +163,24 @@ async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, 
     }
     quotations.push(quotation);
   }
+  const vidqids = {};
   const multi = bluebird.promisifyAll(cache.multi()) as Multi;
   for (const quotation of quotations) {
     const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", quotation.vid);
     if (vrep["code"] === 200) {
       quotation["vehicle"] = vrep["data"];
+      if (vidqids[quotation.vid]) {
+        vidqids[quotation.vid].push(quotation.id);
+      } else {
+        vidqids[quotation.vid] = [quotation.id];
+      }
     }
     const buf = await msgpack_encode(quotation);
     multi.hset("quotation-entities", quotation.id, buf);
+  }
+  for (const key of Object.keys(vidqids)) {
+    const pkt = await msgpack_encode(vidqids[key]);
+    multi.hset("vid-qids", key, pkt);
   }
   return multi.execAsync();
 }

@@ -1,8 +1,9 @@
 import { Server, ServerContext, ServerFunction, CmdPacket, Permission, wait_for_response, msgpack_decode, rpc } from "hive-service";
 import * as bunyan from "bunyan";
 import * as http from "http";
-import * as msgpack from "msgpack-lite";
 import * as uuid from "uuid";
+import * as bluebird from "bluebird";
+import { RedisClient, Multi } from "redis";
 import { verify, uuidVerifier, stringVerifier, numberVerifier } from "hive-verify";
 
 const log = bunyan.createLogger({
@@ -73,6 +74,53 @@ server.call("getQuotation", allowAll, "获取一个报价", "获取一个报价"
       rep({ code: 404, msg: "Quotation not found" });
     }
   });
+});
+
+function quotation_cmp(a: {}, b: {}): number {
+  if (a["created_at"] < b["created_at"]) {
+    return 1;
+  } else if (a["created_at"] > b["created_at"]) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
+server.call("getLastQuotationByVid", allowAll, "根据vid获取最后一次报价", "根据vid获取最后一次报价", (ctx: ServerContext, rep: ((result: any) => void), vid: string) => {
+  log.info(`getLastQuotationByVid, vid: ${vid}`);
+  if (!verify([uuidVerifier("vid", vid)], (errors: string[]) => {
+    rep({
+      code: 400,
+      msg: errors.join("\n")
+    });
+  })) {
+    return;
+  }
+  (async () => {
+    try {
+      const pkt = await ctx.cache.hgetAsync("vid-qids", vid);
+      if (pkt) {
+        const qids: string[] = await msgpack_decode(pkt) as string[];
+        if (qids.length > 0) {
+          const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
+          for (const qid of qids) {
+            multi.hget("quotation-entities", qid);
+          }
+          const qpkts = await multi.execAsync();
+          const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode(x)));
+          const sorted = quotations.sort(quotation_cmp);
+          rep({ code: 200, data: sorted[0] });
+        } else {
+          rep({ code: 404, msg: "报价未找到" });
+        }
+      } else {
+        rep({ code: 404, msg: "报价未找到" });
+      }
+    } catch (e) {
+      log.error(e);
+      rep({ code: 500, msg: e.message});
+    }
+  })();
 });
 
 server.call("refresh", adminOnly, "refresh", "refresh", (ctx: ServerContext, rep: ((result: any) => void), qid?: string) => {
