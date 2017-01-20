@@ -3,6 +3,7 @@ import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient, Multi } from "redis";
 import * as bluebird from "bluebird";
 import * as bunyan from "bunyan";
+import * as http from "http";
 import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
 import * as uuid from "uuid";
@@ -268,6 +269,11 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
       await db.query("COMMIT");
       await sync_quotation(db, cache, domain, qid);
       await set_for_response(cache, cbflag, { code: 200, data: acc_data });
+      const result = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q INNER JOIN vehicles AS v ON q.vid = v.id INNER JOIN person AS p ON v.owner = p.id INNER JOIN users AS u ON v.uid = u.id INNER JOIN vehicle_models AS vm ON v.vehicle_code = vm.vehicle_code WHERE q.id = $1", [qid]);
+      if (result.rowCount == 0) {
+        const row = result.rows[0];
+        push_quotation_to_wechat(row.openid, row.name, row.model, row.license, qid, row.vid);
+      }
       done();
     } catch (err) {
       try {
@@ -280,5 +286,37 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
     }
   })();
 });
+
+function push_quotation_to_wechat(openid: string, name: string, model: string, license: string, qid: string, vid: string) {
+  const path = `/wx/${process.env["WX_ENV"] === "test" ? "" : "wxpay/"}tmsgQuotedPrice1?user=${openid}&CarNo=${model}&No=${license}&Name=${name}&qid=${qid}&vid=${vid}`;
+  const options = {
+    hostname: process.env["WX_ENV"] === "test" ? "dev.fengchaohuzhu.com" : "m.fengchaohuzhu.com",
+    method: "GET",
+    path: path,
+  };
+
+  const req = http.request(options, function (res) {
+    res.setEncoding("utf8");
+
+    let body: string = "";
+
+    res.on("data", function (buf) {
+      body += buf;
+    });
+
+    res.on("end", function () {
+      log.info(`push quotation to wechat response: ${body}`);
+    });
+  });
+
+  req.setTimeout(60000, () => {
+    const e: Error = new Error();
+    e.name = "504";
+    e.message = "自动报价推送到微信超时";
+    log.error(e);
+  });
+
+  req.end();
+}
 
 log.info("Start quotation processor");
