@@ -304,11 +304,22 @@ server.call("getReferenceQuotation", allowAll, "获得参考报价", "获得参�
                   }
                 });
 
+                ref_req.setTimeout(60000, () => {
+                  ctx.cache.lpush("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": ref_requestData, "response": "Timeout" }), () => {
+                    rep({
+                      code: 504,
+                      msg: "智通接口超时"
+                    });
+                  });
+                });
+
                 ref_req.on('error', (e) => {
                   log.error(e);
-                  rep({
-                    code: 500,
-                    msg: e.message
+                  ctx.cache.lpush("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": ref_requestData, "response": e.message }), () => {
+                    rep({
+                      code: 500,
+                      msg: e.message
+                    });
                   });
                 });
 
@@ -447,6 +458,13 @@ function requestAccurateQuotation(thpBizID: string, cityCode: string, responseNo
           callback(e, null);
         }
       });
+    });
+
+    req.setTimeout(60000, () => {
+      const e: Error = new Error();
+      e.name = "504";
+      e.message = "智通接口超时";
+      callback(e, null);
     });
 
     req.end(body);
@@ -715,20 +733,38 @@ server.call("getAccurateQuotation", allowAll, "获得精准报价", "获得精�
                   requestAccurateQuotation("20161213fuyuhintest", city_code, vehicleInfo["responseNo"], newdatestr, newdatestr, car, person, "APIC", (e1: Error, data1: Object) => {
                     if (e1) {
                       log.error(e1);
-                      rep({
-                        code: 500,
-                        msg: e1.message
-                      });
+                      if (e1.name === "504") {
+                        ctx.cache.lpush("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": {"API": "精准报价", car, person }, "response": "Timeout" }), () => {
+                          rep({
+                            code: 504,
+                            msg: e1.message
+                          });
+                        });
+                      } else {
+                        rep({
+                          code: 500,
+                          msg: e1.message
+                        });
+                      }
                       return;
                     } else {
                       handleAccurateQuotation(ctx, rep, ownerName, ownerId, ownerCellPhone, vehicleInfo, modelListOrder, data1, accident_status);
                     }
                   });
                 } else {
-                  rep({
-                    code: 500,
-                    msg: e.message
-                  });
+                  if (e.name === "504") {
+                    ctx.cache.lpush("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": {"API": "精准报价", car, person }, "response": "Timeout" }), () => {
+                      rep({
+                        code: 504,
+                        msg: e.message
+                      });
+                    });
+                  } else {
+                    rep({
+                      code: 500,
+                      msg: e.message
+                    });
+                  }
                 }
                 return;
               }
