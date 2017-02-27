@@ -35,197 +35,177 @@ quotation_trigger.bind(process.env["QUOTATION-TRIGGER"]);
 
 export const processor = new Processor();
 
-processor.call("createQuotation", (ctx: ProcessorContext, qid: string, vid: string, state: number, cbflag: string, domain: string) => {
-  log.info(`createQuotation, qid: ${qid}, vid: ${vid}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}`);
+processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string, vid: string, state: number, cbflag: string) => {
+  log.info(`createQuotation, qid: ${qid}, vid: ${vid}, state: ${state}, cbflag: ${cbflag}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   const done = ctx.done;
 
   const now = new Date();
+  try {
+    await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
+    await sync_quotation(ctx, qid);
 
-  (async () => {
-    try {
-      await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
-      await sync_quotation(db, cache, domain, qid);
+    // 现在的方案没有代理商模块
+    // const multi = bluebird.promisifyAll(cache.multi()) as Multi;
+    // const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
+    // if (vrep["code"] === 200) {
+    //   const vehicle = vrep["data"];
+    //   const prep = await rpc<Object>(ctx.domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
+    //   if (prep["code"] === 200) {
+    //     const profile = prep["data"];
+    //     if (profile["ticket"]) {
+    //       const cm: CustomerMessage = {
+    //         type: 1,
+    //         ticket: profile["ticket"],
+    //         cid: vehicle["uid"],
+    //         name: profile["nickname"],
+    //         qid: qid,
+    //         occurredAt: now
+    //       };
+    //       const pkt = await msgpack_encode(cm);
+    //       multi.lpush("agent-customer-msg-queue", pkt);
+    //     }
+    //   }
+    // }
+    // await multi.execAsync();
 
-      const multi = bluebird.promisifyAll(cache.multi()) as Multi;
-      const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", vid);
-      if (vrep["code"] === 200) {
-        const vehicle = vrep["data"];
-        const prep = await rpc<Object>(domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
-        if (prep["code"] === 200) {
-          const profile = prep["data"];
-          if (profile["ticket"]) {
-            const cm: CustomerMessage = {
-              type: 1,
-              ticket: profile["ticket"],
-              cid: vehicle["uid"],
-              name: profile["nickname"],
-              qid: qid,
-              occurredAt: now
-            };
-            const pkt = await msgpack_encode(cm);
-            multi.lpush("agent-customer-msg-queue", pkt);
-          }
-        }
-      }
-      await multi.execAsync();
-      await set_for_response(cache, cbflag, {
-        code: 200,
-        data: { qid, created_at: now }
-      });
-      done();
-    } catch (err) {
-      set_for_response(cache, cbflag, {
-        code: 500,
-        msg: err.message
-      }).then(_ => {
-        done();
-      }).catch(e => {
-        log.error(e);
-        done();
-      });
-    }
-  })();
+    return {
+      code: 200,
+      data: { qid, created_at: now }
+    };
+  } catch (err) {
+    return {
+      code: 500,
+      msg: err.message
+    };
+  }
 });
 
-async function sync_quotation(db: PGClient, cache: RedisClient, domain: string, qid?: string): Promise<any> {
-  const result = await db.query("SELECT q.id, q.vid, q.state, q.promotion, q.pid, q.total_price, q.fu_total_price, q.insure AS qinsure, q.created_at, pi.id AS piid, trim(pi.title) AS title, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_item_list i ON q.id = i.qid AND q.insure = i.insure INNER JOIN plan_items AS pi ON pi.id = i.piid WHERE q.deleted = false " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, pid, iinsure"), qid ? [ qid ] : []);
+async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
+  const dbresult = await ctx.db.query("SELECT q.id, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, total_price, q.insure AS qinsure, q.auto, i.id AS iid, i.price, i.num, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure" + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : "ORDER BY q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
   let quotation = null;
-  let group = null;
   let item = null;
-  for (const row of result.rows) {
-    if (quotation && quotation.id !== row.id || !quotation) {
-      if (quotation) {
-        if (group) {
-          if (item) {
-            group.items.push(item);
-          }
-          quotation.groups.push(group);
-        }
-        quotations.push(quotation);
+  let planDict = {};
+  const planr = await rpc(ctx.domain, process.env["PLAN"], ctx.uid, "getPlans");
+  if (planr["code"] === 200) {
+    let plans = planr["data"];
+    if (plans.length > 0) {
+      for (let p of plans) {
+        let planid = p["id"];
+        planDict[planid] = p;
       }
-      quotation = {
-        id: row.id,
-        vid: row.vid,
-        state: row.state,
-        promotion: row.promotion,
-        created_at: row.created_at,
-        groups: []
-      };
-      group = null;
-      item = null;
     }
-    if (group && group.id !== row.pid || !group) {
-      if (group) {
-        if (item) {
-          group.items.push(item);
-        }
-        quotation.groups.push(group);
-      }
-      group = {
-        id: row.pid,
-        pid: row.pid,
-        items: []
-      };
-      item = null;
-    }
-    if (item && item.id !== row.piid || !item) {
-      if (item) {
-        group.items.push(item);
-      }
-      item = {
-        id: row.piid,
-        piid: row.piid,
-        quotas: [],
-        prices: []
-      };
-    }
-    const quota = {
-      id: row.iid,
-      num: row.num,
-      unit: row.unit
-    };
-    const price = {
-      id: row.iid,
-      price: row.price,
-      real_price: row.real_price
-    };
-    item.quotas.push(quota);
-    item.prices.push(price);
+  } else {
+    return;
   }
-  if (quotation) {
-    if (group) {
-      if (item) {
-        group.items.push(item);
+  if (dbresult.rowCount > 0) {
+    for (const row of dbresult.rows) {
+      if (quotation && quotation.id !== row.id || !quotation) {
+        if (quotation) {
+          if (item) {
+            quotation.items.push(item);
+          }
+          quotations.push(quotation);
+        }
+        let vhcl = {
+          id: row.vid
+        };
+        quotation = {
+          id: row.id,
+          state: row.state,
+          items: [],
+          vehicle: vhcl,
+          outside_quotation1: row.outside_quotation1,
+          outside_quotation2: row.outside_quotation2,
+          screenshot1: row.screenshot1,
+          screenshot2: row.screenshot2,
+          total_price: row.total_price,
+          insure: row.insure,
+          auto: row.auto
+        };
+        item = null;
       }
-      quotation.groups.push(group);
+      if (item && item.id !== row.iid || !item) {
+        if (item) {
+          quotation.push(item);
+        }
+        item = {
+          id: row.iid,
+          plan: planDict[row.pid],
+          pairs: []
+        };
+      }
+      const qipair = {
+        price: row.price,
+        real_price: row.real_price,
+        amount: row.amount,
+        unit: row.unit
+      };
+      item.pairs.push(qipair);
     }
-    quotations.push(quotation);
+    if (quotation) {
+      if (item) {
+        quotation.push(item);
+      }
+      quotations.push(quotation);
+    }
   }
   const vidqids = {};
-  const multi = bluebird.promisifyAll(cache.multi()) as Multi;
+  const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
   for (const quotation of quotations) {
-    const vrep = await rpc<Object>(domain, process.env["VEHICLE"], null, "getVehicle", quotation.vid);
+    const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", quotation.vid);
     if (vrep["code"] === 200) {
       quotation["vehicle"] = vrep["data"];
-      if (vidqids[quotation.vid]) {
-        vidqids[quotation.vid].push(quotation.id);
+      if (vidqids[quotation["vehicle"]["id"]]) {
+        vidqids[quotation["vehicle"]["id"]].push(quotation["id"]);
       } else {
-        vidqids[quotation.vid] = [quotation.id];
+        vidqids[quotation["vehicle"]["id"]] = [quotation["id"]];
       }
     }
     const buf = await msgpack_encode(quotation);
-    multi.hset("quotation-entities", quotation.id, buf);
+    multi.hset("quotation-entities", quotation["id"], buf);
   }
   for (const key of Object.keys(vidqids)) {
     const pkt = await msgpack_encode(vidqids[key]);
     multi.hset("vid-qids", key, pkt);
   }
-  return multi.execAsync();
+  return await multi.execAsync();
 }
 
-processor.call("refresh", (ctx: ProcessorContext, domain: string, cbflag: string, qid?: string) => {
-  log.info(qid ? `refresh, domain: ${domain}, cbflag: ${cbflag}, qid: ${qid}` : `refresh, domain: ${domain}, cbflag: ${cbflag}`);
+processor.callAsync("refresh", async (ctx: ProcessorContext, cbflag: string, qid?: string) => {
+  log.info(qid ? `refresh, cbflag: ${cbflag}, qid: ${qid}` : `refresh, cbflag: ${cbflag}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   const done = ctx.done;
-  (async () => {
-    try {
-      if (!qid) {
-        await cache.delAsync("quotation-entities");
-      }
-      await sync_quotation(db, cache, domain, qid);
-      await set_for_response(cache, cbflag, {
-        code: 200,
-        msg: "success"
-      });
-      done();
-    } catch (e) {
-      log.error(e);
-      try {
-        await set_for_response(cache, cbflag, {
-          code: 500,
-          msg: e.message
-        });
-        done();
-      } catch (e) {
-        done();
-      }
+  try {
+    if (!qid) {
+      await cache.delAsync("quotation-entities");
     }
-  })();
+    await sync_quotation(ctx, qid);
+    return {
+      code: 200,
+      msg: "success"
+    };
+  } catch (e) {
+    log.error(e);
+    return {
+      code: 500,
+      msg: e.message
+    };
+  }
 });
 
-processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state: number, cbflag: string, domain: string) => {
-  log.info(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, state: ${state}, cbflag: ${cbflag}, domain: ${domain}`);
+processor.callAsync("saveQuotation", async (ctx: ProcessorContext, acc_data: Object, state: number, cbflag: string) => {
+  log.info(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, state: ${state}, cbflag: ${cbflag}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   const done = ctx.done;
   let qid = acc_data["thpBizID"];
   let c_list = acc_data["coverageList"];
   let id = null;
-  const piid = {
+  const pid = {
     "A": "00000000-0000-0000-0000-000000000005",
     "B": "00000000-0000-0000-0000-000000000009",
     "F": "00000000-0000-0000-0000-000000000004",
@@ -240,83 +220,86 @@ processor.call("saveQuotation", (ctx: ProcessorContext, acc_data: Object, state:
   const numb = [5, 10, 15, 20, 30, 50, 100];
   const levels = ["3块漆", "6块漆"];
   const nums = [3, 6];
-  (async () => {
-    try {
-      await db.query("BEGIN");
-      await db.query("UPDATE quotations SET state = 3, insure = 3, auto = 2 WHERE id = $1", [qid]);
+  try {
+    await db.query("BEGIN");
+    await db.query("UPDATE quotations SET state = 3, insure = 3, auto = 2 WHERE id = $1", [qid]);
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, qid]);
+    for (let i = 0; i < levelb.length; i++) {
       id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, qid]);
-      for (let i = 0; i < levelb.length; i ++) {
-        id = uuid.v1();
-        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["B"], c_list["B"]["insuredPremium"][levelb[i]], numb[i], "万", c_list["B"]["modifiedPremium"][levelb[i]], i, qid]);
-      }
-      id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, qid]);
-      id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["FORCEPREMIUM"], c_list["FORCEPREMIUM"]["insuredPremium"], 0, "元", c_list["FORCEPREMIUM"]["modifiedPremium"], 0, qid]);
-      id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["G1"], c_list["G1"]["insuredPremium"], 0, "元", c_list["G1"]["modifiedPremium"], 0, qid]);
-      id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["X1"], c_list["X1"]["insuredPremium"], 0, "元", c_list["X1"]["modifiedPremium"], 0, qid]);
-      id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Z"], c_list["Z"]["insuredPremium"], 0, "元", c_list["Z"]["modifiedPremium"], 0, qid]);
-      id = uuid.v1();
-      await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, qid]);
-      for (let i = 0; i < levels.length; i ++) {
-        id = uuid.v1();
-        await db.query("INSERT INTO quotation_item_list (id, piid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, piid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], nums[i], "块漆", c_list["Scratch"]["modifiedPremium"][levels[i]], i, qid]);
-      }
-      await db.query("COMMIT");
-      await sync_quotation(db, cache, domain, qid);
-      await set_for_response(cache, cbflag, { code: 200, data: acc_data });
-      const result = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q INNER JOIN vehicles AS v ON q.vid = v.id INNER JOIN person AS p ON v.owner = p.id INNER JOIN users AS u ON v.uid = u.id INNER JOIN vehicle_models AS vm ON v.vehicle_code = vm.vehicle_code WHERE q.id = $1", [qid]);
-      if (result.rowCount == 0) {
-        const row = result.rows[0];
-        push_quotation_to_wechat(row.openid, row.name, row.model, row.license, qid, row.vid);
-      }
-      done();
-    } catch (err) {
-      try {
-        await db.query("ROLLBACK");
-        await set_for_response(cache, cbflag, { code: 500, msg: err.message });
-      } catch (e) {
-        log.error(e);
-      }
-      done();
+      await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["B"], c_list["B"]["insuredPremium"][levelb[i]], numb[i], "万", c_list["B"]["modifiedPremium"][levelb[i]], i, qid]);
     }
-  })();
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, qid]);
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["FORCEPREMIUM"], c_list["FORCEPREMIUM"]["insuredPremium"], 0, "元", c_list["FORCEPREMIUM"]["modifiedPremium"], 0, qid]);
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["G1"], c_list["G1"]["insuredPremium"], 0, "元", c_list["G1"]["modifiedPremium"], 0, qid]);
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["X1"], c_list["X1"]["insuredPremium"], 0, "元", c_list["X1"]["modifiedPremium"], 0, qid]);
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["Z"], c_list["Z"]["insuredPremium"], 0, "元", c_list["Z"]["modifiedPremium"], 0, qid]);
+    id = uuid.v1();
+    await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, qid]);
+    for (let i = 0; i < levels.length; i++) {
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_items (id, pid, price, num, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], nums[i], "块漆", c_list["Scratch"]["modifiedPremium"][levels[i]], i, qid]);
+    }
+    await db.query("COMMIT");
+    await sync_quotation(ctx, qid);
+    const rep_acc_buff: Buffer = await cache.hgetAsync("quotation-entities", qid);
+    const rep_acc_data = await msgpack_decode(rep_acc_buff);
+    // const result = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q INNER JOIN vehicles AS v ON q.vid = v.id INNER JOIN person AS p ON v.owner = p.id INNER JOIN users AS u ON v.uid = u.id INNER JOIN vehicle_models AS vm ON v.vehicle_code = vm.vehicle_code WHERE q.id = $1", [qid]);
+    // const dbresult = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q");
+    // // 通滚vid获取车辆信息
+    // //　通过vehicle code　获取车辆信号信息
+    // 推送不要
+    // if (result.rowCount === 0) {
+    // rpc<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
+    //   const row = result.rows[0];
+    //   await push_quotation_to_wechat(row.openid, row.name, row.model, row.license, qid, row.vid);
+    // }
+    return { code: 200, data: rep_acc_data };
+  } catch (err) {
+    try {
+      await db.query("ROLLBACK");
+      return { code: 500, msg: err.message };
+    } catch (e) {
+      log.error(e);
+    }
+  }
 });
 
-function push_quotation_to_wechat(openid: string, name: string, model: string, license: string, qid: string, vid: string) {
-  const path = `/wx/${process.env["WX_ENV"] === "test" ? "" : "wxpay/"}tmsgQuotedPrice1?user=${openid}&CarNo=${model}&No=${license}&Name=${name}&qid=${qid}&vid=${vid}`;
-  const options = {
-    hostname: process.env["WX_ENV"] === "test" ? "dev.fengchaohuzhu.com" : "m.fengchaohuzhu.com",
-    method: "GET",
-    path: path,
-  };
+// 不需要推送到微信
+// async function push_quotation_to_wechat(openid: string, name: string, model: string, license: string, qid: string, vid: string): Promise<any> {
+//   const path = `/wx/${process.env["WX_ENV"] === "test" ? "" : "wxpay/"}tmsgQuotedPrice1?user=${openid}&CarNo=${model}&No=${license}&Name=${name}&qid=${qid}&vid=${vid}`;
+//   const options = {
+//     hostname: process.env["WX_ENV"] === "test" ? "dev.fengchaohuzhu.com" : "m.fengchaohuzhu.com",
+//     method: "GET",
+//     path: path,
+//   };
 
-  const req = http.request(options, function (res) {
-    res.setEncoding("utf8");
+//   const req = http.request(options, function (res) {
+//     res.setEncoding("utf8");
 
-    let body: string = "";
+//     let body: string = "";
+//     res.on("data", function (buf) {
+//       body += buf;
+//     });
 
-    res.on("data", function (buf) {
-      body += buf;
-    });
+//     res.on("end", function () {
+//       log.info(`push quotation to wechat response: ${body}`);
+//     });
+//   });
 
-    res.on("end", function () {
-      log.info(`push quotation to wechat response: ${body}`);
-    });
-  });
+//   req.setTimeout(60000, () => {
+//     const e: Error = new Error();
+//     e.name = "504";
+//     e.message = "自动报价推送到微信超时";
+//     log.error(e);
+//   });
 
-  req.setTimeout(60000, () => {
-    const e: Error = new Error();
-    e.name = "504";
-    e.message = "自动报价推送到微信超时";
-    log.error(e);
-  });
-
-  req.end();
-}
+//   req.end();
+// }
 
 log.info("Start quotation processor");
