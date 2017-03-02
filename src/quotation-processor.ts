@@ -138,6 +138,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
         };
       }
       const qipair = {
+        type: row.type,
         price: row.price,
         real_price: row.real_price,
         amount: row.amount,

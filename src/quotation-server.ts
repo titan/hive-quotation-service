@@ -33,7 +33,8 @@ const adminOnly: Permission[] = [["mobile", false], ["admin", true]];
 
 export const server = new Server();
 
-server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string) => {
+// qid 手动报价不传
+server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, qid?: string) => {
   log.info(`createQuotation, ${vid}`);
   try {
     verify([uuidVerifier("vid", vid)]);
@@ -43,7 +44,8 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
       msg: err.message
     };
   }
-  const qid = uuid.v1();
+  // const qid = uuid.v1();
+  qid = qid ? qid : uuid.v1();
   const state: number = 1;
   const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, state, qid] };
   ctx.publish(pkt);
@@ -152,7 +154,6 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
       msg: err.message
     };
   }
-
 
   try {
     const vehicle_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", vid);
@@ -265,7 +266,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
   }
 });
 
-async function requestAccurateQuotation(thpBizID: string, cityCode: string, responseNo: string, biBeginDate: string, ciBeginDate: string, licenseNo: string, frameNo: string, modelCode: string, engineNo: string, isTrans: string, transDate: string, registerDate: string, ownerName: string, ownerID: string, ownerMobile: string, insuredName: string, insuredID: string, insuredMobile: string, insurerCode: string): Promise<any> {
+async function requestAccurateQuotation(ctx: ServerContext, thpBizID: string, cityCode: string, responseNo: string, biBeginDate: string, ciBeginDate: string, licenseNo: string, frameNo: string, modelCode: string, engineNo: string, isTrans: string, transDate: string, registerDate: string, ownerName: string, ownerID: string, ownerMobile: string, insuredName: string, insuredID: string, insuredMobile: string, insurerCode: string, vid: string): Promise<any> {
   const coverages = [
     {
       "coverageCode": "A",
@@ -327,6 +328,7 @@ async function requestAccurateQuotation(thpBizID: string, cityCode: string, resp
     const options: Option = { log: log };
     const ztyq_result = await getAccuratePrice(thpBizID, cityCode, responseNo, biBeginDate, ciBeginDate, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode, coverages, options);
     if (ztyq_result["data"] && ztyq_result["data"]["coverageList"]) {
+      await ctx.cache.setexAsync(`zt-quotation:${vid}`, 2592000, JSON.stringify(ztyq_result["data"])); // 自动报价有效期一个月
       return {
         err: null,
         data: ztyq_result["data"]
@@ -462,7 +464,7 @@ function calculate_premium(vehicle_and_models, data) {
   return { data, diff_ms };
 }
 
-async function handleAccurateQuotation(ctx, vehicle_and_models, _data) {
+async function handleAccurateQuotation(ctx, vehicle_and_models, _data, qid) {
   const {data, diff_ms} = calculate_premium(vehicle_and_models, _data);
 
   const age_price = (1 - (Math.ceil(diff_ms / (1000 * 60 * 60 * 24 * 30)) * 0.006)) * Number(data["purchase_price"]);
@@ -470,10 +472,10 @@ async function handleAccurateQuotation(ctx, vehicle_and_models, _data) {
 
   try {
     const vid: string = vehicle_and_models["vehicle_model"]["vid"];
-    const qrep = await rpc<Object>(ctx.domain, process.env["QUOTATION"], ctx.uid, "createQuotation", vid);
+    const qrep = await rpc<Object>(ctx.domain, process.env["QUOTATION"], ctx.uid, "createQuotation", vid, qid);
     if (qrep["code"] === 200) {
       log.info("!!! Got qid: " + qrep["data"]["qid"]);
-      data["thpBizID"] = qrep["data"]["qid"];
+      // data["thpBizID"] = qrep["data"]["qid"];
       if (age_price < age_price_limit) {
         data["real_price"] = age_price_limit.toFixed(2);
       } else {
@@ -512,97 +514,109 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
 
   try {
     log.info("Try to get vehicle-info from redis");
+
     const vehicle_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", vid);
     if (vehicle_result["code"] === 200) {
       log.info("Try to get two dates from redis");
       const vehicle_and_models = vehicle_result["data"];
-      let license_no: string = vehicle_and_models("license_no");
-      const two_dates_buff = await ctx.cache.hgetAsync("license-two-dates", license_no);
-      if (two_dates_buff) {
-        const two_dates_str: string = await msgpack_decode(two_dates_buff) as string;
-        const two_dates = JSON.parse(two_dates_str);
-        const thpBizID: string = "20161213fuyuhintest";
-        const response_no_buff = await ctx.cache.getAsync(`zt-response-code:${license_no}`);
-        let responseNo: string = null;
-        if (response_no_buff) { // 响应码可能会过期
-          responseNo = await msgpack_decode(response_no_buff) as string;
-        } else {
-          const response_no_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleAndModelsByLicense", license_no);
-          if (response_no_result["code"] === 200) {
-            responseNo = response_no_result["data"]["response_no"];
+      // TODO 一个月内已经报过价
+      const exist_quotation = await ctx.cache.getAsync(`zt-quotation:${vid}`);
+      if (exist_quotation) {
+        // 一个月内已经报过价
+        const quotation = JSON.parse(exist_quotation);
+        const thpBizID: string = uuid.v1(); // 此处生成自动报价的　quotation id, 即 qid
+        return await handleAccurateQuotation(ctx, vehicle_and_models, quotation, thpBizID);
+      } else {
+        // 一个月内未报过价
+        let license_no: string = vehicle_and_models("license_no");
+        const two_dates_buff = await ctx.cache.hgetAsync("license-two-dates", license_no);
+        if (two_dates_buff) {
+          const two_dates_str: string = await msgpack_decode(two_dates_buff) as string;
+          const two_dates = JSON.parse(two_dates_str);
+          const thpBizID: string = uuid.v1(); // 此处生成自动报价的　quotation id, 即 qid
+          const response_no_buff = await ctx.cache.getAsync(`zt-response-code:${license_no}`);
+          let responseNo: string = null;
+          if (response_no_buff) { // 响应码可能会过期
+            responseNo = await msgpack_decode(response_no_buff) as string;
           } else {
-            return {
-              code: 500,
-              msg: "获取响应码失败"
-            };
-          }
-        }
-        const biBeginDate: string = two_dates["biBeginDate"];
-        const ciBeginDate: string = two_dates["ciBeginDate"];
-        const licenseNo: string = vehicle_and_models["license_no"];
-        const frameNo: string = vehicle_and_models["vin"];
-        const modelCode: string = vehicle_and_models["model"]["vehicle_code"];
-        const engineNo: string = vehicle_and_models["engine_no"];
-        const isTrans: string = vehicle_and_models["is_transfer"] ? "1" : "0"; // 0 否,1 是
-        const transDate: string = vehicle_and_models[""];
-        const registerDate: string = vehicle_and_models["register_date"];
-
-        const ownerName: string = vehicle_and_models["owner"]["name"];
-        const ownerID: string = vehicle_and_models["owner"]["identity_no"];
-        const ownerMobile: string = vehicle_and_models["insured"]["phone"]; // 这是业务约定
-        const insuredName: string = vehicle_and_models["insured"]["name"];
-        const insuredID: string = vehicle_and_models["insured"]["identity_no"];
-        const insuredMobile: string = vehicle_and_models["insured"]["phone"];
-
-        const raqr = await requestAccurateQuotation(thpBizID, cityCode, responseNo, biBeginDate, ciBeginDate, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode);
-        if (raqr.err) {
-          log.error(raqr.err);
-          const regex = /^.*\[\d{0,8}-(\d{0,8})\].*$/g;
-          const regarr = regex.exec(raqr.err.message);
-          if (regarr && regarr.length === 2) {
-            const datestr = regarr[1];
-            const year = datestr.substring(0, 4);
-            const month = datestr.substring(4, 6);
-            const day = datestr.substring(6, 8);
-            const newdate = new Date(new Date(`${year}-${month}-${day}`).getTime() + 86400000);
-            const newdatestr = newdate.toISOString().substring(0, 10);
-            const raqr2 = await requestAccurateQuotation(thpBizID, cityCode, responseNo, newdatestr, newdatestr, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode);
-            if (raqr2.err) {
-              const data = {
-                vid: vid,
-                insurerCode: insurerCode,
-                cityCode: cityCode
+            const response_no_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleAndModelsByLicense", license_no);
+            if (response_no_result["code"] === 200) {
+              responseNo = response_no_result["data"]["response_no"];
+            } else {
+              return {
+                code: 500,
+                msg: "获取响应码失败"
               };
-              log.error(raqr2.err);
-              if (raqr2.err.name === "504") {
-                await ctx.cache.lpushAsync("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": data, "response": "Timeout" }));
-                return {
-                  code: 504,
-                  msg: raqr2.err.message
+            }
+          }
+          const biBeginDate: string = two_dates["biBeginDate"];
+          const ciBeginDate: string = two_dates["ciBeginDate"];
+          const licenseNo: string = vehicle_and_models["license_no"];
+          const frameNo: string = vehicle_and_models["vin"];
+          const modelCode: string = vehicle_and_models["model"]["vehicle_code"];
+          const engineNo: string = vehicle_and_models["engine_no"];
+          const isTrans: string = vehicle_and_models["is_transfer"] ? "1" : "0"; // 0 否,1 是
+          const transDate: string = vehicle_and_models[""];
+          const registerDate: string = vehicle_and_models["register_date"];
+
+          const ownerName: string = vehicle_and_models["owner"]["name"];
+          const ownerID: string = vehicle_and_models["owner"]["identity_no"];
+          const ownerMobile: string = vehicle_and_models["insured"]["phone"]; // 这是业务约定
+          const insuredName: string = vehicle_and_models["insured"]["name"];
+          const insuredID: string = vehicle_and_models["insured"]["identity_no"];
+          const insuredMobile: string = vehicle_and_models["insured"]["phone"];
+
+          const raqr = await requestAccurateQuotation(ctx, thpBizID, cityCode, responseNo, biBeginDate, ciBeginDate, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode, vid);
+          if (raqr.err) {
+            log.error(raqr.err);
+            const regex = /^.*\[\d{0,8}-(\d{0,8})\].*$/g;
+            const regarr = regex.exec(raqr.err.message);
+            if (regarr && regarr.length === 2) {
+              const datestr = regarr[1];
+              const year = datestr.substring(0, 4);
+              const month = datestr.substring(4, 6);
+              const day = datestr.substring(6, 8);
+              const newdate = new Date(new Date(`${year}-${month}-${day}`).getTime() + 86400000);
+              const newdatestr = newdate.toISOString().substring(0, 10);
+              const raqr2 = await requestAccurateQuotation(ctx, thpBizID, cityCode, responseNo, newdatestr, newdatestr, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode, vid);
+              if (raqr2.err) {
+                const data = {
+                  vid: vid,
+                  insurerCode: insurerCode,
+                  cityCode: cityCode
                 };
+                log.error(raqr2.err);
+                if (raqr2.err.name === "504") {
+                  await ctx.cache.lpushAsync("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": data, "response": "Timeout" }));
+                  return {
+                    code: 504,
+                    msg: raqr2.err.message
+                  };
+                } else {
+                  await ctx.cache.lpushAsync("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": data, "response": raqr2.err.message }));
+                  return {
+                    code: 500,
+                    msg: raqr2.err.message
+                  };
+                }
               } else {
-                return {
-                  code: 500,
-                  msg: raqr2.err.message
-                };
+                return await handleAccurateQuotation(ctx, vehicle_and_models, raqr2.data, thpBizID);
               }
             } else {
-              return await handleAccurateQuotation(ctx, vehicle_and_models, raqr2.data);
+              return {
+                code: 500,
+                msg: raqr.err.message
+              };
             }
           } else {
-            return {
-              code: 500,
-              msg: raqr.err.message
-            };
+            return await handleAccurateQuotation(ctx, vehicle_and_models, raqr.datas, thpBizID);
           }
         } else {
-          return await handleAccurateQuotation(ctx, vehicle_and_models, raqr.datas);
+          return {
+            code: 404,
+            msg: "Not found biBeginDate & ciBeginDate in redis!"
+          };
         }
-      } else {
-        return {
-          code: 404,
-          msg: "Not found biBeginDate & ciBeginDate in redis!"
-        };
       }
     } else {
       return {
