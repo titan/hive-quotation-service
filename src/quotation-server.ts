@@ -182,24 +182,19 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
           };
         }
       }
-      const response_no_buff = await ctx.cache.getAsync(`zt-response-code:${license_no}`);
       let responseNo: string = null;
-      if (response_no_buff) { // 响应码可能会过期
-        responseNo = await msgpack_decode(response_no_buff) as string;
+      const response_no_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleAndModelsByLicense", license_no);
+      if (response_no_result["code"] === 200) {
+        responseNo = response_no_result["data"]["response_no"];
       } else {
-        const response_no_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleAndModelsByLicense", license_no);
-        if (response_no_result["code"] === 200) {
-          responseNo = response_no_result["data"]["response_no"];
-        } else {
-          log.error(`getReferenceQuotation, uid: ${ctx.uid}, vid: ${vid},  insurerCode: ${insurerCode}, cityCode: ${cityCode}, msg: 获取响应码失败`);
-          return {
-            code: 500,
-            msg: "获取响应码失败"
-          };
-        }
+        log.error(`getReferenceQuotation, uid: ${ctx.uid}, vid: ${vid},  insurerCode: ${insurerCode}, cityCode: ${cityCode}, msg: 获取响应码失败`);
+        return {
+          code: 500,
+          msg: "获取响应码失败"
+        };
       }
       const frameNo: string = vehicle_and_models["vin"];
-      const modelCode: string = vehicle_and_models["model"]["vehicle_code"];
+      const modelCode: string = vehicle_code2uuid(vehicle_and_models["model"]["vehicle_code"]);
       const engineNo: string = vehicle_and_models["engine_no"];
       const isTrans: string = "0";
       const transDate: string = null;
@@ -260,7 +255,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
           await ctx.cache.lpushAsync("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": ref_requestData, "response": err.message }));
           return {
             code: 500,
-            msg: err.message
+            msg: "获取参考报价失败"
           };
         }
       }
@@ -275,7 +270,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
     log.error(`getReferenceQuotation, uid:${ctx.uid} , vid: ${vid},  insurerCode: ${insurerCode}, cityCode: ${cityCode}`, err);
     return {
       code: 500,
-      msg: err.message
+      msg: "获取参考报价失败"
     };
   }
 });
@@ -362,11 +357,23 @@ async function requestAccurateQuotation(ctx: ServerContext,
     const options: Option = { log: log };
     const ztyq_result = await getAccuratePrice(thpBizID, cityCode, responseNo, biBeginDate, ciBeginDate, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode, coverages, options);
     if (ztyq_result["data"] && ztyq_result["data"]["coverageList"]) {
-      await ctx.cache.setexAsync(`zt-quotation:${vid}`, 2592000, JSON.stringify(ztyq_result["data"])); // 自动报价有效期一个月
-      return {
-        err: null,
-        data: ztyq_result["data"]
-      };
+      const insurance_due_date = ztyq_result["data"]["ciBeginDate"];
+      const due_date_resutl = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setInsuranceDueDate", vid, insurance_due_date);
+      if (due_date_resutl["code"] === 200) {
+        await ctx.cache.setexAsync(`zt-quotation:${vid}`, 2592000, JSON.stringify(ztyq_result["data"])); // 自动报价有效期一个月
+        return {
+          err: null,
+          data: ztyq_result["data"]
+        };
+      } else {
+        const e: Error = new Error();
+        e.name = due_date_resutl["code"];
+        e.message = "设置保险到期日期失败";
+        return {
+          err: e,
+          data: null
+        };
+      }
     }
   } catch (err) {
     if (err.code === 408) {
@@ -546,7 +553,7 @@ async function handleAccurateQuotation(ctx,
     log.error(`handleAccurateQuotation, uid: ${ctx.uid}`, err);
     return {
       code: 500,
-      msg: err.message
+      msg: "处理报价信息失败"
     };
   }
 }
@@ -587,25 +594,21 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
           const thpBizID: string = uuid.v1(); // 此处生成自动报价的　quotation id, 即 qid
           const response_no_buff = await ctx.cache.getAsync(`zt-response-code:${license_no}`);
           let responseNo: string = null;
-          if (response_no_buff) { // 响应码可能会过期
-            responseNo = await msgpack_decode(response_no_buff) as string;
+          const response_no_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleAndModelsByLicense", license_no);
+          if (response_no_result["code"] === 200) {
+            responseNo = response_no_result["data"]["response_no"];
           } else {
-            const response_no_result = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleAndModelsByLicense", license_no);
-            if (response_no_result["code"] === 200) {
-              responseNo = response_no_result["data"]["response_no"];
-            } else {
-              log.error(`getAccurateQuotation, uid: ${ctx.uid}, vid: ${vid}, cityCode: ${cityCode}, insurerCode: ${insurerCode}, msg: 获取响应码失败`);
-              return {
-                code: 500,
-                msg: "获取响应码失败"
-              };
-            }
+            log.error(`getAccurateQuotation, uid: ${ctx.uid}, vid: ${vid}, cityCode: ${cityCode}, insurerCode: ${insurerCode}, msg: 获取响应码失败`);
+            return {
+              code: 500,
+              msg: "获取响应码失败"
+            };
           }
           const biBeginDate: string = two_dates["biBeginDate"];
           const ciBeginDate: string = two_dates["ciBeginDate"];
           const licenseNo: string = vehicle_and_models["license_no"];
           const frameNo: string = vehicle_and_models["vin"];
-          const modelCode: string = vehicle_and_models["model"]["vehicle_code"];
+          const modelCode: string = vehicle_code2uuid(vehicle_and_models["model"]["vehicle_code"]);
           const engineNo: string = vehicle_and_models["engine_no"];
           const isTrans: string = "0"; // 0 否,1 是, 过户车不走自动报价
           const transDate: string = null;
@@ -650,7 +653,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
                   await ctx.cache.lpushAsync("external-module-exceptions", JSON.stringify({ "occurred-at": new Date(), "source": "ztwhtech.com", "request": data, "response": raqr2.err.message }));
                   return {
                     code: 500,
-                    msg: raqr2.err.message
+                    msg: "获取精准报价失败"
                   };
                 }
               } else {
@@ -660,7 +663,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
               log.error(`getAccurateQuotation, uid: ${ctx.uid}, vid: ${vid}, cityCode: ${cityCode}, insurerCode: ${insurerCode}`, raqr.err);
               return {
                 code: 500,
-                msg: raqr.err.message
+                msg: "获取精准报价失败"
               };
             }
           } else {
@@ -685,10 +688,14 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
     log.error(`getAccurateQuotation, uid: ${ctx.uid}, vid: ${vid}, cityCode: ${cityCode}, insurerCode: ${insurerCode}`, err);
     return {
       code: 500,
-      msg: err.message
+      msg: "获取精准报价失败"
     };
   }
 });
+
+function vehicle_code2uuid(vehicle_code: string) {
+  return vehicle_code.substring(0, 8) + "-" + vehicle_code.substring(8, 12) + "-" + vehicle_code.substring(12, 16) + "-" + vehicle_code.substring(16, 20) + "-" + vehicle_code.substring(20, 32);
+}
 
 log.info("Start quotation server");
 

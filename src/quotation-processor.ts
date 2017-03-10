@@ -89,14 +89,14 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
     log.info(`createQuotation, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`, err);
     return {
       code: 500,
-      msg: err.message
+      msg: "创建报价失败"
     };
   }
 });
 
 async function sync_quotation(ctx: ProcessorContext,
   qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? "AND qid=$1 ORDER BY q.id, iinsure" : " ORDER BY q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? "AND qid=$1 ORDER BY q.id, i.pid, iinsure" : " ORDER BY q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
   let quotation = null;
   let item = null;
@@ -151,12 +151,12 @@ async function sync_quotation(ctx: ProcessorContext,
           };
           item = null;
         }
-        if (item && item.id !== row.iid || !item) {
+        if (item && item.id !== row.pid || !item) {
           if (item) {
             quotation.items.push(item);
           }
           item = {
-            id: row.iid,
+            id: row.pid,
             plan: planDict[row.pid],
             pairs: []
           };
@@ -207,13 +207,13 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
     await sync_quotation(ctx, qid);
     return {
       code: 200,
-      msg: "refresh is done"
+      msg: "Refresh is done"
     };
   } catch (err) {
     log.error(`refresh, uid: ${ctx.uid}, msg: error on remove old data`, err);
     return {
       code: 500,
-      msg: err.message
+      msg: "Error on refresh"
     };
   }
 });
