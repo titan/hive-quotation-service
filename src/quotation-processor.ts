@@ -37,7 +37,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
   qid: string,
   vid: string,
   state: number) => {
-  log.info(`createQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`);
+  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
 
@@ -45,7 +45,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
   try {
     const qresult = await db.query("SELECT id FROM quotations WHERE id = $1", [qid]);
     if (qresult.rowCount > 0) {
-      log.error(`createQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}, msg: 该报价已经存在`);
+      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}, msg: 该报价已经存在`);
       return {
         code: 404,
         msg: "该报价已经存在"
@@ -83,7 +83,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
       data: { qid, created_at: now }
     };
   } catch (err) {
-    log.info(`createQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`, err);
+    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`, err);
     ctx.report(3, err);
     return {
       code: 500,
@@ -186,7 +186,7 @@ async function sync_quotation(ctx: ProcessorContext,
     }
     return await multi.execAsync();
   } catch (err) {
-    log.error(`sync_quotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}`, err);
+    log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}`, err);
   }
 }
 
@@ -207,7 +207,7 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       msg: "Refresh is done"
     };
   } catch (err) {
-    log.error(`refresh sn: ${ctx.sn}, uid: ${ctx.uid}, msg: error on remove old data`, err);
+    log.error(`refresh, sn: ${ctx.sn}, uid: ${ctx.uid}, msg: error on remove old data`, err);
     ctx.report(3, err);
     return {
       code: 500,
@@ -219,7 +219,7 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
 processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
   acc_data: Object,
   state: number) => {
-  log.info(`saveQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
+  log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   let qid = acc_data["thpBizID"];
