@@ -3,11 +3,9 @@ import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient, Multi } from "redis";
 import * as bluebird from "bluebird";
 import * as bunyan from "bunyan";
-import * as http from "http";
 import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
 import * as uuid from "uuid";
-import * as zlib from "zlib";
 import { CustomerMessage } from "recommend-library";
 
 const log = bunyan.createLogger({
@@ -39,16 +37,15 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
   qid: string,
   vid: string,
   state: number) => {
-  log.info(`createQuotation, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`);
+  log.info(`createQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
-  const done = ctx.done;
 
   const now = new Date();
   try {
     const qresult = await db.query("SELECT id FROM quotations WHERE id = $1", [qid]);
     if (qresult.rowCount > 0) {
-      log.error(`createQuotation, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}, msg: 该报价已经存在`);
+      log.error(`createQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}, msg: 该报价已经存在`);
       return {
         code: 404,
         msg: "该报价已经存在"
@@ -86,7 +83,8 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
       data: { qid, created_at: now }
     };
   } catch (err) {
-    log.info(`createQuotation, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`, err);
+    log.info(`createQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`, err);
+    ctx.report(3, err);
     return {
       code: 500,
       msg: "创建报价失败"
@@ -188,7 +186,7 @@ async function sync_quotation(ctx: ProcessorContext,
     }
     return await multi.execAsync();
   } catch (err) {
-    log.error(`sync_quotation, uid: ${ctx.uid}, qid: ${qid}`, err);
+    log.error(`sync_quotation sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}`, err);
   }
 }
 
@@ -197,7 +195,6 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
   log.info(`refresh uid: ${ctx.uid}, qid: ${qid}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
-  const done = ctx.done;
   try {
     if (!qid) {
       // 全刷时除旧
@@ -210,7 +207,8 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       msg: "Refresh is done"
     };
   } catch (err) {
-    log.error(`refresh, uid: ${ctx.uid}, msg: error on remove old data`, err);
+    log.error(`refresh sn: ${ctx.sn}, uid: ${ctx.uid}, msg: error on remove old data`, err);
+    ctx.report(3, err);
     return {
       code: 500,
       msg: "Error on refresh"
@@ -221,10 +219,9 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
 processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
   acc_data: Object,
   state: number) => {
-  log.info(`saveQuotation, uid: ${ctx.uid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
+  log.info(`saveQuotation sn: ${ctx.sn}, uid: ${ctx.uid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
-  const done = ctx.done;
   let qid = acc_data["thpBizID"];
   let c_list = acc_data["coverageList"];
   let id = null;
@@ -284,11 +281,13 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     // }
     return { code: 200, data: rep_acc_data };
   } catch (err) {
+    ctx.report(3, err);
     log.error(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`, err);
     try {
       await db.query("ROLLBACK");
       return { code: 500, msg: err.message };
     } catch (e) {
+      ctx.report(3, err);
       log.error(e);
     }
   }
