@@ -1,9 +1,8 @@
-import { Processor, ProcessorFunction, ProcessorContext, rpc, msgpack_encode_async as msgpack_encode, msgpack_decode_async as msgpack_decode, set_for_response } from "hive-service";
+import { Processor, ProcessorFunction, ProcessorContext, rpcAsync, msgpack_encode_async, msgpack_decode_async, set_for_response } from "hive-service";
 import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient, Multi } from "redis";
 import * as bluebird from "bluebird";
 import * as bunyan from "bunyan";
-import * as msgpack from "msgpack-lite";
 import * as nanomsg from "nanomsg";
 import * as uuid from "uuid";
 import { CustomerMessage } from "recommend-library";
@@ -56,10 +55,10 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
 
     // 现在的方案没有代理商模块
     // const multi = bluebird.promisifyAll(cache.multi()) as Multi;
-    // const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
+    // const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
     // if (vrep["code"] === 200) {
     //   const vehicle = vrep["data"];
-    //   const prep = await rpc<Object>(ctx.domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
+    //   const prep = await rpcAsync<Object>(ctx.domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
     //   if (prep["code"] === 200) {
     //     const profile = prep["data"];
     //     if (profile["ticket"]) {
@@ -99,7 +98,7 @@ async function sync_quotation(ctx: ProcessorContext,
   let quotation = null;
   let item = null;
   let planDict = {};
-  const planr = await rpc(ctx.domain, process.env["PLAN"], ctx.uid, "getPlans");
+  const planr = await rpcAsync(ctx.domain, process.env["PLAN"], ctx.uid, "getPlans");
   try {
     if (planr["code"] === 200) {
       let plans = planr["data"];
@@ -123,7 +122,7 @@ async function sync_quotation(ctx: ProcessorContext,
             quotations.push(quotation);
           }
           let vhcl = null;
-          const vrep = await rpc<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
+          const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
           if (vrep["code"] === 200) {
             vhcl = vrep["data"];
             if (vidqids[vhcl["id"]]) {
@@ -177,11 +176,11 @@ async function sync_quotation(ctx: ProcessorContext,
     }
     const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
     for (const quotation of quotations) {
-      const buf = await msgpack_encode(quotation);
+      const buf = await msgpack_encode_async(quotation);
       multi.hset("quotation-entities", quotation["id"], buf);
     }
     for (const key of Object.keys(vidqids)) {
-      const pkt = await msgpack_encode(vidqids[key]);
+      const pkt = await msgpack_encode_async(vidqids[key]);
       multi.hset("vid-qids", key, pkt);
     }
     return await multi.execAsync();
@@ -218,11 +217,12 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
 
 processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
   acc_data: Object,
+  qid: string,
   state: number) => {
-  log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
+  log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
-  let qid = acc_data["thpBizID"];
+  // let qid = acc_data["thpBizID"];
   let c_list = acc_data["coverageList"];
   let id = null;
   const pid = {
@@ -268,21 +268,21 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     await db.query("COMMIT");
     await sync_quotation(ctx, qid);
     const rep_acc_buff: Buffer = await cache.hgetAsync("quotation-entities", qid);
-    const rep_acc_data = await msgpack_decode(rep_acc_buff);
+    const rep_acc_data = await msgpack_decode_async(rep_acc_buff);
     // const result = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q INNER JOIN vehicles AS v ON q.vid = v.id INNER JOIN person AS p ON v.owner = p.id INNER JOIN users AS u ON v.uid = u.id INNER JOIN vehicle_models AS vm ON v.vehicle_code = vm.vehicle_code WHERE q.id = $1", [qid]);
     // const dbresult = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q");
     // // 通滚vid获取车辆信息
     // //　通过vehicle code　获取车辆信号信息
     // 推送不要
     // if (result.rowCount === 0) {
-    // rpc<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
+    // rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
     //   const row = result.rows[0];
     //   await push_quotation_to_wechat(row.openid, row.name, row.model, row.license, qid, row.vid);
     // }
     return { code: 200, data: rep_acc_data };
   } catch (err) {
     ctx.report(3, err);
-    log.error(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`, err);
+    log.error(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, qid: ${qid}, state: ${state}`, err);
     try {
       await db.query("ROLLBACK");
       return { code: 500, msg: err.message };
