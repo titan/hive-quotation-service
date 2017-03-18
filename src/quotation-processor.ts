@@ -95,9 +95,11 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
 
 async function sync_quotation(ctx: ProcessorContext,
   qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? "AND qid=$1 ORDER BY q.id, i.pid, iinsure" : " ORDER BY q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
+  const quotation_slims = [];
   let quotation = null;
+  let quotation_slim = null;
   let item = null;
   let planDict = {};
   const planr = await rpcAsync(ctx.domain, process.env["PLAN"], ctx.uid, "getPlans");
@@ -114,6 +116,8 @@ async function sync_quotation(ctx: ProcessorContext,
       return;
     }
     const vidqids = {};
+    // TODO
+    const vid_qid = {};
     const uid_vids = {};
     if (dbresult.rowCount > 0) {
       for (const row of dbresult.rows) {
@@ -123,6 +127,7 @@ async function sync_quotation(ctx: ProcessorContext,
               quotation.items.push(item);
             }
             quotations.push(quotation);
+            quotation_slims.push(quotation_slim);
           }
           let vhcl = null;
           if (!vidqids[row.vid]) {
@@ -132,24 +137,41 @@ async function sync_quotation(ctx: ProcessorContext,
               uid_vids[row.uid] = [row.vid];
             }
           }
+
           const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
           if (vrep["code"] === 200) {
+            // TODEL
             vhcl = vrep["data"];
             if (vidqids[vhcl["id"]]) {
               vidqids[vhcl["id"]].push(row.id);
             } else {
               vidqids[vhcl["id"]] = [row.id];
             }
+            // TODO
+            if (!vid_qid[row.vid]) {
+              // TODEL
+              log.info(`vid_qid[row.vid]: ${vid_qid[row.vid]}`);
+              vid_qid[row.vid] = row.id;
+            }
+          } else {
+            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取车辆信息失败, ${vrep["msg"]}`);
+            return;
           }
           const owner_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.owner);
           let owner_person = null;
           if (owner_result["code"] === 200) {
             owner_person = owner_result["data"];
+          } else {
+            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取车主信息失败, ${vrep["msg"]}`);
+            return;
           }
           const insured_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.insured);
           let insured_person = null;
           if (insured_result["code"] === 200) {
             insured_person = insured_result["data"];
+          } else {
+            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取投保人信息失败, ${vrep["msg"]}`);
+            return;
           }
           quotation = {
             id: row.id,
@@ -168,7 +190,24 @@ async function sync_quotation(ctx: ProcessorContext,
             real_value: row.real_value,
             promotion: row.promotion,
             insure: row.insure,
-            auto: row.auto
+            auto: row.auto,
+            created_at: row.created_at
+          };
+          if (!owner_person) {
+            log.info(`sync_quotation, owner: ${row.owner}`);
+          }
+          quotation_slim = {
+            id: row.id,
+            created_at: row.created_at, // 报价的创建时间
+            owner: {
+              name: owner_person["name"]
+            }, // 车主姓名
+            vehicle: {
+              license_no: vhcl["license_no"],
+              model: {
+                family_name: vhcl["model"]["family_name"]
+              }
+            }
           };
           item = null;
         }
@@ -203,9 +242,18 @@ async function sync_quotation(ctx: ProcessorContext,
       const buf = await msgpack_encode_async(quotation);
       multi.hset("quotation-entities", quotation["id"], buf);
     }
+    for (const quotation_slim of quotation_slims) {
+      const buf = await msgpack_encode_async(quotation_slim);
+      multi.hset("quotation-slim-entities", quotation_slim["id"], buf);
+    }
+    // TODEL
     for (const key of Object.keys(vidqids)) {
       const pkt = await msgpack_encode_async(vidqids[key]);
       multi.hset("vid-qids", key, pkt);
+    }
+    // TODO
+    for (const key of Object.keys(vid_qid)) {
+      multi.hset("vid-qid", key, vid_qid[key]);
     }
     for (const key of Object.keys(uid_vids)) {
       const pkt = await msgpack_encode_async(uid_vids[key]);
@@ -227,7 +275,10 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
     if (!qid) {
       // 全刷时除旧
       await cache.delAsync("quotation-entities");
+      await cache.delAsync("quotation-slim-entities");
       await cache.delAsync("uid-vids");
+      // TODEL
+      await cache.delAsync("vid-qids");
       await cache.delAsync("vid-qid");
     }
     await sync_quotation(ctx, qid);

@@ -961,46 +961,55 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
 });
 
 // TODO
-server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报价", "得到用户所有车最后一次的报价", async (ctx: ServerContext) => {
-  log.info(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报价", "得到用户所有车最后一次的报价", async (ctx: ServerContext,
+  full?: boolean) => {
+  log.info(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
   try {
+    const src = full ? "quotation-entities" : "quotation-slim-entities";
     const vids_buff: Buffer = await ctx.cache.hgetAsync("uid-vids", ctx.uid);
     if (vids_buff) {
       const vids: string[] = await msgpack_decode_async(vids_buff) as Array<string>;
       if (vids.length > 0) {
+        // TODEL
+        log.info(`getLastQuotations, sn: ${ctx.sn}, vids: ${vids}`);
+        const quotations_return = [];
         for (const vid of vids) {
           const pkt = await ctx.cache.hgetAsync("vid-qids", vid);
+          const qid_buff: Buffer = await ctx.cache.hgetAsync("vid-qid", vid);
+          // TODEL
+          log.info(`getLastQuotations, qid: ${qid_buff.toString()}`);
           if (pkt) {
             const qids: string[] = await msgpack_decode_async(pkt) as string[];
             if (qids.length > 0) {
               const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
               for (const qid of qids) {
-                multi.hget("quotation-entities", qid);
+                multi.hget(src, qid);
               }
               const qpkts = await multi.execAsync();
               const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode_async(x)));
               const sorted = quotations.sort(quotation_cmp);
-              return { code: 200, data: sorted[0] };
+              quotations_return.push(sorted[0]);
             } else {
-              log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+              log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
               return { code: 404, msg: `未查询到报价，请确认vid输入正确` };
             }
           } else {
-            log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+            log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
             return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
           }
         }
+        return { code: 200, data: quotations_return };
       } else {
-        log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+        log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
         return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
       }
     } else {
-      log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+      log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
       return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
     }
   } catch (err) {
     ctx.report(1, err);
-    log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`, err);
+    log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`, err);
     return { code: 500, msg: "获取用户最后一次的报价失败(QLS500)" };
   }
 });
