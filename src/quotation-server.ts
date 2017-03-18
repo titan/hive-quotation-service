@@ -960,6 +960,51 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
   }
 });
 
+// TODO
+server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报价", "得到用户所有车最后一次的报价", async (ctx: ServerContext) => {
+  log.info(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+  try {
+    const vids_buff: Buffer = await ctx.cache.hgetAsync("uid-vids", ctx.uid);
+    if (vids_buff) {
+      const vids: string[] = await msgpack_decode_async(vids_buff) as Array<string>;
+      if (vids.length > 0) {
+        for (const vid of vids) {
+          const pkt = await ctx.cache.hgetAsync("vid-qids", vid);
+          if (pkt) {
+            const qids: string[] = await msgpack_decode_async(pkt) as string[];
+            if (qids.length > 0) {
+              const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
+              for (const qid of qids) {
+                multi.hget("quotation-entities", qid);
+              }
+              const qpkts = await multi.execAsync();
+              const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode_async(x)));
+              const sorted = quotations.sort(quotation_cmp);
+              return { code: 200, data: sorted[0] };
+            } else {
+              log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+              return { code: 404, msg: `未查询到报价，请确认vid输入正确` };
+            }
+          } else {
+            log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+            return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
+          }
+        }
+      } else {
+        log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+        return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
+      }
+    } else {
+      log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`);
+      return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
+    }
+  } catch (err) {
+    ctx.report(1, err);
+    log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}`, err);
+    return { code: 500, msg: "获取用户最后一次的报价失败(QLS500)" };
+  }
+});
+
 function vehicle_code2uuid(vehicle_code: string) {
   if (vehicle_code) {
     return vehicle_code.substring(0, 8) + "-" + vehicle_code.substring(8, 12) + "-" + vehicle_code.substring(12, 16) + "-" + vehicle_code.substring(16, 20) + "-" + vehicle_code.substring(20, 32);

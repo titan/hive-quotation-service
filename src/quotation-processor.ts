@@ -114,6 +114,7 @@ async function sync_quotation(ctx: ProcessorContext,
       return;
     }
     const vidqids = {};
+    const uid_vids = {};
     if (dbresult.rowCount > 0) {
       for (const row of dbresult.rows) {
         if (quotation && quotation.id !== row.id || !quotation) {
@@ -124,6 +125,13 @@ async function sync_quotation(ctx: ProcessorContext,
             quotations.push(quotation);
           }
           let vhcl = null;
+          if (!vidqids[row.vid]) {
+            if (uid_vids[row.uid]) {
+              uid_vids[row.uid].push(row.vid);
+            } else {
+              uid_vids[row.uid] = [row.vid];
+            }
+          }
           const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
           if (vrep["code"] === 200) {
             vhcl = vrep["data"];
@@ -199,6 +207,10 @@ async function sync_quotation(ctx: ProcessorContext,
       const pkt = await msgpack_encode_async(vidqids[key]);
       multi.hset("vid-qids", key, pkt);
     }
+    for (const key of Object.keys(uid_vids)) {
+      const pkt = await msgpack_encode_async(uid_vids[key]);
+      multi.hset("uid-vids", key, pkt);
+    }
     return await multi.execAsync();
   } catch (err) {
     ctx.report(1, err);
@@ -215,6 +227,7 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
     if (!qid) {
       // 全刷时除旧
       await cache.delAsync("quotation-entities");
+      await cache.delAsync("uid-vids");
       await cache.delAsync("vid-qid");
     }
     await sync_quotation(ctx, qid);
