@@ -115,8 +115,6 @@ async function sync_quotation(ctx: ProcessorContext,
     } else {
       return;
     }
-    const vidqids = {};
-    // TODO
     const vid_qid = {};
     const uid_vids = {};
     if (dbresult.rowCount > 0) {
@@ -130,27 +128,17 @@ async function sync_quotation(ctx: ProcessorContext,
             quotation_slims.push(quotation_slim);
           }
           let vhcl = null;
-          if (!vidqids[row.vid]) {
+          if (!vid_qid[row.vid]) {
             if (uid_vids[row.uid]) {
               uid_vids[row.uid].push(row.vid);
             } else {
               uid_vids[row.uid] = [row.vid];
             }
           }
-
           const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
           if (vrep["code"] === 200) {
-            // TODEL
             vhcl = vrep["data"];
-            if (vidqids[vhcl["id"]]) {
-              vidqids[vhcl["id"]].push(row.id);
-            } else {
-              vidqids[vhcl["id"]] = [row.id];
-            }
-            // TODO
             if (!vid_qid[row.vid]) {
-              // TODEL
-              log.info(`vid_qid[row.vid]: ${vid_qid[row.vid]}`);
               vid_qid[row.vid] = row.id;
             }
           } else {
@@ -246,12 +234,6 @@ async function sync_quotation(ctx: ProcessorContext,
       const buf = await msgpack_encode_async(quotation_slim);
       multi.hset("quotation-slim-entities", quotation_slim["id"], buf);
     }
-    // TODEL
-    for (const key of Object.keys(vidqids)) {
-      const pkt = await msgpack_encode_async(vidqids[key]);
-      multi.hset("vid-qids", key, pkt);
-    }
-    // TODO
     for (const key of Object.keys(vid_qid)) {
       multi.hset("vid-qid", key, vid_qid[key]);
     }
@@ -277,8 +259,6 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       await cache.delAsync("quotation-entities");
       await cache.delAsync("quotation-slim-entities");
       await cache.delAsync("uid-vids");
-      // TODEL
-      await cache.delAsync("vid-qids");
       await cache.delAsync("vid-qid");
     }
     await sync_quotation(ctx, qid);
@@ -307,7 +287,6 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
   log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}, owner: ${owner}, insured: ${insured}, insurer_code: ${insurer_code}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
-  // let qid = acc_data["thpBizID"];
   let c_list = acc_data["coverageList"];
   let id = null;
   const pid = {
@@ -435,8 +414,6 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     await sync_quotation(ctx, qid);
     const rep_acc_buff: Buffer = await cache.hgetAsync("quotation-entities", qid);
     const rep_acc_data = await msgpack_decode_async(rep_acc_buff);
-    // const result = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q INNER JOIN vehicles AS v ON q.vid = v.id INNER JOIN person AS p ON v.owner = p.id INNER JOIN users AS u ON v.uid = u.id INNER JOIN vehicle_models AS vm ON v.vehicle_code = vm.vehicle_code WHERE q.id = $1", [qid]);
-    // const dbresult = await db.query("SELECT q.id AS qid, trim(p.name) AS name, trim(vm.family_name) AS model, trim(v.license_no) AS license, v.id AS vid, u.openid from quotations AS q");
     // // 通滚vid获取车辆信息
     // //　通过vehicle code　获取车辆信号信息
     // 推送不要
