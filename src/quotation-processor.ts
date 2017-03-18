@@ -150,7 +150,7 @@ async function sync_quotation(ctx: ProcessorContext,
           if (owner_result["code"] === 200) {
             owner_person = owner_result["data"];
           } else {
-            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取车主信息失败, ${vrep["msg"]}`);
+            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, owner: ${row.owner}, msg: 获取车主信息失败, ${owner_result["msg"]}`);
             return;
           }
           const insured_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.insured);
@@ -158,7 +158,7 @@ async function sync_quotation(ctx: ProcessorContext,
           if (insured_result["code"] === 200) {
             insured_person = insured_result["data"];
           } else {
-            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取投保人信息失败, ${vrep["msg"]}`);
+            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, insured: ${row.insured}, msg: 获取投保人信息失败, ${insured_result["msg"]}`);
             return;
           }
           quotation = {
