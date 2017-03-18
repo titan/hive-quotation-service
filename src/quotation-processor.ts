@@ -5,7 +5,6 @@ import * as bluebird from "bluebird";
 import * as bunyan from "bunyan";
 import * as nanomsg from "nanomsg";
 import * as uuid from "uuid";
-import { CustomerMessage } from "recommend-library";
 
 const log = bunyan.createLogger({
   name: "quotation-processor",
@@ -35,8 +34,10 @@ export const processor = new Processor();
 processor.callAsync("createQuotation", async (ctx: ProcessorContext,
   qid: string,
   vid: string,
-  state: number) => {
-  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`);
+  owner: string,
+  insured: string,
+  recommend: string) => {
+  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
 
@@ -44,13 +45,14 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
   try {
     const qresult = await db.query("SELECT id FROM quotations WHERE id = $1", [qid]);
     if (qresult.rowCount > 0) {
-      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}, msg: 该报价已经存在`);
+      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, msg: 该报价已经存在`);
       return {
         code: 404,
-        msg: "该报价已经存在"
+        msg: `该报价已经存在(QCQP404), qid: ${qid}`
       };
     }
-    await db.query("INSERT INTO quotations (id, vid, state) VALUES ($1, $2, $3)", [qid, vid, state]);
+    await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, 1, 0, 1)",
+      [qid, ctx.uid, vid, owner, insured, recommend]);
     await sync_quotation(ctx, qid);
 
     // 现在的方案没有代理商模块
@@ -82,18 +84,18 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
       data: { qid, created_at: now }
     };
   } catch (err) {
-    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, state: ${state}`, err);
     ctx.report(3, err);
+    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`, err);
     return {
       code: 500,
-      msg: "创建报价失败"
+      msg: "创建报价失败(QCQP500)"
     };
   }
 });
 
 async function sync_quotation(ctx: ProcessorContext,
   qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? "AND qid=$1 ORDER BY q.id, i.pid, iinsure" : " ORDER BY q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? "AND qid=$1 ORDER BY q.id, i.pid, iinsure" : " ORDER BY q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
   let quotation = null;
   let item = null;
@@ -131,11 +133,25 @@ async function sync_quotation(ctx: ProcessorContext,
               vidqids[vhcl["id"]] = [row.id];
             }
           }
+          const owner_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.owner);
+          let owner_person = null;
+          if (owner_result["code"] === 200) {
+            owner_person = owner_result["data"];
+          }
+          const insured_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.insured);
+          let insured_person = null;
+          if (insured_result["code"] === 200) {
+            insured_person = insured_result["data"];
+          }
           quotation = {
             id: row.id,
+            uid: row.uid,
             state: row.state,
             items: [],
             vehicle: vhcl,
+            owner: owner_person,
+            insured: insured_person,
+            recommend: row.recommend,
             outside_quotation1: row.outside_quotation1,
             outside_quotation2: row.outside_quotation2,
             screenshot1: row.screenshot1,
@@ -185,6 +201,7 @@ async function sync_quotation(ctx: ProcessorContext,
     }
     return await multi.execAsync();
   } catch (err) {
+    ctx.report(1, err);
     log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}`, err);
   }
 }
@@ -206,8 +223,8 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       msg: "Refresh is done"
     };
   } catch (err) {
-    log.error(`refresh, sn: ${ctx.sn}, uid: ${ctx.uid}, msg: error on remove old data`, err);
     ctx.report(3, err);
+    log.error(`refresh, sn: ${ctx.sn}, uid: ${ctx.uid}, msg: error on remove old data`, err);
     return {
       code: 500,
       msg: "Error on refresh"
@@ -217,9 +234,13 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
 
 processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
   acc_data: Object,
+  vid: string,
   qid: string,
-  state: number) => {
-  log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}`);
+  state: number,
+  owner: string,
+  insured: string,
+  insurer_code: string) => {
+  log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}, owner: ${owner}, insured: ${insured}, insurer_code: ${insurer_code}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
   // let qid = acc_data["thpBizID"];
@@ -240,30 +261,111 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
   const numb = [5, 10, 15, 20, 30, 50, 100];
   const levels = ["3块漆", "6块漆"];
   const nums = [3, 6];
+  const insure_num = {
+    "ASTP": 1, // 安盛天平
+    "PICC": 2, // 人保
+    "APIC": 3, // 永诚
+    "CLPC": 4, // 国寿财
+    "LIHI": 5 // 利宝
+  };
   try {
     await db.query("BEGIN");
-    await db.query("UPDATE quotations SET state = 3, insure = 3, auto = 2, real_value = $1 WHERE id = $2", [acc_data["real_value"], qid]);
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, qid]);
-    for (let i = 0; i < levelb.length; i++) {
+    await db.query("UPDATE quotations SET uid = $1, vid = $2, owner = $3, insured = $4, state = 3, insure = $5, auto = 2, real_value = $6, updated_at = $7 WHERE id = $8",
+      [ctx.uid, vid, owner, insured, insure_num[insurer_code], acc_data["real_value"], new Date(), qid]);
+
+    // 车损 -> A
+    let quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["A"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["A"]["insuredPremium"], 0, c_list["A"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
       id = uuid.v1();
-      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["B"], c_list["B"]["insuredPremium"][levelb[i]], numb[i], "万", c_list["B"]["modifiedPremium"][levelb[i]], (i + 1), qid]);
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, qid]);
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["FORCEPREMIUM"], c_list["FORCEPREMIUM"]["insuredPremium"], 0, "元", c_list["FORCEPREMIUM"]["modifiedPremium"], 0, qid]);
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["G1"], c_list["G1"]["insuredPremium"], 0, "元", c_list["G1"]["modifiedPremium"], 0, qid]);
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["X1"], c_list["X1"]["insuredPremium"], 0, "元", c_list["X1"]["modifiedPremium"], 0, qid]);
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["Z"], c_list["Z"]["insuredPremium"], 0, "元", c_list["Z"]["modifiedPremium"], 0, qid]);
-    id = uuid.v1();
-    await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, qid]);
-    for (let i = 0; i < levels.length; i++) {
+    // 商业第三方责任险 -> B
+    for (let i = 0; i < levelb.length; i++) {
+      quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["B"], (i + 1)]);
+      if (quotation_item_db.rowCount > 0) {
+        await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+          [c_list["B"]["insuredPremium"][levelb[i]], numb[i], c_list["B"]["modifiedPremium"][levelb[i]], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+      } else {
+        id = uuid.v1();
+        await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+          [id, pid["B"], c_list["B"]["insuredPremium"][levelb[i]], numb[i], "万", c_list["B"]["modifiedPremium"][levelb[i]], (i + 1), insure_num[insurer_code], qid]);
+      }
+    }
+    // 玻璃单独破碎 -> F
+    quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["F"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["F"]["insuredPremium"], 0, c_list["F"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
       id = uuid.v1();
-      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8)", [id, pid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], nums[i], "块漆", c_list["Scratch"]["modifiedPremium"][levels[i]], i, qid]);
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+    }
+    // 交强险+车船税 -> FORCEPREMIUM
+    quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["FORCEPREMIUM"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["FORCEPREMIUM"]["insuredPremium"], 0, c_list["FORCEPREMIUM"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["FORCEPREMIUM"], c_list["FORCEPREMIUM"]["insuredPremium"], 0, "元", c_list["FORCEPREMIUM"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+    }
+    // 机动车全车盗抢 -> G1
+    quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["G1"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["G1"]["insuredPremium"], 0, c_list["G1"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["G1"], c_list["G1"]["insuredPremium"], 0, "元", c_list["G1"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+    }
+    // 机动车发动机涉水损失 -> X1
+    quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["X1"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["X1"]["insuredPremium"], 0, c_list["X1"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["X1"], c_list["X1"]["insuredPremium"], 0, "元", c_list["X1"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+    }
+    // 机动车自燃损失 -> Z
+    quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["Z"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["Z"]["insuredPremium"], 0, c_list["Z"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["Z"], c_list["Z"]["insuredPremium"], 0, "元", c_list["Z"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+    }
+    // 无法找到第三方特约责任 -> Z3
+    quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["Z3"], 0]);
+    if (quotation_item_db.rowCount > 0) {
+      await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+        [c_list["Z3"]["insuredPremium"], 0, c_list["Z3"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+    } else {
+      id = uuid.v1();
+      await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+        [id, pid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+    }
+    // 机动车车身划痕损失 -> Scratch
+    for (let i = 0; i < levels.length; i++) {
+      quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["Scratch"], (i + 1)]);
+      if (quotation_item_db.rowCount > 0) {
+        await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
+          [c_list["Scratch"]["insuredPremium"][levels[i]], nums[i], c_list["Scratch"]["modifiedPremium"][levels[i]], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+      } else {
+        id = uuid.v1();
+        await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+          [id, pid["Scratch"], c_list["Scratch"]["insuredPremium"][levels[i]], nums[i], "块漆", c_list["Scratch"]["modifiedPremium"][levels[i]], (i + 1), insure_num[insurer_code], qid]);
+      }
     }
     await db.query("COMMIT");
     await sync_quotation(ctx, qid);
@@ -282,13 +384,17 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     return { code: 200, data: rep_acc_data };
   } catch (err) {
     ctx.report(3, err);
-    log.error(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, qid: ${qid}, state: ${state}`, err);
+    log.error(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, vid: ${vid}, qid: ${qid}, state: ${state}, owner: ${owner}, insured: ${insured}, insurer_code: ${insurer_code}`, err);
     try {
       await db.query("ROLLBACK");
-      return { code: 500, msg: err.message };
+      return {
+        code: 500,
+        msg: "保存报价失败(QSQP500)"
+      };
     } catch (e) {
-      ctx.report(3, err);
-      log.error(e);
+      ctx.report(1, err);
+      log.error(`saveQuotation, acc_data: ${JSON.stringify(acc_data)}, vid: ${vid}, qid: ${qid}, state: ${state}, owner: ${owner}, insured: ${insured}, insurer_code: ${insurer_code}, msg: 数据库回滚失败`, e);
+      return { code: 500, msg: err.message };
     }
   }
 });
