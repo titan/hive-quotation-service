@@ -112,7 +112,8 @@ function quotation_cmp(a: {}, b: {}): number {
 }
 
 server.callAsync("getLastQuotationByVid", allowAll, "根据vid获取最后一次报价", "根据vid获取最后一次报价", async (ctx: ServerContext,
-  vid: string) => {
+  vid: string,
+  full?: boolean) => {
   log.info(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}`);
   try {
     await verify([uuidVerifier("vid", vid)]);
@@ -124,26 +125,43 @@ server.callAsync("getLastQuotationByVid", allowAll, "根据vid获取最后一次
     };
   }
   try {
-    const pkt = await ctx.cache.hgetAsync("vid-qids", vid);
-    if (pkt) {
-      const qids: string[] = await msgpack_decode_async(pkt) as string[];
-      if (qids.length > 0) {
-        const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
-        for (const qid of qids) {
-          multi.hget("quotation-entities", qid);
-        }
-        const qpkts = await multi.execAsync();
-        const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode_async(x)));
-        const sorted = quotations.sort(quotation_cmp);
-        return { code: 200, data: sorted[0] };
-      } else {
-        log.error(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}`);
-        return { code: 404, msg: `未查询到报价，请确认vid输入正确, vid: ${vid}` };
-      }
+    const src = full ? "quotation-entities" : "quotation-slim-entities";
+    const qid_buff: Buffer = await ctx.cache.hgetAsync("vid-qid", vid);
+    // TODEL
+    log.info(`getLastQuotationByVid, qid: ${qid_buff.toString()}`);
+    if (qid_buff) {
+      const qid: string = qid_buff.toString();
+      const quotation_buff: Buffer = await ctx.cache.hgetAsync(src, qid);
+      const quotation = await msgpack_decode_async(quotation_buff);
+      return { code: 200, data: quotation };
     } else {
-      log.error(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}`);
+      log.error(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
       return { code: 404, msg: `未查询到报价，请确认vid输入正确, vid: ${vid}` };
     }
+
+    // TODEL
+    // const pkt = await ctx.cache.hgetAsync("vid-qids", vid);
+    // if (pkt) {
+    //   const qids: string[] = await msgpack_decode_async(pkt) as string[];
+    //   if (qids.length > 0) {
+    //     const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
+    //     for (const qid of qids) {
+    //       multi.hget("quotation-entities", qid);
+    //     }
+    //     const qpkts = await multi.execAsync();
+    //     const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode_async(x)));
+    //     const sorted = quotations.sort(quotation_cmp);
+    //     return { code: 200, data: sorted[0] };
+    //   } else {
+    //     log.error(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}`);
+    //     return { code: 404, msg: `未查询到报价，请确认vid输入正确, vid: ${vid}` };
+    //   }
+    // } else {
+    //   log.error(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}`);
+    //   return { code: 404, msg: `未查询到报价，请确认vid输入正确, vid: ${vid}` };
+    // }
+
+
   } catch (err) {
     ctx.report(1, err);
     log.error(`getLastQuotationByVid, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}`, err);
@@ -859,7 +877,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
         }
       }
 
-
+      // TODEL
       // // TODO 一个月内已经报过价
       // const exist_quotation_buff: Buffer = await ctx.cache.getAsync(`zt-quotation:${vid}:${insurer_code}`);
       // if (exist_quotation_buff) {
@@ -978,25 +996,36 @@ server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报�
           const qid_buff: Buffer = await ctx.cache.hgetAsync("vid-qid", vid);
           // TODEL
           log.info(`getLastQuotations, qid: ${qid_buff.toString()}`);
-          if (pkt) {
-            const qids: string[] = await msgpack_decode_async(pkt) as string[];
-            if (qids.length > 0) {
-              const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
-              for (const qid of qids) {
-                multi.hget(src, qid);
-              }
-              const qpkts = await multi.execAsync();
-              const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode_async(x)));
-              const sorted = quotations.sort(quotation_cmp);
-              quotations_return.push(sorted[0]);
-            } else {
-              log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
-              return { code: 404, msg: `未查询到报价，请确认vid输入正确` };
-            }
+          if (qid_buff) {
+            const qid: string = qid_buff.toString();
+            const quotation_buff: Buffer = await ctx.cache.hgetAsync(src, qid);
+            const quotation = await msgpack_decode_async(quotation_buff);
+            quotations_return.push(quotation);
           } else {
             log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
-            return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
+            return { code: 404, msg: `未查询到报价，请确认vid输入正确` };
           }
+
+          // TODEL
+          // if (pkt) {
+          //   const qids: string[] = await msgpack_decode_async(pkt) as string[];
+          //   if (qids.length > 0) {
+          //     const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
+          //     for (const qid of qids) {
+          //       multi.hget(src, qid);
+          //     }
+          //     const qpkts = await multi.execAsync();
+          //     const quotations = await Promise.all(qpkts.filter(x => x && x.length > 0).map(x => msgpack_decode_async(x)));
+          //     const sorted = quotations.sort(quotation_cmp);
+          //     quotations_return.push(sorted[0]);
+          //   } else {
+          //     log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
+          //     return { code: 404, msg: `未查询到报价，请确认vid输入正确` };
+          //   }
+          // } else {
+          //   log.error(`getLastQuotations, sn: ${ctx.sn}, uid: ${ctx.uid}, full: ${full}`);
+          //   return { code: 404, msg: `未查询到报价，请确认用户已经创建报价` };
+          // }
         }
         return { code: 200, data: quotations_return };
       } else {
