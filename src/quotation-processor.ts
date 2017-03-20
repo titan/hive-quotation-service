@@ -174,9 +174,9 @@ async function sync_quotation(ctx: ProcessorContext,
             outside_quotation2: row.outside_quotation2,
             screenshot1: row.screenshot1,
             screenshot2: row.screenshot2,
-            price: row.qprice,
-            real_value: row.real_value,
-            promotion: row.promotion,
+            price: parseFloat(row.qprice),
+            real_value: parseFloat(row.real_value),
+            promotion: parseFloat(row.promotion),
             insure: row.insure,
             auto: row.auto,
             created_at: row.created_at
@@ -211,9 +211,9 @@ async function sync_quotation(ctx: ProcessorContext,
         }
         const qipair = {
           type: row.type,
-          price: row.price,
-          real_price: row.real_price,
-          amount: row.amount,
+          price: parseFloat(row.price),
+          real_price: parseFloat(row.real_price),
+          amount: parseFloat(row.amount),
           unit: row.unit
         };
         item.pairs.push(qipair);

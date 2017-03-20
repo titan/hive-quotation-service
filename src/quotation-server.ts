@@ -65,7 +65,7 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
     insured = set_insured_result["data"];
   }
   qid = qid ? qid : uuid.v1();
-  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, owner, insured] };
+  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, owner, insured, recommend] };
   ctx.publish(pkt);
   return await waitingAsync(ctx);
 });
