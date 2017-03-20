@@ -223,6 +223,7 @@ async function sync_quotation(ctx: ProcessorContext,
           quotation.items.push(item);
         }
         quotations.push(quotation);
+        quotation_slims.push(quotation_slim);
       }
     }
     const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
