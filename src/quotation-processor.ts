@@ -95,7 +95,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
 
 async function sync_quotation(ctx: ProcessorContext,
   qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
   const quotation_slims = [];
   let quotation = null;
@@ -116,7 +116,6 @@ async function sync_quotation(ctx: ProcessorContext,
       return;
     }
     const vid_qid = {};
-    const uid_vids = {};
     if (dbresult.rowCount > 0) {
       for (const row of dbresult.rows) {
         if (quotation && quotation.id !== row.id || !quotation) {
@@ -128,18 +127,12 @@ async function sync_quotation(ctx: ProcessorContext,
             quotation_slims.push(quotation_slim);
           }
           let vhcl = null;
-          if (!vid_qid[row.vid]) {
-            if (uid_vids[row.uid]) {
-              uid_vids[row.uid].push(row.vid);
-            } else {
-              uid_vids[row.uid] = [row.vid];
-            }
-          }
+          await ctx.cache.sadd(`vids:${row.uid}`, row.vid);
           const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
           if (vrep["code"] === 200) {
             vhcl = vrep["data"];
             if (!vid_qid[row.vid]) {
-              vid_qid[row.vid] = row.id;
+              vid_qid[`${row.vid}:${row.uid}`] = row.id;
             }
           } else {
             log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取车辆信息失败, ${vrep["msg"]}`);
@@ -236,11 +229,7 @@ async function sync_quotation(ctx: ProcessorContext,
       multi.hset("quotation-slim-entities", quotation_slim["id"], buf);
     }
     for (const key of Object.keys(vid_qid)) {
-      multi.hset("vid-qid", key, vid_qid[key]);
-    }
-    for (const key of Object.keys(uid_vids)) {
-      const pkt = await msgpack_encode_async(uid_vids[key]);
-      multi.hset("uid-vids", key, pkt);
+      multi.hset("vid:uid-qid", key, vid_qid[key]);
     }
     return await multi.execAsync();
   } catch (err) {
@@ -259,8 +248,12 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       // 全刷时除旧
       await cache.delAsync("quotation-entities");
       await cache.delAsync("quotation-slim-entities");
-      await cache.delAsync("uid-vids");
       await cache.delAsync("vid-qid");
+      const keys_vids_buff: Buffer[] = await cache.keysAsync("vids:*");
+      for (const key_buff of keys_vids_buff) {
+        const key: string = key_buff.toString();
+        await cache.delAsync(key);
+      }
     }
     await sync_quotation(ctx, qid);
     return {
@@ -321,11 +314,11 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     let quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["A"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["A"]["insuredPremium"], 0, c_list["A"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["A"]["insuredPremium"], acc_data["amount"], c_list["A"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [id, pid["A"], c_list["A"]["insuredPremium"], 0, "元", c_list["A"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+        [id, pid["A"], c_list["A"]["insuredPremium"], acc_data["amount"], "元", c_list["A"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
     // 商业第三方责任险 -> B
     for (let i = 0; i < levelb.length; i++) {
@@ -343,17 +336,17 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["F"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["F"]["insuredPremium"], 0, c_list["F"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["F"]["insuredPremium"], acc_data["amount"], c_list["F"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [id, pid["F"], c_list["F"]["insuredPremium"], 0, "元", c_list["F"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+        [id, pid["F"], c_list["F"]["insuredPremium"], acc_data["amount"], "元", c_list["F"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
     // 交强险+车船税 -> FORCEPREMIUM
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["FORCEPREMIUM"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["FORCEPREMIUM"]["insuredPremium"], 0, c_list["FORCEPREMIUM"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["FORCEPREMIUM"]["insuredPremium"], acc_data["amount"], c_list["FORCEPREMIUM"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
@@ -363,11 +356,11 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["G1"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["G1"]["insuredPremium"], 0, c_list["G1"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["G1"]["insuredPremium"], acc_data["amount"], c_list["G1"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [id, pid["G1"], c_list["G1"]["insuredPremium"], 0, "元", c_list["G1"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+        [id, pid["G1"], c_list["G1"]["insuredPremium"], acc_data["amount"], "元", c_list["G1"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
     // 机动车发动机涉水损失 -> X1
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["X1"], 0]);
@@ -383,21 +376,21 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["Z"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["Z"]["insuredPremium"], 0, c_list["Z"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["Z"]["insuredPremium"], acc_data["amount"], c_list["Z"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [id, pid["Z"], c_list["Z"]["insuredPremium"], 0, "元", c_list["Z"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+        [id, pid["Z"], c_list["Z"]["insuredPremium"], acc_data["amount"], "元", c_list["Z"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
     // 无法找到第三方特约责任 -> Z3
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["Z3"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["Z3"]["insuredPremium"], 0, c_list["Z3"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["Z3"]["insuredPremium"], acc_data["amount"], c_list["Z3"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [id, pid["Z3"], c_list["Z3"]["insuredPremium"], 0, "元", c_list["Z3"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+        [id, pid["Z3"], c_list["Z3"]["insuredPremium"], acc_data["amount"], "元", c_list["Z3"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
     // 机动车车身划痕损失 -> Scratch
     for (let i = 0; i < levels.length; i++) {
