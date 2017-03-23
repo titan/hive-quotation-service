@@ -248,7 +248,7 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       // 全刷时除旧
       await cache.delAsync("quotation-entities");
       await cache.delAsync("quotation-slim-entities");
-      await cache.delAsync("vid-qid");
+      await cache.delAsync("vid:uid-qid");
       const keys_vids_buff: Buffer[] = await cache.keysAsync("vids:*");
       for (const key_buff of keys_vids_buff) {
         const key: string = key_buff.toString();

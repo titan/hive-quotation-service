@@ -125,7 +125,7 @@ server.callAsync("getLastQuotationByVid", allowAll, "根据vid获取最后一次
   }
   try {
     const src = full ? "quotation-entities" : "quotation-slim-entities";
-    const qid_buff: Buffer = await ctx.cache.hgetAsync("vid-qid", vid);
+    const qid_buff: Buffer = await ctx.cache.hgetAsync("vid:uid-qid", `${vid}:${ctx.uid}`);
     if (qid_buff) {
       const qid: string = qid_buff.toString();
       const quotation_buff: Buffer = await ctx.cache.hgetAsync(src, qid);
@@ -247,10 +247,12 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
           "insuredPremium": null, // "1323.7600",
           "flag": null
         }];
-      const options: Option = {
-        log: log,
-        sn: ctx.sn
-      };
+    const options: Option = {
+      log: log,
+      sn: ctx.sn,
+      disque: server.queue,
+      queue: "quotation-package"
+    };
       try {
         const ztyq_result = await getReferencePrice(city_code, responseNo, license_no, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insurer_code, ref_coverageList, options);
         const ref_biBeginDate = new Date(ztyq_result["data"]["biBeginDate"]);
@@ -392,7 +394,9 @@ async function requestAccurateQuotation(ctx: ServerContext,
   try {
     const options: Option = {
       log: log,
-      sn: ctx.sn
+      sn: ctx.sn,
+      disque: server.queue,
+      queue: "quotation-package"
     };
     const biBeginDate: string = fmtDateString(bi_begin_date);
     const ciBeginDate: string = fmtDateString(ci_begin_date);
@@ -826,7 +830,6 @@ server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报�
       const quotations_return = [];
       for (const vid_buff of vids_set_buff) {
         const vid: string = vid_buff.toString();
-        const pkt = await ctx.cache.hgetAsync("vid-qids", vid);
         const qid_buff: Buffer = await ctx.cache.hgetAsync("vid:uid-qid", `${vid}:${ctx.uid}`);
         if (qid_buff) {
           const qid: string = qid_buff.toString();
