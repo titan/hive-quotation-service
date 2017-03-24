@@ -14,6 +14,7 @@
     "node-uuid": "^1.4.7",
     "pg-pool": "^1.4.0",
     "recommend-library": "git+http://git.fengchaohuzhu.com:10080/agent/recommend-library.git",
+    "ztyq-library": "git+http://git.fengchaohuzhu.com:10080/server/ztyq-library.git",
     "redis": "^2.6.2"
   }
 }
