@@ -366,11 +366,11 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["X1"], 0]);
     if (quotation_item_db.rowCount > 0) {
       await db.query("UPDATE quotation_items SET price = $1, amount = $2, real_price = $3, insure = $4, updated_at = $5 WHERE id = $6",
-        [c_list["X1"]["insuredPremium"], 0, c_list["X1"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
+        [c_list["X1"]["insuredPremium"], acc_data["amount"], c_list["X1"]["modifiedPremium"], insure_num[insurer_code], new Date(), quotation_item_db.rows[0].id]);
     } else {
       id = uuid.v1();
       await db.query("INSERT INTO quotation_items (id, pid, price, amount, unit, real_price, type, insure, qid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-        [id, pid["X1"], c_list["X1"]["insuredPremium"], 0, "元", c_list["X1"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
+        [id, pid["X1"], c_list["X1"]["insuredPremium"], acc_data["amount"], "元", c_list["X1"]["modifiedPremium"], 0, insure_num[insurer_code], qid]);
     }
     // 机动车自燃损失 -> Z
     quotation_item_db = await db.query("SELECT id FROM quotation_items WHERE qid = $1 AND pid = $2 AND type = $3", [qid, pid["Z"], 0]);
