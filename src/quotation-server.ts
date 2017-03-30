@@ -2,6 +2,7 @@ import { Server, ServerContext, ServerFunction, CmdPacket, Permission, msgpack_d
 import * as bunyan from "bunyan";
 import * as uuid from "uuid";
 import * as bluebird from "bluebird";
+import * as crypto from "crypto";
 import { RedisClient, Multi } from "redis";
 import { verify, booleanVerifier, uuidVerifier, stringVerifier, numberVerifier, dateVerifier } from "hive-verify";
 import { getReferencePrice, getAccuratePrice, QuotePrice, Coverage, Option } from "ztyq-library";
@@ -869,14 +870,10 @@ function fmtDateString(date: Date) {
   }
 }
 
-// 随机生成数字
-function randDigit(): string {
-  return Math.floor(Math.random()*10) + "";
-}
-
 // 随机尾号
 function randTails(): string {
-  return randDigit() + randDigit() + randDigit() + randDigit();
+  const nums = crypto.randomBytes(4);
+  return "" + nums[0]%10 + nums[1]%10 + nums[2]%10 + nums[3]%10;
 }
 
 //随机手机号
