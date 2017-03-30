@@ -232,7 +232,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
       }
       const insured_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", insured);
       if (insured_result["code"] === 200) {
-        ownerMobile = insured_result["data"]["phone"];
+        ownerMobile = randPhone(insured_result["data"]["phone"]);
       } else {
         return {
           code: insured_result["code"],
@@ -707,8 +707,8 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
             if (insured_result["code"] === 200) {
               insuredName = insured_result["data"]["name"];
               insuredID = insured_result["data"]["identity_no"];
-              insuredMobile = insured_result["data"]["phone"];
-              ownerMobile = insured_result["data"]["phone"]; // 这是业务约定
+              insuredMobile = randPhone(insured_result["data"]["phone"]);
+              ownerMobile = randPhone(insured_result["data"]["phone"]); // 这是业务约定
             } else {
               return {
                 code: insured_result["code"],
@@ -778,8 +778,8 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
           if (insured_result["code"] === 200) {
             insuredName = insured_result["data"]["name"];
             insuredID = insured_result["data"]["identity_no"];
-            insuredMobile = insured_result["data"]["phone"];
-            ownerMobile = insured_result["data"]["phone"]; // 这是业务约定
+            insuredMobile = randPhone(insured_result["data"]["phone"]);
+            ownerMobile = randPhone(insured_result["data"]["phone"]); // 这是业务约定
           } else {
             return {
               code: insured_result["code"],
@@ -867,6 +867,23 @@ function fmtDateString(date: Date) {
   } else {
     return "";
   }
+}
+
+// 随机生成数字
+function randDigit(): string {
+  return Math.floor(Math.random()*10) + "";
+}
+
+// 随机尾号
+function randTails(): string {
+  return randDigit() + randDigit() + randDigit() + randDigit();
+}
+
+//随机手机号
+function randPhone(origin: string) {
+  const head: string = origin.substring(0, 7);
+  const tail: string = randTails();
+  return head + tail;
 }
 
 log.info("Start quotation server");
