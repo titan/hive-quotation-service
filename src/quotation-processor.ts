@@ -102,7 +102,7 @@ async function sync_quotation(ctx: ProcessorContext,
   let quotation_slim = null;
   let item = null;
   let planDict = {};
-  const planr = await rpcAsync(ctx.domain, process.env["PLAN"], ctx.uid, "getPlans");
+  const planr = await rpcAsync(ctx.domain, process.env["PLAN"], dbresult.rows[0]["uid"], "getPlans");
   try {
     if (planr["code"] === 200) {
       let plans = planr["data"];
