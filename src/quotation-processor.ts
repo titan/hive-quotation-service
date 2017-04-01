@@ -128,17 +128,17 @@ async function sync_quotation(ctx: ProcessorContext,
           }
           let vhcl = null;
           await ctx.cache.sadd(`vids:${row.uid}`, row.vid);
-          const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", row.vid);
+          const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], row.uid, "getVehicle", row.vid);
           if (vrep["code"] === 200) {
             vhcl = vrep["data"];
             if (!vid_qid[row.vid]) {
               vid_qid[`${row.vid}:${row.uid}`] = row.id;
             }
           } else {
-            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取车辆信息失败, ${vrep["msg"]}`);
+            log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${row.uid}, qid: ${row.id}, vid: ${row.vid}, msg: 获取车辆信息失败, ${vrep["msg"]}`);
             return;
           }
-          const owner_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.owner);
+          const owner_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], row.uid, "getPerson", row.owner);
           let owner_person = null;
           if (owner_result["code"] === 200) {
             owner_person = owner_result["data"];
@@ -146,7 +146,7 @@ async function sync_quotation(ctx: ProcessorContext,
             log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${row.id}, vid: ${row.vid}, owner: ${row.owner}, msg: 获取车主信息失败, ${owner_result["msg"]}`);
             return;
           }
-          const insured_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", row.insured);
+          const insured_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], row.uid, "getPerson", row.insured);
           let insured_person = null;
           if (insured_result["code"] === 200) {
             insured_person = insured_result["data"];
