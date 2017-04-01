@@ -89,6 +89,10 @@ server.callAsync("getQuotation", allowAll, "获取一个报价", "获取一个�
     const qpkt = await ctx.cache.hgetAsync("quotation-entities", qid);
     if (qpkt) {
       const quotation = await msgpack_decode_async(qpkt);
+      if (ctx.domain === "mobile" && ctx.uid !== quotation["uid"]) {
+        log.error(`getQuotation, sn: ${ctx.sn}, ctx.uid: ${ctx.uid}, quotation.uid: ${quotation["uid"]}, msg: 该用户没有权限获取该报价`);
+        return { code: 403, msg: `对不起， 您没有权限获取该报价` };
+      }
       return { code: 200, data: quotation };
     } else {
       log.error(`getQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, msg: 报价未找到`);
