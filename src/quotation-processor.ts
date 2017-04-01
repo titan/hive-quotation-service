@@ -53,7 +53,6 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
     }
     await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, 1, 0, 1)",
       [qid, ctx.uid, vid, owner, insured, recommend]);
-    await sync_quotation(ctx, qid);
 
     // 现在的方案没有代理商模块
     // const multi = bluebird.promisifyAll(cache.multi()) as Multi;
