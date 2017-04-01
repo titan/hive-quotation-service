@@ -2,6 +2,7 @@ import { Service, Server, Processor, Config } from "hive-service";
 import { server } from "./quotation-server";
 import { processor } from "./quotation-processor";
 import * as bunyan from "bunyan";
+import { run as trigger_run } from "./quotation-trigger";
 
 const log = bunyan.createLogger({
   name: "quotation-service",
@@ -45,3 +46,5 @@ svc.registerServer(server);
 svc.registerProcessor(processor);
 
 svc.run();
+
+trigger_run();
