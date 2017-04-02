@@ -89,6 +89,10 @@ server.callAsync("getQuotation", allowAll, "获取一个报价", "获取一个�
     const qpkt = await ctx.cache.hgetAsync("quotation-entities", qid);
     if (qpkt) {
       const quotation = await msgpack_decode_async(qpkt);
+      if (ctx.domain === "mobile" && ctx.uid !== quotation["uid"]) {
+        log.error(`getQuotation, sn: ${ctx.sn}, ctx.uid: ${ctx.uid}, quotation.uid: ${quotation["uid"]}, msg: 该用户没有权限获取该报价`);
+        return { code: 403, msg: `对不起， 您没有权限获取该报价` };
+      }
       return { code: 200, data: quotation };
     } else {
       log.error(`getQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, msg: 报价未找到`);
@@ -333,6 +337,7 @@ async function requestAccurateQuotation(ctx: ServerContext,
   insuredID: string,
   insuredMobile: string,
   insurerCode: string,
+  flag: number,
   vid: string,
 ): Promise<any> {
   const coverages = [
@@ -355,7 +360,7 @@ async function requestAccurateQuotation(ctx: ServerContext,
       "coverageName": "玻璃单独破碎险",
       "insuredAmount": "Y",
       "insuredPremium": null,
-      "flag": null
+      "flag": flag + ""
     },
     {
       "coverageCode": "FORCEPREMIUM",
@@ -627,9 +632,10 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
   insurer_code: string,
   bi_begin_date: Date,
   ci_begin_date: Date,
+  flag: number,
   cache_first: boolean,
   save: boolean) => {
-  log.info(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}`);
+  log.info(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}`);
   try {
     await verify([
       uuidVerifier("vid", vid),
@@ -640,6 +646,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
       stringVerifier("insurer_code", insurer_code),
       dateVerifier("bi_begin_date", bi_begin_date),
       dateVerifier("ci_begin_date", ci_begin_date),
+      numberVerifier("flag", flag),
       booleanVerifier("cache_first", cache_first),
     ]);
   } catch (err) {
@@ -674,7 +681,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
             if (response_no_result["code"] === 200) {
               responseNo = response_no_result["data"]["response_no"];
             } else {
-              log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}, msg: 获取响应码失败, ${response_no_result["msg"]}`);
+              log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}, msg: 获取响应码失败, ${response_no_result["msg"]}`);
               return {
                 code: response_no_result["code"],
                 msg: `获取响应码失败(QAQ${response_no_result["code"]})`
@@ -716,7 +723,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
                 msg: `获取投保人信息失败(QAQ${insured_result["code"]})`
               };
             }
-            const accurate_quotation_result = await requestAccurateQuotation(ctx, thpBizID, city_code, responseNo, bi_begin_date, ci_begin_date, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, register_date, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurer_code, vid);
+            const accurate_quotation_result = await requestAccurateQuotation(ctx, thpBizID, city_code, responseNo, bi_begin_date, ci_begin_date, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, register_date, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurer_code, flag, vid);
             if (accurate_quotation_result.err) {
               return {
                 code: 500,
@@ -726,7 +733,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
               return await handleAccurateQuotation(ctx, vehicle_and_models, accurate_quotation_result.data, vid, qid, owner, insured, insurer_code, save);
             }
           } else {
-            log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}, msg: "Not found biBeginDate & ciBeginDate in redis!"`);
+            log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}, msg: "Not found biBeginDate & ciBeginDate in redis!"`);
             return {
               code: 404,
               msg: "Not found biBeginDate & ciBeginDate in redis!"
@@ -745,7 +752,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
           if (response_no_result["code"] === 200) {
             responseNo = response_no_result["data"]["response_no"];
           } else {
-            log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}, msg: 获取响应码失败`);
+            log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}, msg: 获取响应码失败`);
             return {
               code: response_no_result["code"],
               msg: `获取响应码失败(QAQ${response_no_result["code"]})`
@@ -787,7 +794,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
               msg: `获取投保人信息失败(QAQ${insured_result["code"]})`
             };
           }
-          const accurate_quotation_result = await requestAccurateQuotation(ctx, thpBizID, city_code, responseNo, bi_begin_date, ci_begin_date, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, register_date, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurer_code, vid);
+          const accurate_quotation_result = await requestAccurateQuotation(ctx, thpBizID, city_code, responseNo, bi_begin_date, ci_begin_date, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, register_date, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurer_code, flag, vid);
           if (accurate_quotation_result.err) {
             return {
               code: 500,
@@ -797,7 +804,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
             return await handleAccurateQuotation(ctx, vehicle_and_models, accurate_quotation_result.data, vid, qid, owner, insured, insurer_code, save);
           }
         } else {
-          log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}, msg: "Not found biBeginDate & ciBeginDate in redis!"`);
+          log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}, msg: "Not found biBeginDate & ciBeginDate in redis!"`);
           return {
             code: 404,
             msg: "Not found biBeginDate & ciBeginDate in redis!"
@@ -805,7 +812,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
         }
       }
     } else {
-      log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}, msg: 获取车辆和车型信息失败`);
+      log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}, msg: 获取车辆和车型信息失败`);
       return {
         code: vehicle_result["code"],
         msg: `获取车辆和车型信息失败(QAQ${vehicle_result["code"]})`
@@ -813,7 +820,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
     }
   } catch (err) {
     ctx.report(3, err);
-    log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, cache_first: ${cache_first}, save: ${save}`, err);
+    log.error(`getAccurateQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, owner: ${owner}, insured: ${insured}, city_code: ${city_code}, insurer_code: ${insurer_code}, bi_begin_date: ${bi_begin_date}, ci_begin_date: ${ci_begin_date}, flag: ${flag}, cache_first: ${cache_first}, save: ${save}`, err);
     return {
       code: 500,
       msg: "获取精准报价失败(QAQ500)"

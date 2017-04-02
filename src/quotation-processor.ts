@@ -53,7 +53,6 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
     }
     await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, 1, 0, 1)",
       [qid, ctx.uid, vid, owner, insured, recommend]);
-    await sync_quotation(ctx, qid);
 
     // 现在的方案没有代理商模块
     // const multi = bluebird.promisifyAll(cache.multi()) as Multi;
@@ -102,7 +101,7 @@ async function sync_quotation(ctx: ProcessorContext,
   let quotation_slim = null;
   let item = null;
   let planDict = {};
-  const planr = await rpcAsync(ctx.domain, process.env["PLAN"], ctx.uid, "getPlans");
+  const planr = await rpcAsync(ctx.domain, process.env["PLAN"], dbresult.rows[0]["uid"], "getPlans");
   try {
     if (planr["code"] === 200) {
       let plans = planr["data"];
