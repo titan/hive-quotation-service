@@ -197,7 +197,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
       const two_dates_buff: Buffer = await ctx.cache.hgetAsync("license-two-dates", license_no);
       if (two_dates_buff) {
         const two_dates = await msgpack_decode_async(two_dates_buff);
-        const begindate = new Date(two_dates["ci_begin_date"]);
+        const begindate = new Date(new Date(two_dates["ci_begin_date"]).getTime() - 3600 * 8 * 1000);
         return {
           code: 200,
           data: two_dates
@@ -211,7 +211,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
         log.error(`getReferenceQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured},  insurer_code: ${insurer_code}, city_code: ${city_code}, msg: 获取响应码失败`);
         return {
           code: response_no_result["code"],
-          msg: `获取响应码失败(QRQ$}${response_no_result["code"]})`
+          msg: `获取响应码失败(QRQ${response_no_result["code"]})`
         };
       }
       const frameNo: string = vehicle_and_models["vin"];
@@ -260,7 +260,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
     };
       try {
         const ztyq_result = await getReferencePrice(city_code, responseNo, license_no, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insurer_code, ref_coverageList, options);
-        const ref_biBeginDate = new Date(ztyq_result["data"]["biBeginDate"]);
+        const ref_biBeginDate = new Date(new Date(ztyq_result["data"]["biBeginDate"]).getTime() - 3600 * 8 * 1000);
         const two_dates: Object = {
           "bi_begin_date": ztyq_result["data"]["biBeginDate"],
           "ci_begin_date": ztyq_result["data"]["ciBeginDate"]
@@ -409,7 +409,7 @@ async function requestAccurateQuotation(ctx: ServerContext,
     const registerDate: string = fmtDateString(register_date);
     const ztyq_result = await getAccuratePrice(thpBizID, cityCode, responseNo, biBeginDate, ciBeginDate, licenseNo, frameNo, modelCode, engineNo, isTrans, transDate, registerDate, ownerName, ownerID, ownerMobile, insuredName, insuredID, insuredMobile, insurerCode, coverages, options);
     if (ztyq_result["data"] && ztyq_result["data"]["coverageList"]) {
-      const insurance_due_date = new Date(ciBeginDate);
+      const insurance_due_date = new Date(new Date(ciBeginDate).getTime() - 3600 * 8 * 1000);
       const due_date_result = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "setInsuranceDueDate", vid, insurance_due_date);
       if (due_date_result["code"] === 200) {
         const zt_quotation_buff = await msgpack_encode_async(ztyq_result["data"]);
