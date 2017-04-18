@@ -4,7 +4,7 @@ import * as uuid from "uuid";
 import * as bluebird from "bluebird";
 import * as crypto from "crypto";
 import { RedisClient, Multi } from "redis";
-import { verify, booleanVerifier, uuidVerifier, stringVerifier, numberVerifier, dateVerifier } from "hive-verify";
+import { verify, arrayVerifier, booleanVerifier, uuidVerifier, stringVerifier, numberVerifier, dateVerifier } from "hive-verify";
 import { getReferencePrice, getAccuratePrice, QuotePrice, Coverage, Option } from "ztyq-library";
 
 const log = bunyan.createLogger({
@@ -34,12 +34,7 @@ const adminOnly: Permission[] = [["mobile", false], ["admin", true]];
 export const server = new Server();
 
 // qid 手动报价不传
-server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext,
-  vid: string,
-  owner: string,
-  insured: string,
-  recommend: string,
-  qid?: string) => {
+server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, recommend: string, qid?: string) => {
   log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, qid: ${qid}`);
   try {
     await verify([
@@ -71,8 +66,41 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
   return await waitingAsync(ctx);
 });
 
-server.callAsync("getQuotation", allowAll, "获取一个报价", "获取一个报价", async (ctx: ServerContext,
-  qid: string) => {
+server.callAsync("createAgentQuotation", mobileOnly, "创建报价", "从报价库创建一个报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, recommend: string, inviter: string, items: any[], qid?: string) => {
+  log.info(`createAgentQuotation, sn: ${ctx.sn}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, inviter: ${inviter}, items: ${JSON.stringify(items)}, qid?: ${qid}`);
+  try {
+    await verify([
+      uuidVerifier("vid", vid),
+      uuidVerifier("owner", owner),
+      uuidVerifier("insured", insured),
+      stringVerifier("recommend", recommend),
+      stringVerifier("inviter", inviter),
+      arrayVerifier("items", items),
+      qid ? uuidVerifier("qid", qid) : null,
+    ].filter(x => x));
+  } catch (err) {
+    ctx.report(3, err);
+    return {
+      code: 400,
+      msg: err.message,
+    };
+  }
+  const set_insured_result = await rpcAsync<any>(ctx.domain, process.env["PROFILE"], ctx.uid, "setInsured", insured);
+  if (set_insured_result["code"] !== 200) {
+    return {
+      code: set_insured_result["code"],
+      msg: `设置投保人信息失败(QCAQ${set_insured_result["code"]})`
+    };
+  } else {
+    insured = set_insured_result["data"];
+  }
+  qid = qid ? qid : uuid.v1();
+  const pkt: CmdPacket = { cmd: "createAgentQuotation", args: [ vid, owner, insured, recommend, inviter, items, qid ] };
+  ctx.publish(pkt);
+  return await waitingAsync(ctx);
+});
+
+server.callAsync("getQuotation", allowAll, "获取一个报价", "获取一个报价", async (ctx: ServerContext, qid: string) => {
   log.info(`getQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}`);
   try {
     await verify([

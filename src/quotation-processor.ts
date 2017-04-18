@@ -31,12 +31,7 @@ quotation_trigger.bind(process.env["QUOTATION-TRIGGER"]);
 
 export const processor = new Processor();
 
-processor.callAsync("createQuotation", async (ctx: ProcessorContext,
-  qid: string,
-  vid: string,
-  owner: string,
-  insured: string,
-  recommend: string) => {
+processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string, vid: string, owner: string, insured: string, recommend: string) => {
   log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
@@ -48,36 +43,10 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
       log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, msg: 该报价已经存在`);
       return {
         code: 404,
-        msg: `该报价已经存在(QCQP404), qid: ${qid}`
+        msg: `该报价已经存在(QCQP404), qid: ${qid}`,
       };
     }
-    await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, 1, 0, 1)",
-      [qid, ctx.uid, vid, owner, insured, recommend]);
-
-    // 现在的方案没有代理商模块
-    // const multi = bluebird.promisifyAll(cache.multi()) as Multi;
-    // const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], null, "getVehicle", vid);
-    // if (vrep["code"] === 200) {
-    //   const vehicle = vrep["data"];
-    //   const prep = await rpcAsync<Object>(ctx.domain, process.env["PROFILE"], null, "getUserByUserId", vehicle["uid"]);
-    //   if (prep["code"] === 200) {
-    //     const profile = prep["data"];
-    //     if (profile["ticket"]) {
-    //       const cm: CustomerMessage = {
-    //         type: 1,
-    //         ticket: profile["ticket"],
-    //         cid: vehicle["uid"],
-    //         name: profile["nickname"],
-    //         qid: qid,
-    //         occurredAt: now
-    //       };
-    //       const pkt = await msgpack_encode(cm);
-    //       multi.lpush("agent-customer-msg-queue", pkt);
-    //     }
-    //   }
-    // }
-    // await multi.execAsync();
-
+    await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, recommend]);
     return {
       code: 200,
       data: { qid, created_at: now }
@@ -87,13 +56,39 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext,
     log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`, err);
     return {
       code: 500,
-      msg: "创建报价失败(QCQP500)"
+      msg: "创建报价失败(QCQP500)",
     };
   }
 });
 
-async function sync_quotation(ctx: ProcessorContext,
-  qid?: string): Promise<any> {
+processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: string, owner: string, insured: string, recommend: string, inviter: string, items: any[], qid: string) => {
+  log.info(`createAgentQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, inviter: ${inviter}, items: ${JSON.stringify(items)}, qid: ${qid}`);
+  const db: PGClient = ctx.db;
+  await db.query("BEGIN");
+  await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, inviter, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, 0)", [qid, ctx.uid, vid, owner, insured, recommend, inviter, items[0]["insure"]]);
+  const ivalue = [];
+
+  for (const item of items) {
+    const id = uuid.v4();
+    const pid = item["pid"];
+    const price = item["price"];
+    const amount = item["amount"];
+    const unit = item["unit"];
+    const real_price = item["real_price"];
+    const type = item["type"];
+    const insure = item["insure"];
+    ivalue.push(` ('${id}', ${price}, ${amount}, '${unit}', ${real_price}, ${type}, ${insure}, '${qid}', '${pid}')`);
+  }
+  await db.query("INSERT INTO quotation_items (id, price, amount, unit, real_price, type, insure, qid, pid) VALUES" + ivalue.join(','));
+  await db.query("COMMIT");
+  await sync_quotation(ctx, qid);
+  return {
+    code: 200,
+    data: { qid, created_at: new Date() },
+  };
+});
+
+async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
   const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
   const quotation_slims = [];
