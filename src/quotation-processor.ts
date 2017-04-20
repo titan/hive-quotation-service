@@ -65,7 +65,7 @@ processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: s
   log.info(`createAgentQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, inviter: ${inviter}, items: ${JSON.stringify(items)}, qid: ${qid}`);
   const db: PGClient = ctx.db;
   await db.query("BEGIN");
-  await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, inviter, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, 0)", [qid, ctx.uid, vid, owner, insured, recommend, inviter, items[0]["insure"]]);
+  await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, inviter, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8, 0)", [qid, ctx.uid, vid, owner, insured, recommend, inviter, items[0]["insure"]]);
   const ivalue = [];
 
   for (const item of items) {
@@ -89,7 +89,7 @@ processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: s
 });
 
 async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.inviter, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations = [];
   const quotation_slims = [];
   let quotation = null;
@@ -166,7 +166,8 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
             promotion: parseFloat(row.promotion),
             insure: row.insure,
             auto: row.auto,
-            created_at: row.created_at
+            created_at: row.created_at,
+            inviter: row.inviter,
           };
           if (!owner_person) {
             log.info(`sync_quotation, owner: ${row.owner}`);
@@ -175,12 +176,12 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
             id: row.id,
             created_at: row.created_at, // 报价的创建时间
             owner: {
-              name: owner_person["name"]
+              name: owner_person["name"],
             }, // 车主姓名
             vehicle: {
               license_no: vhcl["license_no"],
               model: {
-                family_name: vhcl["model"]["family_name"]
+                family_name: vhcl["model"]["family_name"],
               }
             }
           };
@@ -193,7 +194,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
           item = {
             id: row.pid,
             plan: planDict[row.pid],
-            pairs: []
+            pairs: [],
           };
         }
         const qipair = {
@@ -201,7 +202,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
           price: parseFloat(row.price),
           real_price: parseFloat(row.real_price),
           amount: parseFloat(row.amount),
-          unit: row.unit
+          unit: row.unit,
         };
         item.pairs.push(qipair);
       }
