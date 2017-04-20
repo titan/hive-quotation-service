@@ -1,19 +1,21 @@
 {
   "dependencies": {
-    "@types/msgpack-lite": "^0.1.1",
-    "@types/node-schedule": "0.0.36",
-    "@types/pg-pool": "0.0.2",
-    "@types/redis": "^0.12.33",
-    "@types/uuid": "^2.0.29",
     "bunyan": "^1.8.1",
     "hive-service": "git+ssh://git@git.fengchaohuzhu.com:10022/server/hive-service.git",
     "hive-verify": "git+ssh://git@git.fengchaohuzhu.com:10022/server/hive-verify.git",
     "msgpack-lite": "^0.1.20",
     "nanomsg": "^3.2.1",
-    "node-schedule": "^1.2.0",
     "uuid": "^3.0.1",
     "pg-pool": "^1.4.0",
-    "ztyq-library": "git+ssh://git@git.fengchaohuzhu.com:10022/server/ztyq-library.git",
     "redis": "^2.6.2"
+  },
+  "devDependencies": {
+    "@types/msgpack-lite": "^0.1.1",
+    "@types/node-schedule": "0.0.36",
+    "@types/pg-pool": "0.0.2",
+    "@types/redis": "^0.12.33",
+    "@types/uuid": "^2.0.29",
+    "quotation-library": "git+ssh://git@git.fengchaohuzhu.com:10022/server/quotation-library.git",
+    "ztyq-library": "git+ssh://git@git.fengchaohuzhu.com:10022/server/ztyq-library.git"
   }
 }

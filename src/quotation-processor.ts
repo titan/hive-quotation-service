@@ -1,6 +1,9 @@
-import { Processor, ProcessorFunction, ProcessorContext, rpcAsync, msgpack_encode_async, msgpack_decode_async, set_for_response } from "hive-service";
+import { Processor, ProcessorFunction, ProcessorContext, rpcAsync, msgpack_encode_async, msgpack_decode_async, set_for_response, Result } from "hive-service";
 import { Client as PGClient, QueryResult } from "pg";
 import { createClient, RedisClient, Multi } from "redis";
+import { Quotation, QuotationItem, QuotationItemPair } from "quotation-library";
+import { Plan } from "plan-library";
+import { Vehicle } from "vehicle-library";
 import * as bluebird from "bluebird";
 import * as bunyan from "bunyan";
 import * as nanomsg from "nanomsg";
@@ -52,7 +55,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
       data: { qid, created_at: now }
     };
   } catch (err) {
-    ctx.report(3, err);
+    ctx.report(1, err);
     log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`, err);
     return {
       code: 500,
@@ -61,11 +64,11 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
   }
 });
 
-processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: string, owner: string, insured: string, recommend: string, inviter: string, items: any[], qid: string) => {
-  log.info(`createAgentQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, inviter: ${inviter}, items: ${JSON.stringify(items)}, qid: ${qid}`);
+processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: string, owner: string, insured: string, recommend: string, inviter: string, items: any[], real_value: number, price: number, qid: string) => {
+  log.info(`createAgentQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, inviter: ${inviter}, items: ${JSON.stringify(items)}, real_value: ${real_value}, price: ${price} qid: ${qid}`);
   const db: PGClient = ctx.db;
   await db.query("BEGIN");
-  await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, inviter, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8, 0)", [qid, ctx.uid, vid, owner, insured, recommend, inviter, items[0]["insure"]]);
+  await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, inviter, state, insure, auto, real_value, price) VALUES ($1, $2, $3, $4, $5, $6, $7, 3, $8, 0, $9, $10)", [qid, ctx.uid, vid, owner, insured, recommend, inviter, items[0]["insure"], real_value, price]);
   const ivalue = [];
 
   for (const item of items) {
@@ -89,21 +92,21 @@ processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: s
 });
 
 async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.inviter, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
-  const quotations = [];
-  const quotation_slims = [];
-  let quotation = null;
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const quotations: Quotation[] = [];
+  const quotation_slims: Quotation[] = [];
+  let quotation: Quotation = null;
   let quotation_slim = null;
-  let item = null;
-  let planDict = {};
-  const planr = await rpcAsync(ctx.domain, process.env["PLAN"], dbresult.rows[0]["uid"], "getPlans");
+  let item: QuotationItem = null;
+  const planDict: Map<string, Plan> = new Map<string, Plan>();
+  const planr: Result<Plan[]> = await rpcAsync<Plan[]>(ctx.domain, process.env["PLAN"], dbresult.rows[0]["uid"], "getPlans");
   try {
-    if (planr["code"] === 200) {
-      let plans = planr["data"];
+    if (planr.code === 200) {
+      const plans = planr.data;
       if (plans.length > 0) {
-        for (let p of plans) {
-          let planid = p["id"];
-          planDict[planid] = p;
+        for (const p of plans) {
+          const pid = p.id;
+          planDict[pid] = p;
         }
       }
     } else {
@@ -122,8 +125,8 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
           }
           let vhcl = null;
           await ctx.cache.sadd(`vids:${row.uid}`, row.vid);
-          const vrep = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], row.uid, "getVehicle", row.vid);
-          if (vrep["code"] === 200) {
+          const vrep: Result<Vehicle> = await rpcAsync<Vehicle>(ctx.domain, process.env["VEHICLE"], row.uid, "getVehicle", row.vid);
+          if (vrep.code === 200) {
             vhcl = vrep["data"];
             if (!vid_qid[row.vid]) {
               vid_qid[`${row.vid}:${row.uid}`] = row.id;
@@ -167,6 +170,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
             insure: row.insure,
             auto: row.auto,
             created_at: row.created_at,
+            updated_at: row.updated_at,
             inviter: row.inviter,
           };
           if (!owner_person) {
@@ -197,7 +201,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
             pairs: [],
           };
         }
-        const qipair = {
+        const qipair: QuotationItemPair = {
           type: row.type,
           price: parseFloat(row.price),
           real_price: parseFloat(row.real_price),
@@ -265,14 +269,7 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
   }
 });
 
-processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
-  acc_data: Object,
-  vid: string,
-  qid: string,
-  state: number,
-  owner: string,
-  insured: string,
-  insurer_code: string) => {
+processor.callAsync("saveQuotation", async (ctx: ProcessorContext, acc_data: any, vid: string, qid: string, state: number, owner: string, insured: string, insurer_code: string) => {
   log.info(`saveQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, qid: ${qid}, acc_data: ${JSON.stringify(acc_data)}, state: ${state}, owner: ${owner}, insured: ${insured}, insurer_code: ${insurer_code}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
@@ -419,7 +416,7 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
       await db.query("ROLLBACK");
       return {
         code: 500,
-        msg: "保存报价失败(QSQP500)"
+        msg: "保存报价失败(QSQP500)",
       };
     } catch (e) {
       ctx.report(1, err);
@@ -428,37 +425,5 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext,
     }
   }
 });
-
-// 不需要推送到微信
-// async function push_quotation_to_wechat(openid: string, name: string, model: string, license: string, qid: string, vid: string): Promise<any> {
-//   const path = `/wx/${process.env["WX_ENV"] === "test" ? "" : "wxpay/"}tmsgQuotedPrice1?user=${openid}&CarNo=${model}&No=${license}&Name=${name}&qid=${qid}&vid=${vid}`;
-//   const options = {
-//     hostname: process.env["WX_ENV"] === "test" ? "dev.fengchaohuzhu.com" : "m.fengchaohuzhu.com",
-//     method: "GET",
-//     path: path,
-//   };
-
-//   const req = http.request(options, function (res) {
-//     res.setEncoding("utf8");
-
-//     let body: string = "";
-//     res.on("data", function (buf) {
-//       body += buf;
-//     });
-
-//     res.on("end", function () {
-//       log.info(`push quotation to wechat response: ${body}`);
-//     });
-//   });
-
-//   req.setTimeout(60000, () => {
-//     const e: Error = new Error();
-//     e.name = "504";
-//     e.message = "自动报价推送到微信超时";
-//     log.error(e);
-//   });
-
-//   req.end();
-// }
 
 log.info("Start quotation processor");
