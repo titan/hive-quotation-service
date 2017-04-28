@@ -59,7 +59,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
     log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`, err);
     return {
       code: 500,
-      msg: "创建报价失败(QCQP500)",
+      msg: `创建报价失败(QCQP500: ${err.message})`,
     };
   }
 });

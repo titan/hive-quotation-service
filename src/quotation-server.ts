@@ -37,13 +37,14 @@ const adminOnly: Permission[] = [["mobile", false], ["admin", true]];
 export const server = new Server();
 
 // qid 手动报价不传
-server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, recommend: string, qid?: string) => {
+server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, recommend?: string, qid?: string) => {
   log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, qid: ${qid}`);
   try {
     await verify([
       uuidVerifier("vid", vid),
       uuidVerifier("owner", owner),
       uuidVerifier("insured", insured),
+      recommend ? stringVerifier("recommend", recommend) : null,
       qid ? uuidVerifier("qid", qid) : null,
     ].filter(x => x));
   } catch (err) {
@@ -55,7 +56,6 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
   }
   const set_insured_result = await rpcAsync<any>(ctx.domain, process.env["PROFILE"], ctx.uid, "setInsured", insured);
   if (set_insured_result["code"] !== 200) {
-    log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, qid: ${qid}, msg: ${set_insured_result["msg"]}`);
     return {
       code: set_insured_result["code"],
       msg: `设置互助会员信息失败(QCQ${set_insured_result["code"]}: ${set_insured_result["msg"]})`,
