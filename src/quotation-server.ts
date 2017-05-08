@@ -4,7 +4,7 @@ import * as uuid from "uuid";
 import * as bluebird from "bluebird";
 import * as crypto from "crypto";
 import { RedisClient, Multi } from "redis";
-import { verify, arrayVerifier, booleanVerifier, uuidVerifier, stringVerifier, numberVerifier, dateVerifier } from "hive-verify";
+import { verify, arrayWithTypeVerifier, booleanVerifier, objectVerifier, uuidVerifier, stringVerifier, numberVerifier, dateVerifier } from "hive-verify";
 import { getReferencePrice, getAccuratePrice, QuotePrice, Coverage, Option } from "ztyq-library";
 import { Quotation, QuotationItem, QuotationItemPair } from "quotation-library";
 import { Vehicle } from "vehicle-library";
@@ -78,7 +78,7 @@ server.callAsync("createAgentQuotation", mobileOnly, "创建报价", "从报价�
       uuidVerifier("insured", insured),
       recommend ? stringVerifier("recommend", recommend) : null,
       inviter ? stringVerifier("inviter", inviter) : null,
-      arrayVerifier("items", items),
+      arrayWithTypeVerifier(objectVerifier, "items", items),
       numberVerifier("real_value", real_value),
       numberVerifier("price", price),
       qid ? uuidVerifier("qid", qid) : null,
@@ -773,6 +773,35 @@ server.callAsync("getQuotationByVehicle", mobileOnly, "获取报价", "根据车
   } else {
     return { code: 404, msg: "报价或车辆不存在" };
   }
+});
+
+server.callAsync("cancelQuotations", mobileOnly, "取消报价", "批量取消报价", async (ctx: ServerContext, qids: string[]) => {
+  log.info(`cancelQuotations, uid: ${ctx.uid}, qids: ${JSON.stringify(qids)}`);
+  try {
+    await verify([
+      arrayWithTypeVerifier(uuidVerifier, "qids", qids),
+    ]);
+  } catch (err) {
+    ctx.report(3, err);
+    return {
+      code: 400,
+      msg: err.message,
+    };
+  }
+  for (const qid of qids) {
+    const qpkt = await ctx.cache.hgetAsync("quotation-slim-entities", qid);
+    if (qpkt) {
+      const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
+      if (quotation.uid !== ctx.uid) {
+        return { code: 403, msg: `跨用户取消报价 ${qid}` };
+      }
+    } else {
+      return { code: 404, msg: `报价 ${qid} 不存在` };
+    }
+  }
+  const pkt: CmdPacket = { cmd: "cancelQuotations", args: [qids] };
+  ctx.publish(pkt);
+  return await waitingAsync(ctx);
 });
 
 function vehicle_code2uuid(vehicle_code: string) {

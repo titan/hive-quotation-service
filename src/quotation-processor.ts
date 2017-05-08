@@ -430,4 +430,10 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext, acc_data: any
   }
 });
 
+processor.callAsync("cancelQuotations", async (ctx: ProcessorContext, qids: string[]) => {
+  const values = qids.join(",");
+  const result = await ctx.db.query(`UPDATE quotations SET deleted = true WHERE id IN (${values})`);
+  return { code: 200, data: "Okay" };
+});
+
 log.info("Start quotation processor");
