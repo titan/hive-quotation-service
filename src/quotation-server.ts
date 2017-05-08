@@ -743,6 +743,38 @@ server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报�
   }
 });
 
+server.callAsync("getQuotationByVehicle", mobileOnly, "获取报价", "根据车辆信息获取报价", async (ctx: ServerContext, vid: string, full?: boolean) => {
+  log.info(`getQuotationByVehicle, uid: ${ctx.uid}, vid: ${vid}`);
+  try {
+    await verify([
+      uuidVerifier("vid", vid),
+    ]);
+  } catch (err) {
+    ctx.report(3, err);
+    return {
+      code: 400,
+      msg: err.message,
+    };
+  }
+  const qid = await ctx.cache.hgetAsync("vid:uid-qid", `${ctx.uid}:${vid}`);
+  if (qid) {
+    const src = full ? "quotation-entities" : "quotation-slim-entities";
+    const qpkt = await ctx.cache.hgetAsync(src, qid);
+    if (qpkt) {
+      const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
+      if (quotation.uid === ctx.uid) {
+        return { code: 200, data: quotation };
+      } else {
+        return { code: 403, msg: "跨用户获取报价" };
+      }
+    } else {
+      return { code: 404, msg: "报价不存在" };
+    }
+  } else {
+    return { code: 404, msg: "报价或车辆不存在" };
+  }
+});
+
 function vehicle_code2uuid(vehicle_code: string) {
   if (vehicle_code) {
     return vehicle_code.substring(0, 8) + "-" + vehicle_code.substring(8, 12) + "-" + vehicle_code.substring(12, 16) + "-" + vehicle_code.substring(16, 20) + "-" + vehicle_code.substring(20, 32);
