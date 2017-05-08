@@ -92,7 +92,7 @@ processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: s
 });
 
 async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, q.discount, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations: Quotation[] = [];
   const quotation_slims: Quotation[] = [];
   let quotation: Quotation = null;
@@ -172,6 +172,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
             created_at: row.created_at,
             updated_at: row.updated_at,
             inviter: row.inviter,
+            discount: row.discount,
           };
           if (!owner_person) {
             log.info(`sync_quotation, owner: ${row.owner}`);
