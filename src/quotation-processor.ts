@@ -50,7 +50,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
       };
     }
     if (driving_view) {
-      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, driving_view, driving_view_verified, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend, driving_view]);
+      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, driving_view, driving_view_verify_state, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 3, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend, driving_view]);
     } else {
       await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend]);
     }
@@ -96,7 +96,7 @@ processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: s
 });
 
 async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, q.discount, q.driving_view, q.driving_view_verified, q.driving_view_refused_reason, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, q.discount, q.driving_view, q.driving_view_verify_state, q.driving_view_refused_reason, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations: Quotation[] = [];
   const quotation_slims: Quotation[] = [];
   let quotation: Quotation = null;
@@ -178,7 +178,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
             inviter: row.inviter,
             discount: row.discount,
             driving_view: row.driving_view,
-            driving_view_verified: row.driving_view_verified,
+            driving_view_verify_state: row.driving_view_verify_state,
             driving_view_refused_reason: row.driving_view_refused_reason,
           };
           if (!owner_person) {
