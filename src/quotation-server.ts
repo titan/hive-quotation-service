@@ -804,6 +804,34 @@ server.callAsync("cancelQuotations", mobileOnly, "取消报价", "批量取消�
   return await waitingAsync(ctx);
 });
 
+server.callAsync("updateDrivingView", mobileOnly, "更新行驶证", "更新行驶证", async (ctx: ServerContext, qid: string, driving_view: string) => {
+  log.info(`updateDrivingView, uid: ${ctx.uid}, qid: ${qid}, driving_view: ${driving_view}`);
+  try {
+    await verify([
+      uuidVerifier("qid", qid),
+      stringVerifier("driving_view", driving_view),
+    ]);
+  } catch (err) {
+    ctx.report(3, err);
+    return {
+      code: 400,
+      msg: err.message,
+    };
+  }
+  const qpkt = await ctx.cache.hgetAsync("quotation-slim-entities", qid);
+  if (qpkt) {
+    const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
+    if (quotation.uid !== ctx.uid) {
+      return { code: 403, msg: `跨用户更新报价 ${qid} 中的行驶证信息` };
+    }
+  } else {
+    return { code: 404, msg: `报价 ${qid} 不存在` };
+  }
+  const pkt: CmdPacket = { cmd: "updateDrivingView", args: [qid, driving_view] };
+  ctx.publish(pkt);
+  return await waitingAsync(ctx);
+});
+
 function vehicle_code2uuid(vehicle_code: string) {
   if (vehicle_code) {
     return vehicle_code.substring(0, 8) + "-" + vehicle_code.substring(8, 12) + "-" + vehicle_code.substring(12, 16) + "-" + vehicle_code.substring(16, 20) + "-" + vehicle_code.substring(20, 32);

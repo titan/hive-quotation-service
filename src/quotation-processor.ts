@@ -433,6 +433,17 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext, acc_data: any
 processor.callAsync("cancelQuotations", async (ctx: ProcessorContext, qids: string[]) => {
   const values = qids.join(",");
   const result = await ctx.db.query(`UPDATE quotations SET deleted = true WHERE id IN (${values})`);
+  for (const qid of qids) {
+    await sync_quotation(ctx, qid);
+  }
+  return { code: 200, data: "Okay" };
+});
+
+processor.callAsync("updateDrivingView", async (ctx: ProcessorContext, qid: string, driving_view: string) => {
+  const result = await ctx.db.query(`UPDATE quotations SET driving_view = $1 WHERE id = $2`, [driving_view, qid]);
+  if (result.rowCount > 0) {
+    await sync_quotation(ctx, qid);
+  }
   return { code: 200, data: "Okay" };
 });
 
