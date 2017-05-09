@@ -37,14 +37,16 @@ const adminOnly: Permission[] = [["mobile", false], ["admin", true]];
 export const server = new Server();
 
 // qid 手动报价不传
-server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, recommend?: string, qid?: string) => {
-  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}, qid: ${qid}`);
+server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, discount: number, recommend?: string, driving_view?: string, qid?: string) => {
+  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, qid: ${qid}`);
   try {
     await verify([
       uuidVerifier("vid", vid),
       uuidVerifier("owner", owner),
       uuidVerifier("insured", insured),
+      numberVerifier("discount", discount),
       recommend ? stringVerifier("recommend", recommend) : null,
+      driving_view ? urlVerifier("driving_view", driving_view) : null,
       qid ? uuidVerifier("qid", qid) : null,
     ].filter(x => x));
   } catch (err) {
@@ -64,7 +66,7 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
     insured = set_insured_result["data"];
   }
   qid = qid ? qid : uuid.v1();
-  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, owner, insured, recommend] };
+  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, owner, insured, discount, recommend, driving_view] };
   ctx.publish(pkt);
   return await waitingAsync(ctx);
 });

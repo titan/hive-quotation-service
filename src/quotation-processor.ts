@@ -34,8 +34,8 @@ quotation_trigger.bind(process.env["QUOTATION-TRIGGER"]);
 
 export const processor = new Processor();
 
-processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string, vid: string, owner: string, insured: string, recommend: string) => {
-  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`);
+processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string, vid: string, owner: string, insured: string, discount: number, recommend: string, driving_view: string) => {
+  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, driving_view: ${driving_view}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
 
@@ -43,20 +43,24 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
   try {
     const qresult = await db.query("SELECT id FROM quotations WHERE id = $1", [qid]);
     if (qresult.rowCount > 0) {
-      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, msg: 该报价已经存在`);
+      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, driving: ${driving_view}, msg: 该报价已经存在`);
       return {
         code: 404,
         msg: `该报价已经存在(QCQP404), qid: ${qid}`,
       };
     }
-    await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, recommend]);
+    if (driving_view) {
+      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, driving_view, driving_view_verified, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend, driving_view]);
+    } else {
+      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend]);
+    }
     return {
       code: 200,
       data: { qid, created_at: now }
     };
   } catch (err) {
     ctx.report(1, err);
-    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, recommend: ${recommend}`, err);
+    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, driving_view: ${driving_view}`, err);
     return {
       code: 500,
       msg: `创建报价失败(QCQP500: ${err.message})`,
