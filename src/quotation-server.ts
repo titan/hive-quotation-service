@@ -268,15 +268,8 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
           data: two_dates,
         };
       } catch (err) {
-        ctx.report(0, err);
-        const ref_requestData = JSON.stringify({
-          vid: vid,
-          owner: owner,
-          insured: insured,
-          insurer_code: insurer_code,
-          city_code: city_code,
-        });
         if (err.code === 408) {
+          ctx.report(0, err);
           log.error(`getReferenceQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured},  insurer_code: ${insurer_code}, city_code: ${city_code}, error: 智通接口超时`);
           return {
             code: 408,
@@ -439,10 +432,11 @@ function calculate_premium(vehicle_and_models, data) {
     acc[coverage["coverageCode"]] = coverage;
     return acc;
   }, {});
+
   // TODEL
-  log.info(`calculate_premium, data: ${JSON.stringify(data)}`);
-  log.info(`calculate_premium, origin_coverages: ${JSON.stringify(origin_coverages)}`);
-  log.info(`calculate_premium, modified_coverages: ${JSON.stringify(modified_coverages)}`);
+  //log.info(`calculate_premium, data: ${JSON.stringify(data)}`);
+  //log.info(`calculate_premium, origin_coverages: ${JSON.stringify(origin_coverages)}`);
+  //log.info(`calculate_premium, modified_coverages: ${JSON.stringify(modified_coverages)}`);
 
   const A_fee: number = Number(modified_coverages["A"]["insuredPremium"]) * 1.15 * 0.65;
   const B_fee: number = Number(modified_coverages["B"]["insuredPremium"]);
@@ -613,7 +607,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
     };
   }
   try {
-    const vehicle_result = await rpcAsync<Object>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", vid);
+    const vehicle_result = await rpcAsync<Vehicle>(ctx.domain, process.env["VEHICLE"], ctx.uid, "getVehicle", vid);
     if (vehicle_result["code"] === 200) {
       const vehicle_and_models = vehicle_result["data"];
       if (cache_first) {
@@ -658,7 +652,7 @@ server.callAsync("getAccurateQuotation", allowAll, "获得精准报价", "获得
         let insuredName: string = null;
         let insuredID: string = null;
         let insuredMobile: string = null;
-        const owner_result = await rpcAsync<Object>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", owner);
+        const owner_result = await rpcAsync<Person>(ctx.domain, process.env["PERSON"], ctx.uid, "getPerson", owner);
         if (owner_result["code"] === 200) {
           ownerName = owner_result["data"]["name"];
           ownerID = owner_result["data"]["identity_no"];
