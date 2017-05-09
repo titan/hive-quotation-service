@@ -720,7 +720,7 @@ server.callAsync("getLastQuotations", allowAll, "得到用户最后一次的报�
       const quotations_return = [];
       for (const vid_buff of vids_set_buff) {
         const vid: string = vid_buff.toString();
-        const qid_buff: Buffer = await ctx.cache.hgetAsync("vid:uid-qid", `${vid}:${ctx.uid}`);
+        const qid_buff: Buffer = await ctx.cache.hgetAsync("vid-uid:qid", `${vid}:${ctx.uid}`);
         if (qid_buff) {
           const qid: string = qid_buff.toString();
           const quotation_buff: Buffer = await ctx.cache.hgetAsync(src, qid);
@@ -756,7 +756,7 @@ server.callAsync("getQuotationByVehicle", mobileOnly, "获取报价", "根据车
       msg: err.message,
     };
   }
-  const qid = await ctx.cache.hgetAsync("vid:uid-qid", `${ctx.uid}:${vid}`);
+  const qid = await ctx.cache.hgetAsync("vid-uid:qid", `${ctx.uid}:${vid}`);
   if (qid) {
     const src = full ? "quotation-entities" : "quotation-slim-entities";
     const qpkt = await ctx.cache.hgetAsync(src, qid);
@@ -830,6 +830,33 @@ server.callAsync("updateDrivingView", mobileOnly, "更新行驶证", "更新行�
   const pkt: CmdPacket = { cmd: "updateDrivingView", args: [qid, driving_view] };
   ctx.publish(pkt);
   return await waitingAsync(ctx);
+});
+
+server.callAsync("getOwnerByVehicle", mobileOnly, "获取车主", "根据车辆信息和用户信息获取车主信息", async (ctx: ServerContext, vid: string) => {
+  log.info(`getOwnerByVehicle, uid: ${ctx.uid}, vid: ${vid}`);
+  try {
+    await verify([
+      uuidVerifier("vid", vid),
+    ]);
+  } catch (err) {
+    ctx.report(3, err);
+    return {
+      code: 400,
+      msg: err.message,
+    };
+  }
+  const qid: string = (await ctx.cache.hgetAsync("vid-uid:qid", `${vid}:${ctx.uid}`)).toString();
+  const qpkt = await ctx.cache.hgetAsync("quotation-entities", qid);
+  if (qpkt) {
+    const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
+    if (quotation.uid !== ctx.uid) {
+      return { code: 403, msg: `跨用户获取车辆 ${vid} 的车主信息` };
+    } else {
+      return { code: 200, data: quotation.owner };
+    }
+  } else {
+    return { code: 404, msg: `车辆 ${vid} 对应的报价 ${qid} 不存在` };
+  }
 });
 
 function vehicle_code2uuid(vehicle_code: string) {

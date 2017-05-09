@@ -232,7 +232,7 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
       multi.hset("quotation-slim-entities", quotation_slim["id"], buf);
     }
     for (const key of Object.keys(vid_qid)) {
-      multi.hset("vid:uid-qid", key, vid_qid[key]);
+      multi.hset("vid-uid:qid", key, vid_qid[key]);
     }
     return await multi.execAsync();
   } catch (err) {
@@ -251,7 +251,7 @@ processor.callAsync("refresh", async (ctx: ProcessorContext,
       // 全刷时除旧
       await cache.delAsync("quotation-entities");
       await cache.delAsync("quotation-slim-entities");
-      await cache.delAsync("vid:uid-qid");
+      await cache.delAsync("vid-uid:qid");
       const keys_vids_buff: Buffer[] = await cache.keysAsync("vids:*");
       for (const key_buff of keys_vids_buff) {
         const key: string = key_buff.toString();
