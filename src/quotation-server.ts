@@ -4,7 +4,7 @@ import * as uuid from "uuid";
 import * as bluebird from "bluebird";
 import * as crypto from "crypto";
 import { RedisClient, Multi } from "redis";
-import { verify, arrayWithTypeVerifier, booleanVerifier, objectVerifier, uuidVerifier, stringVerifier, numberVerifier, dateVerifier } from "hive-verify";
+import { verify, arrayWithTypeVerifier, booleanVerifier, dateVerifier, numberVerifier, objectVerifier, stringVerifier, urlVerifier, uuidVerifier } from "hive-verify";
 import { getReferencePrice, getAccuratePrice, QuotePrice, Coverage, Option } from "ztyq-library";
 import { Quotation, QuotationItem, QuotationItemPair } from "quotation-library";
 import { Vehicle } from "vehicle-library";
@@ -809,7 +809,7 @@ server.callAsync("updateDrivingView", mobileOnly, "更新行驶证", "更新行�
   try {
     await verify([
       uuidVerifier("qid", qid),
-      stringVerifier("driving_view", driving_view),
+      urlVerifier("driving_view", driving_view),
     ]);
   } catch (err) {
     ctx.report(3, err);
