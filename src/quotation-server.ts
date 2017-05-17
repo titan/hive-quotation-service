@@ -160,11 +160,12 @@ server.callAsync("refresh", adminOnly, "refresh", "refresh", async (ctx: ServerC
   return await waitingAsync(ctx);
 });
 
-server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获得参考报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, city_code: string, insurer_code: string) => {
+server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获得参考报价", async (ctx: ServerContext, vid: string, vin: string, owner: string, insured: string, city_code: string, insurer_code: string) => {
   log.info(`getReferenceQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, insurerCode: ${insurer_code}, cityCode: ${city_code}`);
   try {
     await verify([
       stringVerifier("vid", vid),
+      stringVerifier("vin", vin),
       uuidVerifier("owner", owner),
       uuidVerifier("insured", insured),
       stringVerifier("insurer_code", insurer_code),
@@ -197,13 +198,19 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
       if (response_no_result.code === 200) {
         responseNo = response_no_result["data"]["response_no"];
       } else {
-        log.error(`getReferenceQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured},  insurer_code: ${insurer_code}, city_code: ${city_code}, msg: 获取响应码失败`);
-        return {
-          code: response_no_result["code"],
-          msg: `获取响应码失败(QRQ${response_no_result["code"]}: ${response_no_result["msg"]})`,
-        };
+        log.info("通过车牌号获取响应码失败");
+        const response_no_resultByVin = await rpcAsync<any>(ctx.domain, process.env["VEHICLE"], ctx.uid, "fetchVehicleByVin", vin);
+        if(response_no_resultByVin.code === 200) {
+          responseNo = response_no_result["data"]["response_no"];
+        } else {
+          log.error(`getReferenceQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured},  insurer_code: ${insurer_code}, city_code: ${city_code}, msg: 获取响应码失败`);
+          return {
+            code: response_no_result["code"],
+            msg: `获取响应码失败(QRQ${response_no_result["code"]}: ${response_no_result["msg"]})`,
+          };
+        }
       }
-      const frameNo: string = vehicle.vin;;
+      const frameNo: string = vehicle.vin;
       const modelCode: string = vehicle_code2uuid(vehicle.model.vehicle_code);
       const engineNo: string = vehicle.engine_no;
       const isTrans: string = "0";
