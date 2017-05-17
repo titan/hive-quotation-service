@@ -34,8 +34,8 @@ quotation_trigger.bind(process.env["QUOTATION-TRIGGER"]);
 
 export const processor = new Processor();
 
-processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string, vid: string, owner: string, insured: string, discount: number, recommend: string, driving_view: string) => {
-  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, driving_view: ${driving_view}`);
+processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string, vid: string, owner: string, insured: string, discount: number, recommend: string, inviter: string, driving_view: string) => {
+  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, inviter: ${inviter}, driving_view: ${driving_view}`);
   const db: PGClient = ctx.db;
   const cache: RedisClient = ctx.cache;
 
@@ -43,16 +43,16 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
   try {
     const qresult = await db.query("SELECT id FROM quotations WHERE id = $1", [qid]);
     if (qresult.rowCount > 0) {
-      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, driving: ${driving_view}, msg: 该报价已经存在`);
+      log.error(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, inviter: ${inviter}, driving: ${driving_view}, msg: 该报价已经存在`);
       return {
         code: 404,
         msg: `该报价已经存在(QCQP404), qid: ${qid}`,
       };
     }
     if (driving_view) {
-      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, driving_view, driving_view_verify_state, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 3, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend, driving_view]);
+      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, inviter, driving_view, driving_view_verify_state, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 3, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend, inviter, driving_view]);
     } else {
-      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend]);
+      await db.query("INSERT INTO quotations (id, uid, vid, owner, insured, discount, recommend, inviter, state, insure, auto) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 1, 0, 1)", [qid, ctx.uid, vid, owner, insured, discount, recommend, inviter]);
     }
     return {
       code: 200,
@@ -60,7 +60,7 @@ processor.callAsync("createQuotation", async (ctx: ProcessorContext, qid: string
     };
   } catch (err) {
     ctx.report(1, err);
-    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, driving_view: ${driving_view}`, err);
+    log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, inviter: ${inviter}, driving_view: ${driving_view}`, err);
     return {
       code: 500,
       msg: `创建报价失败(QCQP500: ${err.message})`,
@@ -96,7 +96,7 @@ processor.callAsync("createAgentQuotation", async (ctx: ProcessorContext, vid: s
 });
 
 async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any> {
-  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, q.discount, q.driving_view, q.driving_view_verify_state, q.driving_view_refused_reason, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
+  const dbresult = await ctx.db.query("SELECT q.id, q.uid, q.owner, q.insured, q.recommend, q.vid, q.state, q.outside_quotation1, q.outside_quotation2, q.screenshot1, q.screenshot2, q.price AS qprice, q.real_value, q.promotion, q.insure AS qinsure, q.auto, q.created_at, q.updated_at, q.inviter, q.discount, q.driving_view, q.driving_view_verify_state, q.driving_view_refused_reason, i.id AS iid, i.pid, i.price, i.amount, trim(i.unit) AS unit, i.real_price, i.type, i.insure AS iinsure FROM quotations AS q INNER JOIN quotation_items i ON q.id = i.qid AND q.insure = i.insure AND q.deleted = false " + (qid ? " AND qid=$1 ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure" : " ORDER BY q.uid, q.vid, q.created_at DESC, q.id, i.pid, iinsure"), qid ? [qid] : []);
   const quotations: Quotation[] = [];
   const quotation_slims: Quotation[] = [];
   let quotation: Quotation = null;
@@ -186,11 +186,18 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
           }
           quotation_slim = {
             id: row.id,
+            uid: row.uid,
             created_at: row.created_at, // 报价的创建时间
             owner: {
+              id: owner_person["id"],
               name: owner_person["name"],
-            }, // 车主姓名
+            },
+            insured: {
+              id: insured_person["id"],
+              identity_no: insured_person["indentity_no"],
+            },
             vehicle: {
+              id: vhcl["id"],
               license_no: vhcl["license_no"],
               model: {
                 family_name: vhcl["model"]["family_name"],
@@ -435,8 +442,8 @@ processor.callAsync("saveQuotation", async (ctx: ProcessorContext, acc_data: any
 });
 
 processor.callAsync("cancelQuotations", async (ctx: ProcessorContext, qids: string[]) => {
-  const values = qids.join(",");
-  const result = await ctx.db.query(`UPDATE quotations SET deleted = true WHERE id IN (${values})`);
+  const list = qids.map(x => `'${x}'`).join(",");
+  const result = await ctx.db.query(`UPDATE quotations SET deleted = true WHERE id IN (${list})`, []);
   for (const qid of qids) {
     await sync_quotation(ctx, qid);
   }
@@ -444,7 +451,7 @@ processor.callAsync("cancelQuotations", async (ctx: ProcessorContext, qids: stri
 });
 
 processor.callAsync("updateDrivingView", async (ctx: ProcessorContext, qid: string, driving_view: string) => {
-  const result = await ctx.db.query(`UPDATE quotations SET driving_view = $1 WHERE id = $2`, [driving_view, qid]);
+  const result = await ctx.db.query(`UPDATE quotations SET driving_view = $1, driving_view_verify_state = $2 WHERE id = $3`, [driving_view, 2, qid]);
   if (result.rowCount > 0) {
     await sync_quotation(ctx, qid);
   }

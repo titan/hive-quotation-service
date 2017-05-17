@@ -37,8 +37,8 @@ const adminOnly: Permission[] = [["mobile", false], ["admin", true]];
 export const server = new Server();
 
 // qid 手动报价不传
-server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, discount: number, recommend?: string, driving_view?: string, qid?: string) => {
-  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, qid: ${qid}`);
+server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", async (ctx: ServerContext, vid: string, owner: string, insured: string, discount: number, recommend?: string, inviter?: string, driving_view?: string, qid?: string) => {
+  log.info(`createQuotation, sn: ${ctx.sn}, uid: ${ctx.uid}, vid: ${vid}, owner: ${owner}, insured: ${insured}, discount: ${discount}, recommend: ${recommend}, qid: ${qid}, inviter: ${inviter}`);
   try {
     await verify([
       uuidVerifier("vid", vid),
@@ -46,6 +46,7 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
       uuidVerifier("insured", insured),
       numberVerifier("discount", discount),
       recommend ? stringVerifier("recommend", recommend) : null,
+      inviter ? stringVerifier("inviter", inviter) : null,
       driving_view ? urlVerifier("driving_view", driving_view) : null,
       qid ? uuidVerifier("qid", qid) : null,
     ].filter(x => x));
@@ -66,7 +67,7 @@ server.callAsync("createQuotation", allowAll, "创建报价", "创建报价", as
     insured = set_insured_result["data"];
   }
   qid = qid ? qid : uuid.v1();
-  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, owner, insured, discount, recommend, driving_view] };
+  const pkt: CmdPacket = { cmd: "createQuotation", args: [qid, vid, owner, insured, discount, recommend, inviter, driving_view] };
   ctx.publish(pkt);
   return await waitingAsync(ctx);
 });
@@ -754,7 +755,7 @@ server.callAsync("getQuotationByVehicle", mobileOnly, "获取报价", "根据车
   }
   const qid = await ctx.cache.hgetAsync("vid-uid:qid", `${ctx.uid}:${vid}`);
   if (qid) {
-    const src = full ? "quotation-entities" : "quotation-slim-entities";
+    const src = full ? "quotation-entities" : "quotation-entities";
     const qpkt = await ctx.cache.hgetAsync(src, qid);
     if (qpkt) {
       const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
@@ -785,7 +786,7 @@ server.callAsync("cancelQuotations", mobileOnly, "取消报价", "批量取消�
     };
   }
   for (const qid of qids) {
-    const qpkt = await ctx.cache.hgetAsync("quotation-slim-entities", qid);
+    const qpkt = await ctx.cache.hgetAsync("quotation-entities", qid);
     if (qpkt) {
       const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
       if (quotation.uid !== ctx.uid) {
@@ -814,7 +815,7 @@ server.callAsync("updateDrivingView", mobileOnly, "更新行驶证", "更新行�
       msg: err.message,
     };
   }
-  const qpkt = await ctx.cache.hgetAsync("quotation-slim-entities", qid);
+  const qpkt = await ctx.cache.hgetAsync("quotation-entities", qid);
   if (qpkt) {
     const quotation: Quotation = await msgpack_decode_async(qpkt) as Quotation;
     if (quotation.uid !== ctx.uid) {
