@@ -102,22 +102,22 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
   let quotation: Quotation = null;
   let quotation_slim = null;
   let item: QuotationItem = null;
-  const planDict: Map<string, Plan> = new Map<string, Plan>();
-  const planr: Result<Plan[]> = await rpcAsync<Plan[]>(ctx.domain, process.env["PLAN"], dbresult.rows[0]["uid"], "getPlans");
   try {
-    if (planr.code === 200) {
-      const plans = planr.data;
-      if (plans.length > 0) {
-        for (const p of plans) {
-          const pid = p.id;
-          planDict[pid] = p;
-        }
-      }
-    } else {
-      return;
-    }
-    const vid_qid = {};
     if (dbresult.rowCount > 0) {
+      const planDict: Map<string, Plan> = new Map<string, Plan>();
+      const planr: Result<Plan[]> = await rpcAsync<Plan[]>(ctx.domain, process.env["PLAN"], dbresult.rows[0]["uid"], "getPlans");
+      if (planr.code === 200) {
+        const plans = planr.data;
+        if (plans.length > 0) {
+          for (const p of plans) {
+            const pid = p.id;
+            planDict[pid] = p;
+          }
+        }
+      } else {
+        return;
+      }
+      const vid_qid = {};
       for (const row of dbresult.rows) {
         if (quotation && quotation.id !== row.id || !quotation) {
           if (quotation) {
@@ -232,20 +232,31 @@ async function sync_quotation(ctx: ProcessorContext, qid?: string): Promise<any>
         quotations.push(quotation);
         quotation_slims.push(quotation_slim);
       }
+      const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
+      for (const quotation of quotations) {
+        const buf = await msgpack_encode_async(quotation);
+        multi.hset("quotation-entities", quotation["id"], buf);
+      }
+      for (const quotation_slim of quotation_slims) {
+        const buf = await msgpack_encode_async(quotation_slim);
+        multi.hset("quotation-slim-entities", quotation_slim["id"], buf);
+      }
+      for (const key of Object.keys(vid_qid)) {
+        multi.hset("vid-uid:qid", key, vid_qid[key]);
+      }
+      return await multi.execAsync();
+    }else{
+      if(qid){
+        const res_buf = await ctx.cache.hgetAsync("quotation-entities",qid);
+        if(res_buf){
+          const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
+          multi.hdel("quotation-entities",qid);
+          multi.hdel("quotation-slim-entities",qid);
+          return await multi.execAsync();
+        }
+      }
+      return;
     }
-    const multi = bluebird.promisifyAll(ctx.cache.multi()) as Multi;
-    for (const quotation of quotations) {
-      const buf = await msgpack_encode_async(quotation);
-      multi.hset("quotation-entities", quotation["id"], buf);
-    }
-    for (const quotation_slim of quotation_slims) {
-      const buf = await msgpack_encode_async(quotation_slim);
-      multi.hset("quotation-slim-entities", quotation_slim["id"], buf);
-    }
-    for (const key of Object.keys(vid_qid)) {
-      multi.hset("vid-uid:qid", key, vid_qid[key]);
-    }
-    return await multi.execAsync();
   } catch (err) {
     ctx.report(1, err);
     log.error(`sync_quotation, sn: ${ctx.sn}, uid: ${ctx.uid}, qid: ${qid}`, err);
