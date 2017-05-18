@@ -250,7 +250,7 @@ server.callAsync("getReferenceQuotation", allowAll, "获得参考报价", "获�
       const options: Option = {
         log: log,
         sn: ctx.sn,
-        disque: server.queue,
+        disque: server.queue_provider.instance(),
         queue: "quotation-package",
       };
       try {
@@ -368,7 +368,7 @@ async function requestAccurateQuotation(ctx: ServerContext, thpBizID: string, ci
     const options: Option = {
       log: log,
       sn: ctx.sn,
-      disque: server.queue,
+      disque: server.queue_provider.instance(),
       queue: "quotation-package",
     };
     const biBeginDate: string = fmtDateString(bi_begin_date);
